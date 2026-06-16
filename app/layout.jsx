@@ -2,7 +2,7 @@ import './globals.css';
 
 export const metadata = {
   title: 'Maktabah An Noor — Books That Illuminate The Heart',
-  description: 'Premium Islamic books — Arabic, Urdu, English and more. Browse our curated collection of books that illuminate the heart.',
+  description: 'Spreading beneficial knowledge — Qur'ans, Islamic Books & Essentials. Shipping across India. Orders via DM. Based in Chennai.',
 };
 
 export default function RootLayout({ children }) {

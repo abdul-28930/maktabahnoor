@@ -215,7 +215,7 @@ export default function HomePage() {
         <div className="hp-hero-grid" style={{position:'relative',zIndex:2,width:'100%',maxWidth:1320,margin:'0 auto',display:'grid',gridTemplateColumns:'1.4fr 1fr',gap:48,alignItems:'center'}}>
           {/* LEFT */}
           <div>
-            <div className="hp-hero-anim" style={{opacity:0,animation:'heroFadeUp .7s ease .3s both',display:'inline-flex',alignItems:'center',gap:8,color:'#b8965a',fontSize:12,letterSpacing:'3.5px',textTransform:'uppercase',marginBottom:28}}>✦ Est. 2025 · Islamic Bookstore</div>
+            <div className="hp-hero-anim" style={{opacity:0,animation:'heroFadeUp .7s ease .3s both',display:'inline-flex',alignItems:'center',gap:8,color:'#b8965a',fontSize:12,letterSpacing:'3.5px',textTransform:'uppercase',marginBottom:28}}>✦ Est. 2026 · Islamic Bookstore</div>
             <h1 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",lineHeight:.96,fontWeight:400}}>
               <span className="hp-hero-anim" style={{display:'block',opacity:0,animation:'heroInLeft .7s ease .5s both',fontSize:'clamp(54px,7vw,90px)',color:'#1b4332'}}>Maktabah</span>
               <span className="hp-hero-anim" style={{display:'block',opacity:0,animation:'heroInLeft .7s ease .65s both',fontSize:'clamp(58px,7.6vw,98px)',fontStyle:'italic',fontWeight:500,color:'#b8965a'}}>An Noor</span>
@@ -227,7 +227,7 @@ export default function HomePage() {
               <span style={{flex:1,height:1,background:'linear-gradient(90deg,rgba(27,67,50,0.25),transparent)'}}/>
             </div>
             <p className="hp-hero-anim" style={{opacity:0,animation:'heroFadeUp .7s ease 1s both',margin:'0 0 8px',fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:21,color:'#1b4332'}}>Books That Illuminate The Heart</p>
-            <p className="hp-hero-anim" style={{opacity:0,animation:'heroFadeUp .7s ease 1.05s both',margin:'0 0 34px',fontSize:14.5,lineHeight:1.7,color:'#6b6460',maxWidth:440,fontWeight:300}}>Premium Islamic books in Arabic, Urdu &amp; English — carefully selected and delivered across India.</p>
+            <p className="hp-hero-anim" style={{opacity:0,animation:'heroFadeUp .7s ease 1.05s both',margin:'0 0 34px',fontSize:14.5,lineHeight:1.7,color:'#6b6460',maxWidth:440,fontWeight:300}}>Spreading beneficial knowledge — Qur'ans, Islamic Books &amp; Essentials. Shipping across India. Based in Chennai.</p>
             <div className="hp-hero-anim" style={{opacity:0,animation:'heroScaleIn .6s ease 1.15s both',display:'flex',flexWrap:'wrap',gap:16}}>
               <Link href="/books" className="hp-btn-primary hp-glow-cta" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'#1b4332',color:'#fff',padding:'16px 30px',borderRadius:40,fontSize:14,letterSpacing:.4}}>Browse Collection <span style={{fontSize:16}}>→</span></Link>
               <Link href="/books?tag=New+Arrival" className="hp-btn-secondary hp-glow-cta" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',background:'transparent',color:'#1b4332',padding:'16px 30px',borderRadius:40,fontSize:14,letterSpacing:.4,border:'1px solid #1b4332',transition:'background .3s ease,color .3s ease'}}>View New Arrivals</Link>
@@ -374,8 +374,8 @@ export default function HomePage() {
           <div className="hp-reveal" style={{position:'relative',maxWidth:460}}>
             <div style={{color:'#d4ab70',fontSize:12,letterSpacing:'3.5px',textTransform:'uppercase',marginBottom:18}}>✦ Our Mission</div>
             <h2 style={{margin:'0 0 22px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(36px,4.4vw,52px)',color:'#fff',lineHeight:1.08}}>Every Home Deserves a Library</h2>
-            <p style={{margin:'0 0 18px',fontSize:15,lineHeight:1.8,color:'rgba(255,255,255,0.78)',fontWeight:300}}>Maktabah An Noor began with a simple conviction — that authentic Islamic knowledge should reach every doorstep. From the valleys of Kashmir, we curate trusted editions across Arabic, Urdu and English.</p>
-            <p style={{margin:'0 0 30px',fontSize:15,lineHeight:1.8,color:'rgba(255,255,255,0.78)',fontWeight:300}}>Each title is chosen with care for accuracy, binding quality and the light it brings to the heart.</p>
+            <p style={{margin:'0 0 18px',fontSize:15,lineHeight:1.8,color:'rgba(255,255,255,0.78)',fontWeight:300}}>Maktabah An Noor was founded in Chennai with a simple conviction — that authentic Islamic knowledge should reach every doorstep. We source and curate trusted editions across Arabic, Urdu and English.</p>
+            <p style={{margin:'0 0 30px',fontSize:15,lineHeight:1.8,color:'rgba(255,255,255,0.78)',fontWeight:300}}>Each title is chosen with care for accuracy, binding quality, and the light it brings to the heart. Orders &amp; enquiries via DM on Instagram.</p>
             <Link href="/books" className="hp-glow-cta" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'#b8965a',color:'#1b4332',padding:'15px 30px',borderRadius:40,fontSize:14,letterSpacing:.4,fontWeight:500}}>Explore Collection →</Link>
           </div>
         </div>
@@ -444,7 +444,7 @@ export default function HomePage() {
               <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:600,color:'#fff'}}>Maktabah An Noor</span>
             </div>
             <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:18,color:'#d4ab70',margin:'0 0 10px'}}>Books That Illuminate The Heart</p>
-            <div style={{fontSize:12,letterSpacing:'1.5px',textTransform:'uppercase',color:'rgba(255,255,255,0.55)'}}>Est. 2025 · Kashmir Based</div>
+            <div style={{fontSize:12,letterSpacing:'1.5px',textTransform:'uppercase',color:'rgba(255,255,255,0.55)'}}>Est. 2026 · Chennai Based</div>
           </div>
           <div style={{textAlign:'center'}}>
             <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:30,color:'#b8965a',marginBottom:22}}>رَبِّ اغْفِرْ وَارْحَمْ</div>
@@ -463,7 +463,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        <div style={{position:'relative',marginTop:64,borderTop:'1px solid rgba(184,150,90,0.3)',padding:'24px 0',textAlign:'center',fontSize:12,letterSpacing:1,color:'rgba(255,255,255,0.5)'}}>© 2025 Maktabah An Noor · Built with care for the Ummah</div>
+        <div style={{position:'relative',marginTop:64,borderTop:'1px solid rgba(184,150,90,0.3)',padding:'24px 0',textAlign:'center',fontSize:12,letterSpacing:1,color:'rgba(255,255,255,0.5)'}}>© 2026 Maktabah An Noor · Built with care for the Ummah</div>
       </footer>
 
       {/* ── MOBILE MENU ── */}
