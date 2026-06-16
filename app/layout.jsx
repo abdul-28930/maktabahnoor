@@ -2,7 +2,7 @@ import './globals.css';
 
 export const metadata = {
   title: 'Maktabah An Noor — Books That Illuminate The Heart',
-  description: 'Spreading beneficial knowledge — Qur'ans, Islamic Books & Essentials. Shipping across India. Orders via DM. Based in Chennai.',
+  description: "Spreading beneficial knowledge — Qurans, Islamic Books & Essentials. Shipping across India. Orders via DM. Based in Chennai.",
 };
 
 export default function RootLayout({ children }) {
