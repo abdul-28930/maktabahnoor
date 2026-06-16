@@ -279,7 +279,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [] }) {
         </div>
         <div className="hp-four-grid" style={{position:'relative',maxWidth:1180,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:22}}>
           {DISPLAY_CATS.map((cat,i)=>(
-            <Link key={cat.name} href={`/books?category=${encodeURIComponent(cat.slug)}`} className="hp-cat-card hp-reveal" style={{opacity:0,transform:'translateY(24px)',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(184,150,90,0.32)',borderRadius:14,padding:'32px 20px',textAlign:'center',cursor:'pointer',textDecoration:'none',display:'block'}} data-reveal data-reveal-delay={i*0.07}>
+            <Link key={cat.name} href={`/books?category=${encodeURIComponent(cat.slug)}`} className="hp-cat-card hp-reveal" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(184,150,90,0.32)',borderRadius:14,padding:'32px 20px',textAlign:'center',cursor:'pointer',textDecoration:'none',display:'block'}} data-reveal data-reveal-delay={i*0.07}>
               <div className="hp-cat-ic" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:42,color:'#d4ab70',lineHeight:1,marginBottom:14}}>{cat.ar}</div>
               <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:21,color:'#fff'}}>{cat.name}</div>
             </Link>
@@ -368,40 +368,112 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [] }) {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer style={{position:'relative',zIndex:1,background:'#1b4332',color:'rgba(255,255,255,0.85)',padding:'80px clamp(20px,5vw,72px) 0',overflow:'hidden'}}>
-        <svg width="100%" style={{position:'absolute',left:0,top:-60,width:'100%',height:'calc(100% + 120px)',zIndex:0,pointerEvents:'none',animation:'patDrift 40s linear infinite',opacity:.6}} aria-hidden="true">
-          <defs><pattern id="footStars" width="60" height="60" patternUnits="userSpaceOnUse"><g fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1"><rect x="15" y="15" width="30" height="30"/><rect x="15" y="15" width="30" height="30" transform="rotate(45 30 30)"/></g></pattern></defs>
-          <rect x="0" y="0" width="100%" height="100%" fill="url(#footStars)"/>
-        </svg>
-        <div style={{position:'relative',maxWidth:1200,margin:'0 auto',display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',gap:44}}>
-          <div>
-            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16}}>
-              <Image src="/logo.png" alt="Logo" width={38} height={38} style={{height:38,width:'auto',filter:'brightness(1.1)'}}/>
-              <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:600,color:'#fff'}}>Maktabah An Noor</span>
-            </div>
-            <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:18,color:'#d4ab70',margin:'0 0 10px'}}>Books That Illuminate The Heart</p>
-            <div style={{fontSize:12,letterSpacing:'1.5px',textTransform:'uppercase',color:'rgba(255,255,255,0.55)'}}>Est. 2026 · Chennai, India</div>
+      {/* PRE-FOOTER CTA */}
+      <section style={{position:'relative',zIndex:1,background:'#f4f1e9',borderTop:'1px solid rgba(27,67,50,0.08)',padding:'64px clamp(20px,5vw,72px)',textAlign:'center',overflow:'hidden'}}>
+        <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',fontFamily:"'Noto Naskh Arabic',serif",fontSize:200,color:'rgba(27,67,50,0.04)',pointerEvents:'none',whiteSpace:'nowrap',lineHeight:1}}>بِسْمِ اللهِ</div>
+        <div className="hp-reveal" style={{position:'relative',maxWidth:640,margin:'0 auto'}}>
+          <div style={{fontSize:10,letterSpacing:'3px',textTransform:'uppercase',color:'#b8965a',marginBottom:16,display:'flex',alignItems:'center',justifyContent:'center',gap:10}}>
+            <span style={{width:24,height:1,background:'#b8965a',display:'inline-block'}}/>✦ Order via Instagram<span style={{width:24,height:1,background:'#b8965a',display:'inline-block'}}/>
           </div>
-          <div style={{textAlign:'center'}}>
-            <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:30,color:'#b8965a',marginBottom:22}}>رَبِّ اغْفِرْ وَارْحَمْ</div>
-            <div style={{display:'flex',flexDirection:'column',gap:12}}>
-              {[['#collection','Collection'],['#categories','Categories'],['#new-arrivals','New Arrivals'],['#about','About']].map(([h,l])=>(
-                <a key={l} href={h} className="hp-nlink" style={{textDecoration:'none',color:'rgba(255,255,255,0.78)',fontSize:14}}>{l}</a>
+          <h2 style={{margin:'0 0 14px',fontFamily:"'Cormorant Garamond',serif",fontWeight:400,fontSize:'clamp(32px,4vw,48px)',color:'#1b4332',lineHeight:1.1}}>Ready to build your home library?</h2>
+          <p style={{margin:'0 0 32px',fontSize:15,color:'#6b6460',lineHeight:1.75,fontWeight:300}}>Browse our collection and DM us on Instagram with your order. We confirm availability and dispatch swiftly across India.</p>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:14,flexWrap:'wrap'}}>
+            <a href={IG_URL} target="_blank" rel="noreferrer" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'#1b4332',color:'#fff',padding:'15px 30px',borderRadius:40,fontSize:14,letterSpacing:.4,boxShadow:'0 6px 24px rgba(27,67,50,0.2)'}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+              DM Us on Instagram →
+            </a>
+            <Link href="/books" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:8,border:'1.5px solid rgba(27,67,50,0.22)',color:'#1b4332',padding:'15px 28px',borderRadius:40,fontSize:14,letterSpacing:.4}}>Browse Collection</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer style={{position:'relative',zIndex:1,background:'#1b4332',color:'rgba(255,255,255,0.85)',overflow:'hidden'}}>
+        {/* Footer pattern */}
+        <svg width="100%" style={{position:'absolute',left:0,top:-60,width:'100%',height:'calc(100% + 120px)',zIndex:0,pointerEvents:'none',animation:'patDrift 40s linear infinite',opacity:.5}} aria-hidden="true">
+          <defs><pattern id="footPat" width="60" height="60" patternUnits="userSpaceOnUse"><g fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1"><rect x="15" y="15" width="30" height="30"/><rect x="15" y="15" width="30" height="30" transform="rotate(45 30 30)"/><circle cx="30" cy="30" r="3"/></g></pattern></defs>
+          <rect x="0" y="0" width="100%" height="100%" fill="url(#footPat)"/>
+        </svg>
+
+        {/* Main footer content */}
+        <div style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'72px clamp(20px,5vw,72px) 0',display:'grid',gridTemplateColumns:'1.6fr 1fr 1fr 1.2fr',gap:48}}>
+
+          {/* Brand column */}
+          <div>
+            <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+              <Image src="/logo.png" alt="Logo" width={44} height={44} style={{height:44,width:'auto',filter:'brightness(1.1)'}}/>
+              <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,color:'#fff'}}>Maktabah An Noor</span>
+            </div>
+            <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:17,color:'#d4ab70',margin:'0 0 10px'}}>Books That Illuminate The Heart</p>
+            <p style={{fontSize:12,color:'rgba(255,255,255,0.45)',letterSpacing:'1.5px',textTransform:'uppercase',margin:'0 0 24px'}}>Est. 2026 · Chennai, India</p>
+            <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:24,color:'rgba(184,150,90,0.55)',lineHeight:1.6}}>مكتبة النور</div>
+          </div>
+
+          {/* Quick links */}
+          <div>
+            <div style={{fontSize:9,letterSpacing:'2.5px',textTransform:'uppercase',color:'#d4ab70',marginBottom:20,display:'flex',alignItems:'center',gap:8}}><span style={{width:12,height:1,background:'#d4ab70',display:'inline-block'}}/>Navigate</div>
+            <div style={{display:'flex',flexDirection:'column',gap:13}}>
+              {[['#collection','Featured Books'],['#categories','Browse Categories'],['#new-arrivals','New Arrivals'],['#about','Our Mission'],['/books','Full Collection']].map(([href,label])=>(
+                <a key={label} href={href} style={{textDecoration:'none',color:'rgba(255,255,255,0.65)',fontSize:14,fontWeight:300,transition:'color .15s,paddingLeft .15s',display:'flex',alignItems:'center',gap:8}}
+                  onMouseEnter={e=>{e.currentTarget.style.color='#d4ab70';e.currentTarget.style.paddingLeft='4px';}}
+                  onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.65)';e.currentTarget.style.paddingLeft='0';}}>{label}</a>
               ))}
             </div>
           </div>
+
+          {/* Collection categories */}
           <div>
-            <div style={{fontSize:12,letterSpacing:'2px',textTransform:'uppercase',color:'#d4ab70',marginBottom:18}}>Get in Touch</div>
-            <div style={{fontSize:14,lineHeight:1.9,color:'rgba(255,255,255,0.78)',fontWeight:300}}>
-              <div>Instagram · @maktabahannoor</div>
-              <div>Delivery across all India</div>
-              <div>Arabic · Urdu · English</div>
+            <div style={{fontSize:9,letterSpacing:'2.5px',textTransform:'uppercase',color:'#d4ab70',marginBottom:20,display:'flex',alignItems:'center',gap:8}}><span style={{width:12,height:1,background:'#d4ab70',display:'inline-block'}}/>Collection</div>
+            <div style={{display:'flex',flexDirection:'column',gap:13}}>
+              {['Aqeedah','Hadith','Tafsir','Fiqh','Seerah','Manners & Character','History'].map(cat=>(
+                <Link key={cat} href={'/books?category='+encodeURIComponent(cat)} style={{textDecoration:'none',color:'rgba(255,255,255,0.65)',fontSize:14,fontWeight:300,transition:'color .15s,paddingLeft .15s',display:'flex',alignItems:'center',gap:8}}
+                  onMouseEnter={e=>{e.currentTarget.style.color='#d4ab70';e.currentTarget.style.paddingLeft='4px';}}
+                  onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.65)';e.currentTarget.style.paddingLeft='0';}}>{cat}</Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Contact / How to order */}
+          <div>
+            <div style={{fontSize:9,letterSpacing:'2.5px',textTransform:'uppercase',color:'#d4ab70',marginBottom:20,display:'flex',alignItems:'center',gap:8}}><span style={{width:12,height:1,background:'#d4ab70',display:'inline-block'}}/>How to Order</div>
+            <div style={{display:'flex',flexDirection:'column',gap:14}}>
+              {['Browse our collection online','DM us on Instagram with your order','We confirm & share the total','Packed & dispatched across India'].map((step,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'flex-start',gap:12}}>
+                  <span style={{width:20,height:20,borderRadius:'50%',background:'rgba(184,150,90,0.2)',border:'1px solid rgba(184,150,90,0.4)',color:'#d4ab70',fontSize:10,fontWeight:500,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',marginTop:1}}>{i+1}</span>
+                  <span style={{fontSize:13,color:'rgba(255,255,255,0.65)',lineHeight:1.5,fontWeight:300}}>{step}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:24,paddingTop:20,borderTop:'1px solid rgba(255,255,255,0.08)'}}>
+              <a href={IG_URL} target="_blank" rel="noreferrer"
+                style={{display:'inline-flex',alignItems:'center',gap:10,padding:'11px 20px',background:'rgba(184,150,90,0.15)',border:'1px solid rgba(184,150,90,0.35)',borderRadius:30,textDecoration:'none',color:'#d4ab70',fontSize:13,letterSpacing:.4,transition:'background .2s'}}
+                onMouseEnter={e=>e.currentTarget.style.background='rgba(184,150,90,0.25)'}
+                onMouseLeave={e=>e.currentTarget.style.background='rgba(184,150,90,0.15)'}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                @maktabahannoor
+              </a>
             </div>
           </div>
         </div>
-        <div style={{position:'relative',marginTop:64,borderTop:'1px solid rgba(184,150,90,0.3)',padding:'24px 0',textAlign:'center',fontSize:12,letterSpacing:1,color:'rgba(255,255,255,0.5)'}}>© 2026 Maktabah An Noor · Built with care for the Ummah</div>
+
+        {/* Islamic quote */}
+        <div style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'40px clamp(20px,5vw,72px) 0',display:'flex',alignItems:'center',gap:24}}>
+          <div style={{height:1,flex:1,background:'rgba(255,255,255,0.06)'}}/>
+          <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:18,color:'rgba(184,150,90,0.5)',letterSpacing:.5,textAlign:'center'}}>رَبِّ اغْفِرْ وَارْحَمْ وَأَنْتَ خَيْرُ الرَّاحِمِينَ</div>
+          <div style={{height:1,flex:1,background:'rgba(255,255,255,0.06)'}}/>
+        </div>
+
+        {/* Bottom bar */}
+        <div style={{position:'relative',zIndex:1,borderTop:'1px solid rgba(255,255,255,0.06)',marginTop:40,padding:'20px clamp(20px,5vw,72px)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+          <span style={{fontSize:12,color:'rgba(255,255,255,0.35)',letterSpacing:.5}}>© 2026 Maktabah An Noor · Built with care for the Ummah</span>
+          <div style={{display:'flex',alignItems:'center',gap:20}}>
+            <span style={{fontSize:11,color:'rgba(255,255,255,0.3)',letterSpacing:1,textTransform:'uppercase'}}>Chennai, India</span>
+            <span style={{fontSize:11,color:'rgba(255,255,255,0.3)',letterSpacing:1,textTransform:'uppercase'}}>Arabic · Urdu · English</span>
+            <span style={{fontSize:11,color:'rgba(255,255,255,0.3)',letterSpacing:1,textTransform:'uppercase'}}>Pan-India Delivery</span>
+          </div>
+        </div>
       </footer>
+
     </div>
   );
 }
