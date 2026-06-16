@@ -61,10 +61,14 @@ export default function AdminPage() {
     if (!pw.trim()) return;
     setLoading(true); setPwErr('');
     try {
-      const check = await fetch('/api/books',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw,title:'__auth__'})});
-      if (check.status===401) throw new Error('Incorrect password.');
-      const cd = await check.json();
-      if (cd.slug) await fetch(`/api/books/${cd.slug}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+      const r = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ password: pw }),
+      });
+      const d = await r.json();
+      if (r.status === 401) throw new Error('Incorrect password.');
+      if (!r.ok) throw new Error(d.error || 'Server error. Check ADMIN_PASSWORD env var.');
       setSession(pw); await loadBooks(pw); setView('dashboard'); setPw('');
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }

@@ -12,7 +12,7 @@ export default function BookCard({ book }) {
   return (
     <Link href={`/book/${book.slug}`} className="book-card">
       <div className="book-cover">
-        {book.coverUrl ? (
+        {book.coverUrl && book.coverUrl !== '__base64__' ? (
           <img src={book.coverUrl} alt={book.title} loading="lazy" />
         ) : (
           <div className="book-cover-placeholder">
