@@ -149,12 +149,61 @@ export default function BookPage() {
             <span style={{color:'#b8965a',fontSize:12}}>✦</span>
           </div>
 
+          {/* SKU */}
+          {book.sku && (
+            <div style={{fontSize:11,color:'#a09890',letterSpacing:1.5,textTransform:'uppercase',marginBottom:16}}>
+              SKU: <span style={{color:'#6b6460',fontWeight:500}}>{book.sku}</span>
+            </div>
+          )}
+
+          {/* Pricing */}
+          {(book.mrp || book.price) && (
+            <div style={{marginBottom:20,padding:'20px 24px',background:'linear-gradient(135deg,rgba(27,67,50,0.04),rgba(184,150,90,0.04))',borderRadius:16,border:'1px solid rgba(27,67,50,0.08)'}}>
+              <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                {book.mrp && book.price && book.mrp > book.price && (
+                  <span style={{fontSize:20,color:'#a09890',textDecoration:'line-through',fontFamily:"'Cormorant Garamond',serif"}}>
+                    ₹{Number(book.mrp).toLocaleString('en-IN')}
+                  </span>
+                )}
+                <span style={{fontSize:36,fontWeight:500,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif",lineHeight:1}}>
+                  ₹{Number(book.price || book.mrp).toLocaleString('en-IN')}
+                </span>
+                {book.mrp && book.price && book.mrp > book.price && (
+                  <span style={{padding:'5px 14px',borderRadius:20,background:'rgba(45,106,79,0.12)',color:'#2d6a4f',fontSize:13,fontWeight:500}}>
+                    {Math.round((1 - book.price/book.mrp)*100)}% off
+                  </span>
+                )}
+                {book.offerType && (
+                  <span style={{padding:'5px 14px',borderRadius:20,fontSize:11,fontWeight:500,letterSpacing:1,textTransform:'uppercase',
+                    background:book.offerType==='Sale'?'rgba(220,38,38,0.1)':book.offerType==='Limited Edition'?'rgba(124,58,237,0.1)':'rgba(184,150,90,0.1)',
+                    border:book.offerType==='Sale'?'1px solid rgba(220,38,38,0.3)':book.offerType==='Limited Edition'?'1px solid rgba(124,58,237,0.3)':'1px solid rgba(184,150,90,0.3)',
+                    color:book.offerType==='Sale'?'#dc2626':book.offerType==='Limited Edition'?'#7c3aed':'#b8965a'}}>
+                    {book.offerType}
+                  </span>
+                )}
+              </div>
+              {book.mrp && book.price && book.mrp > book.price && (
+                <div style={{fontSize:13,color:'#6b6460',marginTop:8,fontWeight:300}}>
+                  You save ₹{(book.mrp - book.price).toLocaleString('en-IN')}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Stock badge */}
           <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 20px',borderRadius:30,marginBottom:28,
             background:book.inStock?'rgba(45,106,79,0.08)':'rgba(180,60,60,0.06)',
             border:`1px solid ${book.inStock?'rgba(45,106,79,0.2)':'rgba(180,60,60,0.15)'}`,
             color:book.inStock?'#2d6a4f':'#b44444',fontSize:12,fontWeight:500,letterSpacing:1,textTransform:'uppercase'}}>
             <span style={{width:7,height:7,borderRadius:'50%',background:'currentColor'}}/>
-            {book.inStock ? 'In Stock' : 'Out of Stock'}
+            {book.stockCount !== undefined && book.stockCount !== null
+              ? book.stockCount === 0
+                ? 'Out of Stock'
+                : book.stockCount <= 5
+                  ? `Only ${book.stockCount} left!`
+                  : 'In Stock'
+              : book.inStock ? 'In Stock' : 'Out of Stock'
+            }
           </div>
 
           {book.description && (
