@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import PageBackground from '@/components/PageBackground';
 import { CATEGORIES, LANGUAGES, TAGS } from '@/lib/constants';
+import { useCart } from '@/context/CartContext';
 
 /* ── constants ── */
 const COVER_BKGS = [
@@ -33,6 +34,15 @@ function GridCard({ book, idx }) {
   const ar  = CAT_AR[book.category] || 'كتاب';
   const tag = book.tags?.includes('New Arrival') ? 'New Arrival'
             : book.tags?.includes('Bestseller')  ? 'Bestseller'  : null;
+  const { addToCart, isInCart } = useCart();
+  const inCart = isInCart(book.slug);
+
+  function handleAddToCart(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(book);
+  }
+
   return (
     <Link href={`/book/${book.slug}`} style={{textDecoration:'none',color:'inherit',display:'flex',flexDirection:'column',background:'#fff',borderRadius:16,overflow:'hidden',border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 16px rgba(27,67,50,0.05)',transition:'transform .3s,box-shadow .3s'}}
       onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-5px)';e.currentTarget.style.boxShadow='0 18px 40px rgba(27,67,50,0.13)';}}
@@ -61,6 +71,14 @@ function GridCard({ book, idx }) {
         {book.titleAr && <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:13,color:'#b8965a',direction:'rtl'}}>{book.titleAr}</div>}
         <div style={{fontSize:12,color:'#6b6460',fontWeight:300,marginTop:'auto',paddingTop:4}}>{book.author}</div>
         {book.volumes > 1 && <div style={{fontSize:10,color:'#b8965a',letterSpacing:.5}}>{book.volumes} Volumes</div>}
+        {book.inStock !== false && (
+          <button className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`} onClick={handleAddToCart}>
+            {inCart
+              ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added</>
+              : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
+            }
+          </button>
+        )}
       </div>
     </Link>
   );
@@ -97,8 +115,25 @@ function ListCard({ book }) {
         <span style={{padding:'4px 12px',borderRadius:20,fontSize:9,fontWeight:500,letterSpacing:.8,textTransform:'uppercase',background:book.inStock?'rgba(45,106,79,0.08)':'rgba(180,60,60,0.07)',color:book.inStock?'#2d6a4f':'#b44',border:`1px solid ${book.inStock?'rgba(45,106,79,0.2)':'rgba(180,60,60,0.15)'}`}}>
           {book.inStock ? 'In Stock' : 'Out of Stock'}
         </span>
+        {book.inStock !== false && (
+          <AddToCartListBtn book={book}/>
+        )}
       </div>
     </Link>
+  );
+}
+
+function AddToCartListBtn({ book }) {
+  const { addToCart, isInCart } = useCart();
+  const inCart = isInCart(book.slug);
+  function handleAddToCart(e) { e.preventDefault(); e.stopPropagation(); addToCart(book); }
+  return (
+    <button className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`} onClick={handleAddToCart} style={{marginTop:4}}>
+      {inCart
+        ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added</>
+        : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
+      }
+    </button>
   );
 }
 

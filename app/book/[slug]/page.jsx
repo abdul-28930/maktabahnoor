@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { IG_URL, IG_HANDLE } from '@/lib/constants';
+import { useCart } from '@/context/CartContext';
 import PageBackground from '@/components/PageBackground';
 
 const CAT_AR = {
@@ -18,6 +19,7 @@ export default function BookPage() {
   const [book, setBook]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const { addToCart, isInCart } = useCart();
 
   useEffect(() => {
     if (!slug) return;
@@ -224,6 +226,19 @@ export default function BookPage() {
           )}
 
           <div style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:24}}>
+            {/* Add to Cart */}
+            {book.inStock !== false && (
+              <button
+                className={`book-add-to-cart book-add-to-cart--lg${isInCart(book.slug)?' book-add-to-cart--in':''}`}
+                onClick={() => addToCart(book)}
+              >
+                {isInCart(book.slug) ? (
+                  <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added to Cart</>
+                ) : (
+                  <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
+                )}
+              </button>
+            )}
             <a href={`${IG_URL}?text=Assalamualaikum, I would like to order: ${encodeURIComponent(book.title)}`}
               target="_blank" rel="noreferrer"
               style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'#1b4332',color:'#fff',padding:'16px 32px',borderRadius:40,fontSize:14,letterSpacing:.4,boxShadow:'0 6px 20px rgba(27,67,50,0.25)'}}>
