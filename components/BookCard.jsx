@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 
 const TAG_STYLES = {
   'New Arrival': 'badge-new',
@@ -11,13 +12,21 @@ const TAG_STYLES = {
 
 export default function BookCard({ book }) {
   const { addToCart, isInCart } = useCart();
+  const { toggleWishlist, isWishlisted } = useWishlist();
   const topTag  = book.tags?.find(t => TAG_STYLES[t]);
   const inCart  = isInCart(book.slug);
+  const wished  = isWishlisted(book.slug);
 
   function handleAddToCart(e) {
     e.preventDefault();   // don't navigate to book page
     e.stopPropagation();
     addToCart(book);
+  }
+
+  function handleWishlist(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWishlist(book);
   }
 
   return (
@@ -39,6 +48,14 @@ export default function BookCard({ book }) {
             <span className="out-of-stock-label">Out of Stock</span>
           </div>
         )}
+        <button
+          onClick={handleWishlist}
+          aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}
+          style={{position:'absolute',top:10,right:10,width:32,height:32,borderRadius:'50%',border:'none',background:'rgba(255,255,255,0.9)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',boxShadow:'0 2px 8px rgba(0,0,0,0.15)',zIndex:2}}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill={wished ? '#c44' : 'none'} stroke={wished ? '#c44' : '#6b6460'} strokeWidth="2">
+            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+          </svg>
+        </button>
       </div>
 
       <div className="book-body">

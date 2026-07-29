@@ -6,6 +6,9 @@ export async function GET(_, { params }) {
     const bundle = await redis.get(`mn_bundle:${params.id}`);
     if (!bundle) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
 
+    const liveStock = await redis.get(`mn_stock:bundle:${params.id}`);
+    if (liveStock !== null && liveStock !== undefined) bundle.stockCount = liveStock;
+
     // Populate book details
     if (bundle.bookSlugs?.length) {
       const books = await Promise.all(bundle.bookSlugs.map(s => redis.get(`mn_book:${s}`)));
@@ -24,6 +27,7 @@ export async function PUT(req, { params }) {
     if (!existing) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
     const updated = { ...existing, ...updates, updatedAt: new Date().toISOString() };
     await redis.set(`mn_bundle:${params.id}`, updated);
+    if (updates.stockCount !== undefined) await redis.set(`mn_stock:bundle:${params.id}`, parseInt(updates.stockCount) || 0);
     const meta = await redis.get('mn_bundles_meta') || [];
     const idx  = meta.findIndex(b => b.id === params.id);
     if (idx >= 0) {
@@ -42,6 +46,7 @@ export async function DELETE(req, { params }) {
     if (password !== process.env.ADMIN_PASSWORD)
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     await redis.del(`mn_bundle:${params.id}`);
+    await redis.del(`mn_stock:bundle:${params.id}`);
     const meta = await redis.get('mn_bundles_meta') || [];
     await redis.set('mn_bundles_meta', meta.filter(b => b.id !== params.id));
     return NextResponse.json({ success: true });

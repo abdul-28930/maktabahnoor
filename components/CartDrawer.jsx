@@ -11,15 +11,23 @@ const CAT_AR = {
 
 const COVER_BG = 'linear-gradient(155deg,#2d6a4f 0%,#1b4332 100%)';
 
-function buildWhatsAppMessage(items) {
+function buildOrderRef() {
+  return `MN-${Date.now().toString(36).slice(-5).toUpperCase()}`;
+}
+
+function buildWhatsAppMessage(items, orderRef) {
   const lines = items.map((item, i) =>
-    `${i + 1}. ${item.title}${item.titleAr ? ` (${item.titleAr})` : ''}${item.qty > 1 ? ` × ${item.qty}` : ''}`
+    `${i + 1}. ${item.type === 'bundle' ? '📦 ' : ''}${item.title}${item.titleAr ? ` (${item.titleAr})` : ''}${item.qty > 1 ? ` × ${item.qty}` : ''}`
   ).join('\n');
+
+  const total = items.reduce((sum, i) => sum + (Number(i.price || i.mrp || 0) * i.qty), 0);
 
   return (
     `Assalamualaikum! 🌙\n\n` +
     `I would like to order the following from *Maktabah An Noor*:\n\n` +
     `${lines}\n\n` +
+    (total > 0 ? `Estimated total: ₹${total.toLocaleString('en-IN')}\n` : '') +
+    `Order ref: *${orderRef}*\n\n` +
     `Please confirm availability and share the total. JazakAllahu Khairan! 📚`
   );
 }
@@ -42,9 +50,24 @@ export default function CartDrawer() {
   }, [isOpen]);
 
   const handleWhatsApp = () => {
-    const msg = buildWhatsAppMessage(items);
+    const orderRef = buildOrderRef();
+    const msg = buildWhatsAppMessage(items, orderRef);
     const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank', 'noreferrer');
+
+    // Best-effort: sync stock down so the next visitor sees accurate availability.
+    // Fire-and-forget — never blocks or delays sending the order.
+    fetch('/api/reserve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderRef,
+        items: items.map(i => ({ slug: i.slug, type: i.type, bundleId: i.bundleId, title: i.title, price: i.price, mrp: i.mrp, qty: i.qty })),
+      }),
+    }).catch(() => {});
+
+    clearCart();
+    closeCart();
   };
 
   return (
@@ -111,7 +134,14 @@ export default function CartDrawer() {
 
                     {/* Info */}
                     <div className="cart-item-info">
-                      <div className="cart-item-title">{item.title}</div>
+                      <div className="cart-item-title">
+                        {item.type === 'bundle' && (
+                          <span style={{fontSize:9,fontWeight:600,letterSpacing:1,textTransform:'uppercase',color:'#b8965a',background:'rgba(184,150,90,0.12)',border:'1px solid rgba(184,150,90,0.3)',borderRadius:8,padding:'2px 7px',marginRight:8,verticalAlign:'middle'}}>
+                            Bundle
+                          </span>
+                        )}
+                        {item.title}
+                      </div>
                       {item.titleAr && (
                         <div className="cart-item-title-ar" dir="rtl">{item.titleAr}</div>
                       )}

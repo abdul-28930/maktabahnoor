@@ -31,6 +31,7 @@ export function CartProvider({ children }) {
         return prev.map(i => i.slug === book.slug ? { ...i, qty: i.qty + 1 } : i);
       }
       return [...prev, {
+        type:     'book',
         slug:     book.slug,
         title:    book.title,
         titleAr:  book.titleAr  || '',
@@ -40,6 +41,31 @@ export function CartProvider({ children }) {
         price:    book.price    || null,
         mrp:      book.mrp      || null,
         qty:      1,
+      }];
+    });
+    setIsOpen(true);
+  }, []);
+
+  /* ── Add a bundle deal to cart ── */
+  const addBundleToCart = useCallback((bundle) => {
+    const slug = `bundle:${bundle.id}`;
+    setItems(prev => {
+      const exists = prev.find(i => i.slug === slug);
+      if (exists) {
+        return prev.map(i => i.slug === slug ? { ...i, qty: i.qty + 1 } : i);
+      }
+      return [...prev, {
+        type:      'bundle',
+        slug,
+        bundleId:  bundle.id,
+        title:     bundle.name,
+        titleAr:   '',
+        author:    bundle.books?.length ? `${bundle.books.length} books` : '',
+        category:  'Bundle',
+        coverUrl:  bundle.books?.find(b => b.coverUrl)?.coverUrl || '',
+        price:     bundle.bundlePrice || null,
+        mrp:       bundle.totalMrp     || null,
+        qty:       1,
       }];
     });
     setIsOpen(true);
@@ -66,7 +92,7 @@ export function CartProvider({ children }) {
   return (
     <CartContext.Provider value={{
       items, cartCount, isOpen,
-      addToCart, removeFromCart, updateQty, clearCart,
+      addToCart, addBundleToCart, removeFromCart, updateQty, clearCart,
       isInCart, openCart, closeCart,
     }}>
       {children}

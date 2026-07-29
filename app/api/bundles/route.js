@@ -35,6 +35,7 @@ export async function POST(req) {
     };
 
     await redis.set(`mn_bundle:${id}`, bundle);
+    await redis.set(`mn_stock:bundle:${id}`, bundle.stockCount);
     const meta = await redis.get('mn_bundles_meta') || [];
     meta.unshift({ id, sku: bundle.sku, name: bundle.name, bookSlugs: bundle.bookSlugs,
                    totalMrp: bundle.totalMrp, bundlePrice: bundle.bundlePrice,

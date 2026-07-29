@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { IG_URL } from '@/lib/constants';
+import InstagramEmbed from '@/components/InstagramEmbed';
 
 const CAT_AR = {
   'Aqeedah':'عقيدة','Fiqh':'فقه','Hadith':'حديث','Tafsir':'تفسير',
@@ -68,6 +69,7 @@ function BookCard({ book, idx }) {
 
 export default function HomeClient({ featuredBooks = [], newArrivals = [] }) {
   const rootRef = useRef(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -152,9 +154,37 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [] }) {
           {NAV.map(n => (
             <a key={n} href={`#${n.toLowerCase().replace(/ /g,'-')}`} className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>{n}</a>
           ))}
+          <Link href="/bundles" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>Bundles</Link>
+          <Link href="/wishlist" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>♡ Wishlist</Link>
         </div>
+        <button
+          className="hp-hamburger"
+          onClick={() => setMobileMenuOpen(o => !o)}
+          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileMenuOpen}
+          style={{display:'none',alignItems:'center',justifyContent:'center',width:40,height:40,border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:10,background:'transparent',color:'#1b4332',marginLeft:8}}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            {mobileMenuOpen ? (
+              <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
+            ) : (
+              <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
+            )}
+          </svg>
+        </button>
         <Link href="/books" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:8,background:'#1b4332',color:'#fff',padding:'10px 20px',borderRadius:30,fontSize:12,letterSpacing:.4}}>Browse All →</Link>
       </nav>
+
+      {/* MOBILE DROPDOWN MENU */}
+      {mobileMenuOpen && (
+        <div className="hp-hamburger" style={{display:'flex',position:'fixed',top:'72px',left:0,right:0,zIndex:39,flexDirection:'column',background:'#faf9f5',borderBottom:'1px solid rgba(27,67,50,0.1)',boxShadow:'0 12px 32px rgba(27,67,50,0.12)',padding:'12px clamp(20px,5vw,72px) 20px'}}>
+          {NAV.map(n => (
+            <a key={n} href={`#${n.toLowerCase().replace(/ /g,'-')}`} onClick={()=>setMobileMenuOpen(false)}
+              style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px',borderBottom:'1px solid rgba(27,67,50,0.06)'}}>{n}</a>
+          ))}
+          <Link href="/bundles" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Bundles</Link>
+          <Link href="/wishlist" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>♡ Wishlist</Link>
+        </div>
+      )}
 
       {/* HERO */}
       <header id="top" style={{position:'relative',zIndex:1,minHeight:'100vh',display:'flex',alignItems:'center',padding:'140px clamp(20px,5vw,72px) 130px'}}>
@@ -367,6 +397,26 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [] }) {
           <a href={IG_URL} target="_blank" rel="noreferrer" className="hp-glow-cta" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'transparent',border:'1px solid rgba(184,150,90,0.5)',color:'#d4ab70',padding:'15px 32px',borderRadius:40,fontSize:14,letterSpacing:.5}}>Visit Instagram →</a>
         </div>
       </section>
+
+      {/* BUNDLE DEALS TEASER */}
+      <section style={{position:'relative',zIndex:1,padding:'64px clamp(20px,5vw,72px)',background:'linear-gradient(135deg,#1b4332,#2d6a4f)',overflow:'hidden'}}>
+        <div style={{position:'absolute',top:'-20%',right:'-4%',fontFamily:"'Noto Naskh Arabic',serif",fontSize:180,color:'rgba(255,255,255,0.05)',pointerEvents:'none',lineHeight:1}}>حزم</div>
+        <div style={{position:'relative',maxWidth:1140,margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:28}}>
+          <div style={{maxWidth:520}}>
+            <div style={{fontSize:10,letterSpacing:'2.5px',textTransform:'uppercase',color:'#d4ab70',marginBottom:14,display:'flex',alignItems:'center',gap:8}}>
+              <span style={{width:16,height:1,background:'#d4ab70',display:'inline-block'}}/>Save More, Together
+            </div>
+            <h2 style={{margin:'0 0 12px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(26px,3.4vw,38px)',color:'#fff',lineHeight:1.2}}>Explore our curated book bundles</h2>
+            <p style={{margin:0,fontSize:14,color:'rgba(255,255,255,0.75)',lineHeight:1.7,fontWeight:300}}>Hand-picked collections at a special combined price — a simple way to start or grow your Islamic library.</p>
+          </div>
+          <Link href="/bundles" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'#fff',color:'#1b4332',padding:'15px 30px',borderRadius:40,fontSize:13,letterSpacing:.6,textTransform:'uppercase',fontWeight:500,flexShrink:0,boxShadow:'0 8px 24px rgba(0,0,0,0.2)'}}>
+            View Bundles →
+          </Link>
+        </div>
+      </section>
+
+      {/* INSTAGRAM (renders nothing until IG_FEATURED_POSTS is configured) */}
+      <InstagramEmbed/>
 
       {/* PRE-FOOTER CTA */}
       <section style={{position:'relative',zIndex:1,background:'#f4f1e9',borderTop:'1px solid rgba(27,67,50,0.08)',padding:'64px clamp(20px,5vw,72px)',textAlign:'center',overflow:'hidden'}}>

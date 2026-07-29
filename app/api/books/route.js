@@ -7,6 +7,7 @@ export async function GET(req) {
   const category = searchParams.get('category');
   const language = searchParams.get('language');
   const tag      = searchParams.get('tag');
+  const author   = searchParams.get('author');
   const all      = searchParams.get('all') === '1';
   try {
     const meta = await redis.get('mn_books_meta') || [];
@@ -14,6 +15,7 @@ export async function GET(req) {
     if (category) list = list.filter(b => b.category === category);
     if (language)  list = list.filter(b => b.language === language);
     if (tag)       list = list.filter(b => b.tags?.includes(tag));
+    if (author)    list = list.filter(b => b.author?.toLowerCase() === author.toLowerCase());
     list = list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     return NextResponse.json({ books: list });
   } catch { return NextResponse.json({ books: [] }); }
@@ -51,10 +53,12 @@ export async function POST(req) {
       inStock:     stockCount > 0,
       tags:        data.tags || [],
       coverUrl:    data.coverUrl || '',
+      gallery:     Array.isArray(data.gallery) ? data.gallery.filter(Boolean) : [],
       createdAt:   now, updatedAt: now,
     };
 
     await redis.set(`mn_book:${slug}`, book);
+    await redis.set(`mn_stock:book:${slug}`, stockCount);
     const meta = await redis.get('mn_books_meta') || [];
     const m = { slug, sku: book.sku, title: book.title, titleAr: book.titleAr, author: book.author,
                 category: book.category, language: book.language, binding: book.binding,

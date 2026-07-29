@@ -5,6 +5,11 @@ export async function GET(_, { params }) {
   try {
     const book = await redis.get(`mn_book:${params.slug}`);
     if (!book) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
+    const liveStock = await redis.get(`mn_stock:book:${params.slug}`);
+    if (liveStock !== null && liveStock !== undefined) {
+      book.stockCount = liveStock;
+      book.inStock = liveStock > 0;
+    }
     return NextResponse.json({ book });
   } catch { return NextResponse.json({ error: 'Failed.' }, { status: 500 }); }
 }
@@ -23,6 +28,7 @@ export async function PUT(req, { params }) {
       price: parseFloat(updates.price ?? existing.price) || 0,
       updatedAt: new Date().toISOString() };
     await redis.set(`mn_book:${params.slug}`, updated);
+    await redis.set(`mn_stock:book:${params.slug}`, stockCount);
     const meta = await redis.get('mn_books_meta') || [];
     const idx  = meta.findIndex(b => b.slug === params.slug);
     if (idx >= 0) {
@@ -30,7 +36,8 @@ export async function PUT(req, { params }) {
         author: updated.author, category: updated.category, language: updated.language,
         binding: updated.binding, volumes: updated.volumes, pages: updated.pages,
         mrp: updated.mrp, price: updated.price, offerType: updated.offerType,
-        stockCount, inStock: updated.inStock, tags: updated.tags, coverUrl: updated.coverUrl };
+        stockCount, inStock: updated.inStock, tags: updated.tags, coverUrl: updated.coverUrl,
+        gallery: updated.gallery };
       await redis.set('mn_books_meta', meta);
     }
     return NextResponse.json({ success: true });
@@ -43,6 +50,7 @@ export async function DELETE(req, { params }) {
     if (password !== process.env.ADMIN_PASSWORD)
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     await redis.del(`mn_book:${params.slug}`);
+    await redis.del(`mn_stock:book:${params.slug}`);
     const meta = await redis.get('mn_books_meta') || [];
     await redis.set('mn_books_meta', meta.filter(b => b.slug !== params.slug));
     return NextResponse.json({ success: true });

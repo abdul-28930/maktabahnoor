@@ -18,8 +18,9 @@ export default function Navbar({ active = '' }) {
         </Link>
 
         <div className="nav-links">
-          <Link href="/"      className={`nav-link${active === 'home'  ? ' active' : ''}`}>Home</Link>
-          <Link href="/books" className={`nav-link${active === 'books' ? ' active' : ''}`}>All Books</Link>
+          <Link href="/"        className={`nav-link${active === 'home'    ? ' active' : ''}`}>Home</Link>
+          <Link href="/books"   className={`nav-link${active === 'books'   ? ' active' : ''}`}>All Books</Link>
+          <Link href="/bundles" className={`nav-link${active === 'bundles' ? ' active' : ''}`}>Bundles</Link>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

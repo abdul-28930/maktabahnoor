@@ -9,7 +9,7 @@ const EMPTY_BOOK = {
   title:'',titleAr:'',author:'',authorAr:'',sku:'',language:'Arabic',category:'Aqeedah',
   description:'',volumes:1,binding:'Hardcover',pages:'',
   mrp:'',price:'',offerType:'',stockCount:'',
-  inStock:true,tags:[],coverUrl:'',
+  inStock:true,tags:[],coverUrl:'',gallery:[],
 };
 const EMPTY_BUNDLE = {
   name:'',description:'',sku:'',bookSlugs:[],
@@ -66,13 +66,19 @@ export default function AdminPage() {
   const [session, setSession]     = useState('');
   const [books, setBooks]         = useState([]);
   const [bundles, setBundles]     = useState([]);
+  const [orders, setOrders]       = useState([]);
+  const [views, setViews]         = useState({});
   const [loading, setLoading]     = useState(false);
   const [editSlug, setEditSlug]   = useState(null);
   const [editBundleId, setEditBundleId] = useState(null);
   const [form, setForm]           = useState(EMPTY_BOOK);
   const [bundleForm, setBundleForm] = useState(EMPTY_BUNDLE);
   const [imgMode, setImgMode]     = useState('url');
+  const [galleryInput, setGalleryInput] = useState('');
   const [search, setSearch]       = useState('');
+  const [bookPage, setBookPage]   = useState(1);
+  const [selected, setSelected]   = useState(new Set());
+  const BOOK_PAGE_SIZE = 20;
   const [toast, setToast]         = useState({msg:'',type:'',show:false});
   const timer   = useRef(null);
   const fileRef = useRef(null);
@@ -90,11 +96,10 @@ export default function AdminPage() {
     if (!pw.trim()) return;
     setLoading(true); setPwErr('');
     try {
-      const check = await fetch('/api/books',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw,title:'__auth__'})});
-      if (check.status===401) throw new Error('Incorrect password.');
-      const cd = await check.json();
-      if (cd.slug) await fetch(`/api/books/${cd.slug}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
-      setSession(pw); await Promise.all([loadBooks(pw),loadBundles(pw)]); setView('dashboard'); setPw('');
+      const r = await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Incorrect password.');
+      setSession(pw); await Promise.all([loadBooks(pw),loadBundles(pw),loadOrders(pw),loadViews(pw)]); setView('dashboard'); setPw('');
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -104,6 +109,25 @@ export default function AdminPage() {
   }
   async function loadBundles(s=session) {
     try { const r=await fetch('/api/bundles'); const d=await r.json(); setBundles(d.bundles||[]); } catch {}
+  }
+  async function loadOrders(s=session) {
+    try { const r=await fetch(`/api/orders?password=${encodeURIComponent(s)}`); const d=await r.json(); setOrders(d.orders||[]); } catch {}
+  }
+  async function loadViews(s=session) {
+    try { const r=await fetch(`/api/analytics?password=${encodeURIComponent(s)}`); const d=await r.json(); setViews(d.views||{}); } catch {}
+  }
+  async function toggleOrderFulfilled(orderRef, fulfilled) {
+    try {
+      await fetch('/api/orders',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,orderRef,fulfilled})});
+      await loadOrders(); showToast(fulfilled?'Marked fulfilled.':'Marked pending.','success');
+    } catch { showToast('Failed.','error'); }
+  }
+  async function delOrder(orderRef) {
+    if (!confirm('Delete this order record?')) return;
+    try {
+      await fetch('/api/orders',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,orderRef})});
+      showToast('Order deleted.'); await loadOrders();
+    } catch { showToast('Failed.','error'); }
   }
 
   async function openEditBook(slug) {
@@ -119,7 +143,7 @@ export default function AdminPage() {
           volumes:d.book.volumes||1,binding:d.book.binding||'Hardcover',pages:d.book.pages||'',
           mrp:d.book.mrp||'',price:d.book.price||'',offerType:d.book.offerType||'',
           stockCount:d.book.stockCount??'',inStock:d.book.inStock!==false,
-          tags:d.book.tags||[],coverUrl:d.book.coverUrl||'',
+          tags:d.book.tags||[],coverUrl:d.book.coverUrl||'',gallery:d.book.gallery||[],
         });
         setImgMode('url'); setView('bookEditor');
       }
@@ -204,7 +228,28 @@ export default function AdminPage() {
     new Promise((res,rej)=>{const r=new FileReader();r.onload=ev=>res(ev.target.result);r.onerror=rej;r.readAsDataURL(file);}).then(d=>f('coverUrl',d));
   }
 
+  function exportBooksCsv() {
+    const cols = ['slug','sku','title','titleAr','author','authorAr','category','language','binding','volumes','pages','mrp','price','offerType','stockCount','inStock','tags','coverUrl','createdAt'];
+    const esc = (v) => `"${String(v ?? '').replace(/"/g,'""')}"`;
+    const rows = [cols.join(',')].concat(
+      books.map(b => cols.map(c => esc(Array.isArray(b[c]) ? b[c].join('|') : b[c])).join(','))
+    );
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `maktabah-an-noor-books-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function toggleTag(tag) { f('tags',form.tags.includes(tag)?form.tags.filter(t=>t!==tag):[...form.tags,tag]); }
+  function addGalleryUrl(url) {
+    if (!url?.trim()) return;
+    f('gallery', [...(form.gallery||[]), url.trim()]);
+  }
+  function removeGalleryUrl(idx) {
+    f('gallery', form.gallery.filter((_,i) => i !== idx));
+  }
   function toggleBookInBundle(slug) {
     const s = bundleForm.bookSlugs;
     const next = s.includes(slug) ? s.filter(x=>x!==slug) : [...s,slug];
@@ -216,11 +261,52 @@ export default function AdminPage() {
   }
 
   const filteredBooks = useMemo(()=>books.filter(b=>!search||b.title?.toLowerCase().includes(search.toLowerCase())||b.author?.toLowerCase().includes(search.toLowerCase())),[books,search]);
+  const totalBookPages = Math.max(1, Math.ceil(filteredBooks.length / BOOK_PAGE_SIZE));
+  const pagedBooks = useMemo(()=>filteredBooks.slice((bookPage-1)*BOOK_PAGE_SIZE, bookPage*BOOK_PAGE_SIZE),[filteredBooks,bookPage]);
+
+  function toggleSelect(slug) {
+    setSelected(prev => { const next = new Set(prev); next.has(slug) ? next.delete(slug) : next.add(slug); return next; });
+  }
+  function toggleSelectAllVisible() {
+    setSelected(prev => {
+      const allSelected = pagedBooks.every(b => prev.has(b.slug));
+      const next = new Set(prev);
+      pagedBooks.forEach(b => allSelected ? next.delete(b.slug) : next.add(b.slug));
+      return next;
+    });
+  }
+  async function bulkDelete() {
+    if (selected.size === 0) return;
+    if (!confirm(`Delete ${selected.size} selected book(s)? This cannot be undone.`)) return;
+    setLoading(true);
+    try {
+      await Promise.all([...selected].map(slug =>
+        fetch(`/api/books/${slug}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session})})
+      ));
+      setSelected(new Set());
+      await loadBooks();
+      showToast('Selected books deleted.','success');
+    } catch { showToast('Some deletes failed.','error'); }
+    finally { setLoading(false); }
+  }
+  async function bulkMarkOutOfStock() {
+    if (selected.size === 0) return;
+    setLoading(true);
+    try {
+      await Promise.all([...selected].map(slug =>
+        fetch(`/api/books/${slug}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,stockCount:0})})
+      ));
+      setSelected(new Set());
+      await loadBooks();
+      showToast('Marked as out of stock.','success');
+    } catch { showToast('Some updates failed.','error'); }
+    finally { setLoading(false); }
+  }
   const stats = useMemo(()=>({
     total:books.length,inStock:books.filter(b=>b.inStock).length,
     out:books.filter(b=>!b.inStock).length,cats:[...new Set(books.map(b=>b.category))].length,
-    bundles:bundles.length,
-  }),[books,bundles]);
+    bundles:bundles.length,pendingOrders:orders.filter(o=>!o.fulfilled).length,
+  }),[books,bundles,orders]);
 
   const Btn = ({children,onClick,disabled,variant='primary',small,style:sx={}}) => {
     const base={padding:small?'8px 16px':'11px 22px',border:'none',borderRadius:30,fontSize:small?11:12,fontWeight:500,letterSpacing:.6,textTransform:'uppercase',cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif",...sx};
@@ -324,6 +410,26 @@ export default function AdminPage() {
             )
           }
           {form.coverUrl && <button onClick={()=>f('coverUrl','')} style={{marginTop:8,fontSize:11,color:'#a09890',background:'none',border:'none',cursor:'pointer',padding:0}}>✕ Remove image</button>}
+
+          <div style={{marginTop:24,paddingTop:20,borderTop:'1px solid rgba(27,67,50,0.07)'}}>
+            <Label hint="Extra photos (back cover, sample pages) shown on the book detail page">Additional Images</Label>
+            <div style={{display:'flex',gap:8,marginBottom:12}}>
+              <div style={{flex:1}}>
+                <FInput value={galleryInput} onChange={e=>setGalleryInput(e.target.value)} placeholder="https://… (additional image URL)"/>
+              </div>
+              <button onClick={()=>{addGalleryUrl(galleryInput);setGalleryInput('');}} style={{padding:'0 20px',borderRadius:10,border:'none',background:'#1b4332',color:'#fff',fontSize:12,cursor:'pointer',flexShrink:0}}>+ Add</button>
+            </div>
+            {form.gallery?.length > 0 && (
+              <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
+                {form.gallery.map((url,idx) => (
+                  <div key={idx} style={{position:'relative',width:72,height:96,borderRadius:8,overflow:'hidden',border:'1px solid rgba(27,67,50,0.12)'}}>
+                    <img src={url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                    <button onClick={()=>removeGalleryUrl(idx)} style={{position:'absolute',top:2,right:2,width:20,height:20,borderRadius:'50%',border:'none',background:'rgba(0,0,0,0.6)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </Card>
 
         {/* Tags */}
@@ -494,9 +600,12 @@ export default function AdminPage() {
         </div>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <Link href="/" style={{textDecoration:'none',padding:'9px 18px',border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:20,fontSize:11,color:'#6b6460',letterSpacing:.5,textTransform:'uppercase',transition:'all .2s'}}>View Site</Link>
+          {tab==='books' && <Btn variant="ghost" onClick={exportBooksCsv}>Export CSV</Btn>}
           {tab==='books'
             ? <Btn onClick={()=>{setEditSlug(null);setForm(EMPTY_BOOK);setImgMode('url');setView('bookEditor');}}>+ Add Book</Btn>
-            : <Btn onClick={()=>{setEditBundleId(null);setBundleForm(EMPTY_BUNDLE);setView('bundleEditor');}}>+ Create Bundle</Btn>
+            : tab==='bundles'
+              ? <Btn onClick={()=>{setEditBundleId(null);setBundleForm(EMPTY_BUNDLE);setView('bundleEditor');}}>+ Create Bundle</Btn>
+              : null
           }
           <Btn variant="ghost" onClick={()=>{setSession('');setView('login');}}>Log Out</Btn>
         </div>
@@ -504,8 +613,8 @@ export default function AdminPage() {
 
       <div style={{position:'relative',zIndex:1,maxWidth:1100,margin:'0 auto',padding:'40px clamp(20px,5vw,48px) 80px'}}>
         {/* Stats */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:12,marginBottom:36}}>
-          {[{num:stats.total,label:'Total Books',ar:'كتاب'},{num:stats.inStock,label:'In Stock',ar:'متاح'},{num:stats.out,label:'Out of Stock',ar:'غير متاح'},{num:stats.cats,label:'Categories',ar:'تصنيف'},{num:stats.bundles,label:'Bundles',ar:'حزم'}].map((s,i)=>(
+        <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:12,marginBottom:36}}>
+          {[{num:stats.total,label:'Total Books',ar:'كتاب'},{num:stats.inStock,label:'In Stock',ar:'متاح'},{num:stats.out,label:'Out of Stock',ar:'غير متاح'},{num:stats.cats,label:'Categories',ar:'تصنيف'},{num:stats.bundles,label:'Bundles',ar:'حزم'},{num:stats.pendingOrders,label:'Pending Orders',ar:'طلبات'}].map((s,i)=>(
             <div key={i} style={{background:'#fff',border:'1px solid rgba(27,67,50,0.07)',borderRadius:16,padding:'20px 16px',boxShadow:'0 2px 12px rgba(27,67,50,0.04)',display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:8}}>
               <div>
                 <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,fontWeight:400,color:'#1b4332',lineHeight:1,marginBottom:4}}>{s.num}</div>
@@ -518,7 +627,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif'"}}>
               {t.label}
             </button>
@@ -528,14 +637,22 @@ export default function AdminPage() {
         {/* BOOKS LIST */}
         {tab==='books' && (
           <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
-            <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+            <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap'}}>
               <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:'#1b4332'}}>Book Collection</div>
               <div style={{position:'relative',maxWidth:260}}>
                 <svg style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',width:14,height:14,color:'#a09890'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                <input type="text" placeholder="Search books…" value={search} onChange={e=>setSearch(e.target.value)}
+                <input type="text" placeholder="Search books…" value={search} onChange={e=>{setSearch(e.target.value);setBookPage(1);}}
                   style={{width:'100%',padding:'8px 14px 8px 36px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.1)',borderRadius:30,fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'#1a1712',outline:'none'}}/>
               </div>
             </div>
+            {selected.size > 0 && (
+              <div style={{padding:'12px 24px',background:'rgba(27,67,50,0.05)',borderBottom:'1px solid rgba(27,67,50,0.07)',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                <span style={{fontSize:12,color:'#1b4332',fontWeight:500}}>{selected.size} selected</span>
+                <button onClick={bulkMarkOutOfStock} style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.2)',background:'transparent',color:'#1b4332',fontSize:11,cursor:'pointer'}}>Mark Out of Stock</button>
+                <button onClick={bulkDelete} style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(180,60,60,0.3)',background:'transparent',color:'#b44',fontSize:11,cursor:'pointer'}}>Delete Selected</button>
+                <button onClick={()=>setSelected(new Set())} style={{padding:'6px 14px',borderRadius:20,border:'none',background:'transparent',color:'#a09890',fontSize:11,cursor:'pointer'}}>Clear</button>
+              </div>
+            )}
             {books.length===0 ? (
               <div style={{textAlign:'center',padding:'60px 24px'}}>
                 <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:56,color:'rgba(27,67,50,0.08)',marginBottom:12}}>الكتب</div>
@@ -544,9 +661,15 @@ export default function AdminPage() {
               </div>
             ) : (
               <div>
-                {filteredBooks.map((b,i)=>(
-                  <div key={b.slug} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 24px',borderBottom:i<filteredBooks.length-1?'1px solid rgba(27,67,50,0.05)':'none',transition:'background .15s'}}
+                <div style={{display:'flex',alignItems:'center',gap:14,padding:'10px 24px',borderBottom:'1px solid rgba(27,67,50,0.05)',background:'rgba(27,67,50,0.015)'}}>
+                  <input type="checkbox" checked={pagedBooks.length>0 && pagedBooks.every(b=>selected.has(b.slug))} onChange={toggleSelectAllVisible}
+                    style={{width:16,height:16,accentColor:'#1b4332',cursor:'pointer'}}/>
+                  <span style={{fontSize:10,color:'#a09890',letterSpacing:1,textTransform:'uppercase'}}>Select all on this page</span>
+                </div>
+                {pagedBooks.map((b,i)=>(
+                  <div key={b.slug} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 24px',borderBottom:i<pagedBooks.length-1?'1px solid rgba(27,67,50,0.05)':'none',transition:'background .15s'}}
                     onMouseEnter={e=>e.currentTarget.style.background='rgba(27,67,50,0.02)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    <input type="checkbox" checked={selected.has(b.slug)} onChange={()=>toggleSelect(b.slug)} style={{width:16,height:16,accentColor:'#1b4332',cursor:'pointer',flexShrink:0}}/>
                     <div style={{width:40,height:54,borderRadius:5,overflow:'hidden',flexShrink:0,background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center'}}>
                       {b.coverUrl?<img src={b.coverUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#d4ab70'}}>ك</span>}
                     </div>
@@ -570,6 +693,7 @@ export default function AdminPage() {
                     <div style={{flexShrink:0}}>
                       <div style={{fontSize:11,fontWeight:500,color:b.inStock?'#2d6a4f':'#b44',marginBottom:2}}>{b.inStock?'In Stock':'Out'}</div>
                       {b.stockCount !== undefined && <div style={{fontSize:10,color:'#a09890'}}>{b.stockCount} units</div>}
+                      {views[b.slug] > 0 && <div style={{fontSize:10,color:'#a09890',marginTop:2}}>👁 {views[b.slug]} views</div>}
                     </div>
                     <div style={{display:'flex',gap:6,flexShrink:0}}>
                       <button onClick={()=>openEditBook(b.slug)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',color:'#6b6460',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .2s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(27,67,50,0.07)';e.currentTarget.style.color='#1b4332';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#6b6460';}}>
@@ -581,6 +705,15 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
+                {totalBookPages > 1 && (
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'18px 24px'}}>
+                    <button onClick={()=>setBookPage(p=>Math.max(1,p-1))} disabled={bookPage===1}
+                      style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:bookPage===1?'#c9c4be':'#1b4332',fontSize:12,cursor:bookPage===1?'default':'pointer'}}>← Prev</button>
+                    <span style={{fontSize:12,color:'#6b6460'}}>Page {bookPage} of {totalBookPages}</span>
+                    <button onClick={()=>setBookPage(p=>Math.min(totalBookPages,p+1))} disabled={bookPage===totalBookPages}
+                      style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:bookPage===totalBookPages?'#c9c4be':'#1b4332',fontSize:12,cursor:bookPage===totalBookPages?'default':'pointer'}}>Next →</button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -630,6 +763,51 @@ export default function AdminPage() {
                       <button onClick={()=>delBundle(b.id)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',color:'#6b6460',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .2s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(180,60,60,0.07)';e.currentTarget.style.color='#b44';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#6b6460';}}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
                       </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ORDERS LIST */}
+        {tab==='orders' && (
+          <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
+            <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:'#1b4332'}}>WhatsApp Orders</div>
+              <button onClick={()=>loadOrders()} style={{padding:'7px 16px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#1b4332',fontSize:11,cursor:'pointer',letterSpacing:.5,textTransform:'uppercase'}}>Refresh</button>
+            </div>
+            {orders.length===0 ? (
+              <div style={{textAlign:'center',padding:'60px 24px'}}>
+                <div style={{fontSize:44,marginBottom:12,opacity:.2}}>🧾</div>
+                <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:0}}>No orders logged yet.</p>
+                <p style={{fontSize:12,color:'#a09890',marginTop:8}}>Orders are recorded automatically when a customer sends their cart via WhatsApp.</p>
+              </div>
+            ) : (
+              <div>
+                {orders.map((o,i)=>(
+                  <div key={o.orderRef} style={{padding:'16px 24px',borderBottom:i<orders.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:8,flexWrap:'wrap'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:600,color:'#1b4332'}}>{o.orderRef}</span>
+                        <span style={{fontSize:11,color:'#a09890'}}>{new Date(o.createdAt).toLocaleString('en-IN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span style={{fontSize:14,fontWeight:500,color:'#1b4332'}}>{o.total > 0 ? `₹${Number(o.total).toLocaleString('en-IN')}` : ''}</span>
+                        <button onClick={()=>toggleOrderFulfilled(o.orderRef,!o.fulfilled)}
+                          style={{padding:'5px 14px',borderRadius:20,border:`1.5px solid ${o.fulfilled?'rgba(45,106,79,0.3)':'rgba(184,150,90,0.35)'}`,background:o.fulfilled?'rgba(45,106,79,0.07)':'rgba(184,150,90,0.08)',color:o.fulfilled?'#2d6a4f':'#b8965a',fontSize:10,cursor:'pointer',letterSpacing:.6,textTransform:'uppercase'}}>
+                          {o.fulfilled?'Fulfilled':'Pending'}
+                        </button>
+                        <button onClick={()=>delOrder(o.orderRef)} style={{width:28,height:28,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',color:'#6b6460',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{fontSize:12,color:'#6b6460',lineHeight:1.7}}>
+                      {(o.items||[]).map((it,idx)=>(
+                        <span key={idx}>{it.title}{it.qty>1?` × ${it.qty}`:''}{idx<o.items.length-1?', ':''}</span>
+                      ))}
                     </div>
                   </div>
                 ))}
