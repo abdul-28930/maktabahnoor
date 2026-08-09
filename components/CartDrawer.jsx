@@ -17,7 +17,7 @@ function buildOrderRef() {
 
 function buildWhatsAppMessage(items, orderRef) {
   const lines = items.map((item, i) =>
-    `${i + 1}. ${item.type === 'bundle' ? '📦 ' : ''}${item.title}${item.titleAr ? ` (${item.titleAr})` : ''}${item.qty > 1 ? ` × ${item.qty}` : ''}`
+    `${i + 1}. ${item.type === 'bundle' ? '📦 ' : ''}${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}`
   ).join('\n');
 
   const total = items.reduce((sum, i) => sum + (Number(i.price || i.mrp || 0) * i.qty), 0);
@@ -142,9 +142,6 @@ export default function CartDrawer() {
                         )}
                         {item.title}
                       </div>
-                      {item.titleAr && (
-                        <div className="cart-item-title-ar" dir="rtl">{item.titleAr}</div>
-                      )}
                       <div className="cart-item-author">{item.author}</div>
 
                       {/* Price */}

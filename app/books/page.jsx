@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import PageBackground from '@/components/PageBackground';
-import { CATEGORIES, LANGUAGES, TAGS } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, TAGS } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 
 /* ── constants ── */
@@ -20,12 +20,16 @@ const CAT_AR = {
   'Arabic Language':'لغة','Dua & Dhikr':'دعاء','Quran & Tajweed':'قرآن','General':'عام',
 };
 const SORT_OPTIONS = [
-  { val:'newest',   label:'Newest Added' },
-  { val:'oldest',   label:'Oldest Added' },
-  { val:'title-az', label:'Title: A → Z' },
-  { val:'title-za', label:'Title: Z → A' },
-  { val:'author-az',label:'Author: A → Z' },
-  { val:'category', label:'By Category' },
+  { val:'newest',     label:'Newest Added' },
+  { val:'oldest',     label:'Oldest Added' },
+  { val:'title-az',   label:'Title: A → Z' },
+  { val:'title-za',   label:'Title: Z → A' },
+  { val:'author-az',  label:'Author: A → Z' },
+  { val:'author-za',  label:'Author: Z → A' },
+  { val:'price-low',  label:'Price: Low → High' },
+  { val:'price-high', label:'Price: High → Low' },
+  { val:'language',   label:'By Language' },
+  { val:'category',   label:'By Category' },
 ];
 
 /* ── Book card — grid mode ── */
@@ -68,7 +72,6 @@ function GridCard({ book, idx }) {
           {book.binding && <span style={{fontSize:9,color:'#c0b8b0'}}>{book.binding}</span>}
         </div>
         <h3 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:17,color:'#1a1712',lineHeight:1.2}}>{book.title}</h3>
-        {book.titleAr && <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:13,color:'#b8965a',direction:'rtl'}}>{book.titleAr}</div>}
         <div style={{fontSize:12,color:'#6b6460',fontWeight:300,marginTop:'auto',paddingTop:4}}>{book.author}</div>
         {book.volumes > 1 && <div style={{fontSize:10,color:'#b8965a',letterSpacing:.5}}>{book.volumes} Volumes</div>}
         {book.inStock !== false && (
@@ -106,8 +109,7 @@ function ListCard({ book }) {
           {book.tags?.includes('Bestseller') && <span style={{padding:'2px 10px',background:'rgba(184,150,90,0.1)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#b8965a'}}>Bestseller</span>}
         </div>
         <h3 style={{margin:'0 0 3px',fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:19,color:'#1a1712',lineHeight:1.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{book.title}</h3>
-        {book.titleAr && <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:14,color:'#b8965a',direction:'rtl',marginBottom:3}}>{book.titleAr}</div>}
-        <div style={{fontSize:13,color:'#6b6460',fontWeight:300}}>{book.author}{book.authorAr && <span style={{fontFamily:"'Noto Naskh Arabic',serif",marginRight:8,color:'#b8965a',direction:'rtl',display:'inline'}}> · {book.authorAr}</span>}</div>
+        <div style={{fontSize:13,color:'#6b6460',fontWeight:300}}>{book.author}{book.translator && <span style={{color:'#a09890'}}> · Tr. {book.translator}</span>}</div>
       </div>
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,flexShrink:0}}>
         {book.binding && <span style={{fontSize:11,color:'#a09890'}}>{book.binding}</span>}
@@ -176,6 +178,8 @@ function BooksContent() {
 
   const [allBooks, setAllBooks]   = useState([]);
   const [loading, setLoading]     = useState(true);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [languages, setLanguages]   = useState(DEFAULT_LANGUAGES);
   const [search, setSearch]       = useState(searchParams.get('q') || '');
   const [selCat, setSelCat]       = useState(searchParams.get('category') || '');
   const [selLang, setSelLang]     = useState(searchParams.get('language') || '');
@@ -192,6 +196,18 @@ function BooksContent() {
       .then(r => r.json())
       .then(d => { setAllBooks(d.books || []); setLoading(false); })
       .catch(() => setLoading(false));
+  }, []);
+
+  // Category/Language lists are admin-extensible (see /api/taxonomy), so
+  // fetch the live list rather than relying only on the hardcoded defaults.
+  useEffect(() => {
+    fetch('/api/taxonomy')
+      .then(r => r.json())
+      .then(d => {
+        if (d.taxonomy?.categories) setCategories(d.taxonomy.categories);
+        if (d.taxonomy?.languages)  setLanguages(d.taxonomy.languages);
+      })
+      .catch(() => {});
   }, []);
 
   // Sync URL when filters change
@@ -237,7 +253,7 @@ function BooksContent() {
   const filtered = useMemo(() => {
     let list = allBooks.filter(b => {
       const q = search.toLowerCase();
-      return (!q || b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q) || b.titleAr?.includes(q) || b.authorAr?.includes(q))
+      return (!q || b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q) || b.translator?.toLowerCase().includes(q))
           && (!selCat  || b.category === selCat)
           && (!selLang || b.language === selLang)
           && (!selTag  || b.tags?.includes(selTag))
@@ -247,13 +263,17 @@ function BooksContent() {
     // Sort
     list = [...list].sort((a, b) => {
       switch (sortBy) {
-        case 'newest':    return new Date(b.createdAt) - new Date(a.createdAt);
-        case 'oldest':    return new Date(a.createdAt) - new Date(b.createdAt);
-        case 'title-az':  return (a.title||'').localeCompare(b.title||'');
-        case 'title-za':  return (b.title||'').localeCompare(a.title||'');
-        case 'author-az': return (a.author||'').localeCompare(b.author||'');
-        case 'category':  return (a.category||'').localeCompare(b.category||'');
-        default:          return 0;
+        case 'newest':     return new Date(b.createdAt) - new Date(a.createdAt);
+        case 'oldest':     return new Date(a.createdAt) - new Date(b.createdAt);
+        case 'title-az':   return (a.title||'').localeCompare(b.title||'');
+        case 'title-za':   return (b.title||'').localeCompare(a.title||'');
+        case 'author-az':  return (a.author||'').localeCompare(b.author||'');
+        case 'author-za':  return (b.author||'').localeCompare(a.author||'');
+        case 'price-low':  return (Number(a.price||a.mrp||0)) - (Number(b.price||b.mrp||0));
+        case 'price-high': return (Number(b.price||b.mrp||0)) - (Number(a.price||a.mrp||0));
+        case 'language':   return (a.language||'').localeCompare(b.language||'');
+        case 'category':   return (a.category||'').localeCompare(b.category||'');
+        default:           return 0;
       }
     });
     return list;
@@ -302,9 +322,9 @@ function BooksContent() {
           <span>✕</span> Clear all filters
         </button>
       )}
-      <FilterSection title="Category"     options={CATEGORIES} value={selCat}   onSet={setSelCat}   counts={catCounts}/>
+      <FilterSection title="Category"     options={categories} value={selCat}   onSet={setSelCat}   counts={catCounts}/>
       <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>
-      <FilterSection title="Language"     options={LANGUAGES}  value={selLang}  onSet={setSelLang}  counts={langCounts}/>
+      <FilterSection title="Language"     options={languages}  value={selLang}  onSet={setSelLang}  counts={langCounts}/>
       <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>
       <FilterSection title="Tags"         options={TAGS}       value={selTag}   onSet={setSelTag}   counts={tagCounts}/>
       <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>

@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 const WishlistContext = createContext(null);
 
 export function WishlistProvider({ children }) {
-  const [items, setItems] = useState([]); // [{ slug, title, titleAr, author, category, coverUrl, price, mrp, inStock }]
+  const [items, setItems] = useState([]); // [{ slug, title, author, category, coverUrl, price, mrp, inStock }]
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export function WishlistProvider({ children }) {
     setItems(prev => {
       if (prev.some(i => i.slug === book.slug)) return prev;
       return [...prev, {
-        slug: book.slug, title: book.title, titleAr: book.titleAr || '',
+        slug: book.slug, title: book.title,
         author: book.author, category: book.category || '', coverUrl: book.coverUrl || '',
         price: book.price || null, mrp: book.mrp || null, inStock: book.inStock !== false,
       }];
@@ -39,7 +39,7 @@ export function WishlistProvider({ children }) {
     setItems(prev => prev.some(i => i.slug === book.slug)
       ? prev.filter(i => i.slug !== book.slug)
       : [...prev, {
-          slug: book.slug, title: book.title, titleAr: book.titleAr || '',
+          slug: book.slug, title: book.title,
           author: book.author, category: book.category || '', coverUrl: book.coverUrl || '',
           price: book.price || null, mrp: book.mrp || null, inStock: book.inStock !== false,
         }]);

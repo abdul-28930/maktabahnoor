@@ -11,7 +11,7 @@ export default function WishlistPage() {
   const { addToCart, isInCart } = useCart();
 
   function notifyMe(book) {
-    const msg = `Assalamualaikum! 🌙\n\nCould you let me know when this is back in stock?\n\n📖 ${book.title}${book.titleAr ? ` (${book.titleAr})` : ''}\n\nJazakAllahu Khairan!`;
+    const msg = `Assalamualaikum! 🌙\n\nCould you let me know when this is back in stock?\n\n📖 ${book.title}\n\nJazakAllahu Khairan!`;
     window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank', 'noreferrer');
   }
 

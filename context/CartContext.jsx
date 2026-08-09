@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const [items, setItems]     = useState([]);   // [{ slug, title, author, titleAr, category, coverUrl, price, mrp, qty }]
+  const [items, setItems]     = useState([]);   // [{ slug, title, author, category, coverUrl, price, mrp, qty }]
   const [isOpen, setIsOpen]   = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -34,7 +34,6 @@ export function CartProvider({ children }) {
         type:     'book',
         slug:     book.slug,
         title:    book.title,
-        titleAr:  book.titleAr  || '',
         author:   book.author,
         category: book.category || '',
         coverUrl: book.coverUrl || '',
@@ -59,7 +58,6 @@ export function CartProvider({ children }) {
         slug,
         bundleId:  bundle.id,
         title:     bundle.name,
-        titleAr:   '',
         author:    bundle.books?.length ? `${bundle.books.length} books` : '',
         category:  'Bundle',
         coverUrl:  bundle.books?.find(b => b.coverUrl)?.coverUrl || '',

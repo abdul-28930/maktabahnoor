@@ -96,11 +96,12 @@ export default function BookPage() {
 
   const ar = CAT_AR[book.category] || 'كتاب';
   const specs = [
-    book.binding   && { label:'Binding',   val:book.binding },
-    book.volumes   && { label:'Volumes',   val:book.volumes===1?'Single Volume':`${book.volumes} Volumes` },
-    book.pages > 0 && { label:'Pages',     val:book.pages },
-    book.language  && { label:'Language',  val:book.language },
-    book.category  && { label:'Category',  val:book.category },
+    book.binding    && { label:'Binding',    val:book.binding },
+    book.volumes    && { label:'Volumes',    val:book.volumes===1?'Single Volume':`${book.volumes} Volumes` },
+    book.pages > 0  && { label:'Pages',      val:book.pages },
+    book.language   && { label:'Language',   val:book.language },
+    book.category   && { label:'Category',   val:book.category },
+    book.translator && { label:'Translator', val:book.translator },
   ].filter(Boolean);
 
   return (
@@ -170,14 +171,15 @@ export default function BookPage() {
           <h1 style={{margin:'0 0 8px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(32px,4.5vw,52px)',color:'#1b4332',lineHeight:1.12}}>
             {book.title}
           </h1>
-          {book.titleAr && (
-            <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:28,color:'#b8965a',marginBottom:16,fontWeight:500}}>{book.titleAr}</div>
-          )}
-
-          <div style={{fontSize:16,color:'#6b6460',marginBottom:28,fontWeight:300}}>
+          <div style={{fontSize:16,color:'#6b6460',marginBottom:8,fontWeight:300}}>
             By <Link href={`/author/${encodeURIComponent(book.author)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{book.author}</Link>
-            {book.authorAr && <span dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",color:'#b8965a',marginRight:10,fontSize:15}}> · {book.authorAr}</span>}
           </div>
+          {book.translator && (
+            <div style={{fontSize:13,color:'#a09890',marginBottom:28,fontWeight:300}}>
+              Translated by <span style={{color:'#6b6460'}}>{book.translator}</span>
+            </div>
+          )}
+          {!book.translator && <div style={{marginBottom:20}}/>}
 
           <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:28}}>
             <span style={{flex:1,height:1,background:'linear-gradient(90deg,rgba(27,67,50,0.2),transparent)'}}/>

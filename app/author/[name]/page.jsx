@@ -58,8 +58,6 @@ export default function AuthorPage() {
       .catch(() => setLoading(false));
   }, [authorName]);
 
-  const authorAr = books.find(b => b.authorAr)?.authorAr || '';
-
   return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>
       <PageBackground subtle/>
@@ -83,7 +81,6 @@ export default function AuthorPage() {
             <span style={{width:16,height:1,background:'#b8965a',display:'inline-block'}}/>Author
           </div>
           <h1 style={{margin:'0 0 6px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(30px,4.5vw,46px)',color:'#1b4332',lineHeight:1.15}}>{authorName}</h1>
-          {authorAr && <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:22,color:'#b8965a',marginBottom:8}}>{authorAr}</div>}
           <p style={{fontSize:14,color:'#a09890'}}>{books.length} book{books.length !== 1 ? 's' : ''} in our collection</p>
         </div>
       </div>

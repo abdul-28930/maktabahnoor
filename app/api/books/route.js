@@ -1,6 +1,15 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
-import { slugify } from '@/lib/constants';
+import { slugify, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
+
+const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price' };
+
+function missingMandatoryFields(data) {
+  return MANDATORY_BOOK_FIELDS.filter(k => {
+    const v = data[k];
+    return v === undefined || v === null || String(v).trim() === '';
+  }).map(k => FIELD_LABELS[k] || k);
+}
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -27,8 +36,9 @@ export async function POST(req) {
     const { password, ...data } = body;
     if (password !== process.env.ADMIN_PASSWORD)
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-    if (!data.title?.trim())
-      return NextResponse.json({ error: 'Title required.' }, { status: 400 });
+    const missing = missingMandatoryFields(data);
+    if (missing.length)
+      return NextResponse.json({ error: `Required field${missing.length > 1 ? 's' : ''} missing: ${missing.join(', ')}.` }, { status: 400 });
 
     const slug = slugify(data.title, data.author || '');
     const now  = new Date().toISOString();
@@ -37,9 +47,8 @@ export async function POST(req) {
       slug,
       sku:         data.sku?.trim() || '',
       title:       data.title?.trim() || '',
-      titleAr:     data.titleAr?.trim() || '',
       author:      data.author?.trim() || '',
-      authorAr:    data.authorAr?.trim() || '',
+      translator:  data.translator?.trim() || '',
       language:    data.language || 'Arabic',
       category:    data.category || 'General',
       description: data.description?.trim() || '',
@@ -60,7 +69,7 @@ export async function POST(req) {
     await redis.set(`mn_book:${slug}`, book);
     await redis.set(`mn_stock:book:${slug}`, stockCount);
     const meta = await redis.get('mn_books_meta') || [];
-    const m = { slug, sku: book.sku, title: book.title, titleAr: book.titleAr, author: book.author,
+    const m = { slug, sku: book.sku, title: book.title, author: book.author, translator: book.translator,
                 category: book.category, language: book.language, binding: book.binding,
                 volumes: book.volumes, pages: book.pages, mrp: book.mrp, price: book.price,
                 offerType: book.offerType, stockCount, inStock: book.inStock,

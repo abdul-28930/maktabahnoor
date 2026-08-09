@@ -2,15 +2,19 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { CATEGORIES, LANGUAGES, BINDINGS, TAGS, OFFER_TYPES } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
 import PageBackground from '@/components/PageBackground';
 
 const EMPTY_BOOK = {
-  title:'',titleAr:'',author:'',authorAr:'',sku:'',language:'Arabic',category:'Aqeedah',
+  title:'',author:'',translator:'',sku:'',language:'Arabic',category:'Aqeedah',
   description:'',volumes:1,binding:'Hardcover',pages:'',
   mrp:'',price:'',offerType:'',stockCount:'',
   inStock:true,tags:[],coverUrl:'',gallery:[],
 };
+
+// Labels shown next to the field + used to build the "please fill these in"
+// validation message. Must match MANDATORY_BOOK_FIELDS keys in lib/constants.js.
+const FIELD_LABELS = { title:'Title', author:'Author', category:'Category', language:'Language', price:'Sale Price' };
 const EMPTY_BUNDLE = {
   name:'',description:'',sku:'',bookSlugs:[],
   totalMrp:'',bundlePrice:'',offerType:'Limited Deal',stockCount:'',active:true,
@@ -58,6 +62,45 @@ const FSelect = ({value,onChange,options,placeholder}) => (
   </select>
 );
 
+// A select whose option list is admin-extensible: picking "+ Add new option…"
+// swaps in a small text input; submitting it saves the new option to the
+// shared taxonomy (via onAddOption) and selects it immediately.
+const ADD_NEW = '__add_new__';
+const TaxonomySelect = ({value,onChange,options,placeholder,onAddOption}) => {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft]   = useState('');
+
+  if (adding) {
+    return (
+      <div style={{display:'flex',gap:6}}>
+        <div style={{flex:1}}>
+          <FInput value={draft} onChange={e=>setDraft(e.target.value)} placeholder="New option name" />
+        </div>
+        <button type="button" onClick={async ()=>{
+            const v = draft.trim();
+            if (!v) return;
+            await onAddOption(v);
+            onChange({ target: { value: v } });
+            setAdding(false); setDraft('');
+          }}
+          style={{padding:'0 16px',borderRadius:10,border:'none',background:'#1b4332',color:'#fff',fontSize:12,cursor:'pointer',flexShrink:0}}>Add</button>
+        <button type="button" onClick={()=>{setAdding(false);setDraft('');}}
+          style={{padding:'0 14px',borderRadius:10,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#6b6460',fontSize:12,cursor:'pointer',flexShrink:0}}>✕</button>
+      </div>
+    );
+  }
+
+  return (
+    <select value={value} onChange={e => e.target.value === ADD_NEW ? setAdding(true) : onChange(e)}
+      style={{width:'100%',padding:'11px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:value?'#1a1712':'#a09890',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',cursor:'pointer',appearance:'none',transition:'border-color .2s'}}
+      onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}>
+      {placeholder && <option value="">{placeholder}</option>}
+      {options.map(o=><option key={o} value={o}>{o}</option>)}
+      <option value={ADD_NEW}>+ Add new option…</option>
+    </select>
+  );
+};
+
 export default function AdminPage() {
   const [view, setView]           = useState('login');
   const [tab, setTab]             = useState('books');
@@ -68,6 +111,7 @@ export default function AdminPage() {
   const [bundles, setBundles]     = useState([]);
   const [orders, setOrders]       = useState([]);
   const [views, setViews]         = useState({});
+  const [taxonomy, setTaxonomy]   = useState({ categories: DEFAULT_CATEGORIES, languages: DEFAULT_LANGUAGES, offerTypes: DEFAULT_OFFER_TYPES });
   const [loading, setLoading]     = useState(false);
   const [editSlug, setEditSlug]   = useState(null);
   const [editBundleId, setEditBundleId] = useState(null);
@@ -99,7 +143,7 @@ export default function AdminPage() {
       const r = await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
       const d = await r.json();
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
-      setSession(pw); await Promise.all([loadBooks(pw),loadBundles(pw),loadOrders(pw),loadViews(pw)]); setView('dashboard'); setPw('');
+      setSession(pw); await Promise.all([loadBooks(pw),loadBundles(pw),loadOrders(pw),loadViews(pw),loadTaxonomy()]); setView('dashboard'); setPw('');
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -115,6 +159,18 @@ export default function AdminPage() {
   }
   async function loadViews(s=session) {
     try { const r=await fetch(`/api/analytics?password=${encodeURIComponent(s)}`); const d=await r.json(); setViews(d.views||{}); } catch {}
+  }
+  async function loadTaxonomy() {
+    try { const r=await fetch('/api/taxonomy'); const d=await r.json(); if (d.taxonomy) setTaxonomy(d.taxonomy); } catch {}
+  }
+  async function addTaxonomyOption(field, value) {
+    try {
+      const r = await fetch('/api/taxonomy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,field,value})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed to add option.');
+      setTaxonomy(d.taxonomy);
+      showToast(`✓ Added "${value}".`,'success');
+    } catch(e) { showToast(e.message,'error'); }
   }
   async function toggleOrderFulfilled(orderRef, fulfilled) {
     try {
@@ -137,8 +193,8 @@ export default function AdminPage() {
       if (d.book) {
         setEditSlug(slug);
         setForm({
-          title:d.book.title||'',titleAr:d.book.titleAr||'',author:d.book.author||'',
-          authorAr:d.book.authorAr||'',sku:d.book.sku||'',language:d.book.language||'Arabic',
+          title:d.book.title||'',author:d.book.author||'',translator:d.book.translator||'',
+          sku:d.book.sku||'',language:d.book.language||'Arabic',
           category:d.book.category||'Aqeedah',description:d.book.description||'',
           volumes:d.book.volumes||1,binding:d.book.binding||'Hardcover',pages:d.book.pages||'',
           mrp:d.book.mrp||'',price:d.book.price||'',offerType:d.book.offerType||'',
@@ -169,8 +225,13 @@ export default function AdminPage() {
     finally { setLoading(false); }
   }
 
+  function missingBookFields() {
+    return MANDATORY_BOOK_FIELDS.filter(k => !String(form[k] ?? '').trim()).map(k => FIELD_LABELS[k] || k);
+  }
+
   async function saveBook() {
-    if (!form.title.trim()) { showToast('Title is required.','error'); return; }
+    const missing = missingBookFields();
+    if (missing.length) { showToast(`Please fill in: ${missing.join(', ')}.`,'error'); return; }
     setLoading(true);
     try {
       const r = editSlug
@@ -229,7 +290,7 @@ export default function AdminPage() {
   }
 
   function exportBooksCsv() {
-    const cols = ['slug','sku','title','titleAr','author','authorAr','category','language','binding','volumes','pages','mrp','price','offerType','stockCount','inStock','tags','coverUrl','createdAt'];
+    const cols = ['slug','sku','title','author','translator','category','language','binding','volumes','pages','mrp','price','offerType','stockCount','inStock','tags','coverUrl','createdAt'];
     const esc = (v) => `"${String(v ?? '').replace(/"/g,'""')}"`;
     const rows = [cols.join(',')].concat(
       books.map(b => cols.map(c => esc(Array.isArray(b[c]) ? b[c].join('|') : b[c])).join(','))
@@ -335,35 +396,30 @@ export default function AdminPage() {
 
         {/* Titles */}
         <Card title="Book Information">
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-            <div><Label>Title (English) *</Label><FInput value={form.title} onChange={e=>f('title',e.target.value)} placeholder="e.g. Sahih Al-Bukhari"/></div>
-            <div><Label>Title (Arabic)</Label><FInput value={form.titleAr} onChange={e=>f('titleAr',e.target.value)} placeholder="صحيح البخاري" dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:15}}/></div>
+          <div style={{marginBottom:16}}>
+            <Label>Title *</Label>
+            <FInput value={form.title} onChange={e=>f('title',e.target.value)} placeholder="e.g. Sahih Al-Bukhari"/>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-            <div><Label>Author (English)</Label><FInput value={form.author} onChange={e=>f('author',e.target.value)} placeholder="e.g. Imam Al-Bukhari"/></div>
-            <div><Label>Author (Arabic)</Label><FInput value={form.authorAr} onChange={e=>f('authorAr',e.target.value)} placeholder="الإمام البخاري" dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:15}}/></div>
+            <div><Label>Author *</Label><FInput value={form.author} onChange={e=>f('author',e.target.value)} placeholder="e.g. Imam Al-Bukhari"/></div>
+            <div><Label hint="Optional">Translator</Label><FInput value={form.translator} onChange={e=>f('translator',e.target.value)} placeholder="e.g. Dr. Muhammad Muhsin Khan"/></div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
-            <div><Label hint="Unique product code">SKU / Book Code</Label><FInput value={form.sku} onChange={e=>f('sku',e.target.value)} placeholder="e.g. HAD-001"/></div>
-            <div><Label>Category</Label><FSelect value={form.category} onChange={e=>f('category',e.target.value)} options={CATEGORIES}/></div>
-            <div><Label>Language</Label><FSelect value={form.language} onChange={e=>f('language',e.target.value)} options={LANGUAGES}/></div>
+            <div><Label hint="Optional · unique product code">SKU / Book Code</Label><FInput value={form.sku} onChange={e=>f('sku',e.target.value)} placeholder="e.g. HAD-001"/></div>
+            <div><Label>Category *</Label><TaxonomySelect value={form.category} onChange={e=>f('category',e.target.value)} options={taxonomy.categories} onAddOption={v=>addTaxonomyOption('categories',v)}/></div>
+            <div><Label>Language *</Label><TaxonomySelect value={form.language} onChange={e=>f('language',e.target.value)} options={taxonomy.languages} onAddOption={v=>addTaxonomyOption('languages',v)}/></div>
           </div>
         </Card>
 
         {/* Pricing */}
         <Card title="Pricing">
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
-            <div><Label hint="Original / MRP">Actual Price (₹)</Label><FInput type="number" value={form.mrp} onChange={e=>f('mrp',e.target.value)} placeholder="350" prefix="₹"/></div>
-            <div><Label hint="Sale / current price">Sale Price (₹)</Label><FInput type="number" value={form.price} onChange={e=>f('price',e.target.value)} placeholder="299" prefix="₹"/></div>
-            <div><Label>Offer Type</Label>
-              <select value={form.offerType} onChange={e=>f('offerType',e.target.value)}
-                style={{width:'100%',padding:'11px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:form.offerType?'#1a1712':'#a09890',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',cursor:'pointer',appearance:'none',transition:'border-color .2s'}}
-                onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}>
-                <option value="">None</option>
-                {OFFER_TYPES.map(o=><option key={o} value={o}>{o}</option>)}
-              </select>
+            <div><Label hint="Optional · original / MRP">Actual Price (₹)</Label><FInput type="number" value={form.mrp} onChange={e=>f('mrp',e.target.value)} placeholder="350" prefix="₹"/></div>
+            <div><Label>Sale Price (₹) *</Label><FInput type="number" value={form.price} onChange={e=>f('price',e.target.value)} placeholder="299" prefix="₹"/></div>
+            <div><Label hint="Optional">Offer Type</Label>
+              <TaxonomySelect value={form.offerType} onChange={e=>f('offerType',e.target.value)} options={taxonomy.offerTypes} placeholder="None" onAddOption={v=>addTaxonomyOption('offerTypes',v)}/>
             </div>
-            <div><Label hint="Exact pieces available">Stock Count</Label><FInput type="number" value={form.stockCount} onChange={e=>f('stockCount',e.target.value)} placeholder="50"/></div>
+            <div><Label hint="Optional · exact pieces available">Stock Count</Label><FInput type="number" value={form.stockCount} onChange={e=>f('stockCount',e.target.value)} placeholder="50"/></div>
           </div>
           {(form.mrp || form.price) && (
             <div style={{padding:'14px 16px',background:'rgba(27,67,50,0.04)',borderRadius:10,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
@@ -385,8 +441,8 @@ export default function AdminPage() {
               onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
-            <div><Label>Binding</Label><FSelect value={form.binding} onChange={e=>f('binding',e.target.value)} options={BINDINGS} placeholder="— Select —"/></div>
-            <div><Label>Volumes</Label><FInput type="number" value={form.volumes} onChange={e=>f('volumes',e.target.value)}/></div>
+            <div><Label hint="Optional">Binding</Label><FSelect value={form.binding} onChange={e=>f('binding',e.target.value)} options={BINDINGS} placeholder="— Select —"/></div>
+            <div><Label hint="Optional">Volumes</Label><FInput type="number" value={form.volumes} onChange={e=>f('volumes',e.target.value)}/></div>
             <div><Label hint="Optional">Pages</Label><FInput type="number" value={form.pages} onChange={e=>f('pages',e.target.value)} placeholder="480"/></div>
           </div>
         </Card>
@@ -530,11 +586,8 @@ export default function AdminPage() {
               <Label hint="Special bundle deal price">Bundle Price (₹) *</Label>
               <FInput type="number" value={bundleForm.bundlePrice} onChange={e=>bf('bundlePrice',e.target.value)} placeholder="250" prefix="₹"/>
             </div>
-            <div><Label>Offer Type</Label>
-              <select value={bundleForm.offerType} onChange={e=>bf('offerType',e.target.value)}
-                style={{width:'100%',padding:'11px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',cursor:'pointer',appearance:'none'}}>
-                {OFFER_TYPES.map(o=><option key={o} value={o}>{o}</option>)}
-              </select>
+            <div><Label hint="Optional">Offer Type</Label>
+              <TaxonomySelect value={bundleForm.offerType} onChange={e=>bf('offerType',e.target.value)} options={taxonomy.offerTypes} placeholder="None" onAddOption={v=>addTaxonomyOption('offerTypes',v)}/>
             </div>
             <div><Label>Stock Count</Label><FInput type="number" value={bundleForm.stockCount} onChange={e=>bf('stockCount',e.target.value)} placeholder="20"/></div>
           </div>
