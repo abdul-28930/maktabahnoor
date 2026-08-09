@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { IG_URL } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 import PageBackground from '@/components/PageBackground';
 
@@ -183,11 +182,6 @@ export default function BundlePage() {
                 )}
               </button>
             )}
-            <a href={`${IG_URL}?text=Assalamualaikum, I would like to order the bundle: ${encodeURIComponent(bundle.name)}`}
-              target="_blank" rel="noreferrer"
-              style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'#1b4332',color:'#fff',padding:'16px 32px',borderRadius:40,fontSize:14,letterSpacing:.4,boxShadow:'0 6px 20px rgba(27,67,50,0.25)'}}>
-              Order via Instagram →
-            </a>
             <Link href="/bundles"
               style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:8,border:'1.5px solid rgba(27,67,50,0.2)',color:'#1b4332',padding:'16px 28px',borderRadius:40,fontSize:14,letterSpacing:.4}}>
               ← Back to Bundles
