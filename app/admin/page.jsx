@@ -20,6 +20,11 @@ const EMPTY_BUNDLE = {
   totalMrp:'',bundlePrice:'',offerType:'Limited Deal',stockCount:'',active:true,
 };
 
+const EMPTY_SLIDE = {
+  mode:'book', bookSlug:'', imageUrl:'', eyebrow:'', title:'', subtitle:'',
+  ctaLabel:'', ctaUrl:'', active:true,
+};
+
 const OFFER_COLORS = {
   'Sale':                {bg:'rgba(220,38,38,0.1)',  border:'rgba(220,38,38,0.3)',  text:'#dc2626'},
   'Limited Edition':     {bg:'rgba(124,58,237,0.1)', border:'rgba(124,58,237,0.3)', text:'#7c3aed'},
@@ -111,12 +116,16 @@ export default function AdminPage() {
   const [bundles, setBundles]     = useState([]);
   const [orders, setOrders]       = useState([]);
   const [views, setViews]         = useState({});
+  const [slides, setSlides]       = useState([]);
   const [taxonomy, setTaxonomy]   = useState({ categories: DEFAULT_CATEGORIES, languages: DEFAULT_LANGUAGES, offerTypes: DEFAULT_OFFER_TYPES });
   const [loading, setLoading]     = useState(false);
   const [editSlug, setEditSlug]   = useState(null);
   const [editBundleId, setEditBundleId] = useState(null);
+  const [editSlideId, setEditSlideId] = useState(null);
   const [form, setForm]           = useState(EMPTY_BOOK);
   const [bundleForm, setBundleForm] = useState(EMPTY_BUNDLE);
+  const [slideForm, setSlideForm] = useState(EMPTY_SLIDE);
+  const [slideImgMode, setSlideImgMode] = useState('url');
   const [imgMode, setImgMode]     = useState('url');
   const [galleryInput, setGalleryInput] = useState('');
   const [search, setSearch]       = useState('');
@@ -129,6 +138,7 @@ export default function AdminPage() {
 
   function f(k,v)  { setForm(p=>({...p,[k]:v})); }
   function bf(k,v) { setBundleForm(p=>({...p,[k]:v})); }
+  function sf(k,v) { setSlideForm(p=>({...p,[k]:v})); }
 
   function showToast(msg,type='') {
     setToast({msg,type,show:true});
@@ -143,7 +153,7 @@ export default function AdminPage() {
       const r = await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
       const d = await r.json();
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
-      setSession(pw); await Promise.all([loadBooks(pw),loadBundles(pw),loadOrders(pw),loadViews(pw),loadTaxonomy()]); setView('dashboard'); setPw('');
+      setSession(pw); await Promise.all([loadBooks(pw),loadBundles(pw),loadOrders(pw),loadViews(pw),loadTaxonomy(),loadSlides(pw)]); setView('dashboard'); setPw('');
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -162,6 +172,9 @@ export default function AdminPage() {
   }
   async function loadTaxonomy() {
     try { const r=await fetch('/api/taxonomy'); const d=await r.json(); if (d.taxonomy) setTaxonomy(d.taxonomy); } catch {}
+  }
+  async function loadSlides(s=session) {
+    try { const r=await fetch(`/api/hero-slides?password=${encodeURIComponent(s)}`); const d=await r.json(); setSlides(d.slides||[]); } catch {}
   }
   async function addTaxonomyOption(field, value) {
     try {
@@ -225,6 +238,17 @@ export default function AdminPage() {
     finally { setLoading(false); }
   }
 
+  async function openEditSlide(slide) {
+    setEditSlideId(slide.id);
+    setSlideForm({
+      mode: slide.mode || 'book', bookSlug: slide.bookSlug || '', imageUrl: slide.imageUrl || '',
+      eyebrow: slide.eyebrow || '', title: slide.title || '', subtitle: slide.subtitle || '',
+      ctaLabel: slide.ctaLabel || '', ctaUrl: slide.ctaUrl || '', active: slide.active !== false,
+    });
+    setSlideImgMode('url');
+    setView('slideEditor');
+  }
+
   function missingBookFields() {
     return MANDATORY_BOOK_FIELDS.filter(k => !String(form[k] ?? '').trim()).map(k => FIELD_LABELS[k] || k);
   }
@@ -261,6 +285,23 @@ export default function AdminPage() {
     finally { setLoading(false); }
   }
 
+  async function saveSlide() {
+    if (slideForm.mode === 'book' && !slideForm.bookSlug) { showToast('Select a book to feature.','error'); return; }
+    if (slideForm.mode === 'custom' && !slideForm.imageUrl.trim()) { showToast('An image is required for a custom slide.','error'); return; }
+    if (slideForm.mode === 'custom' && !slideForm.title.trim()) { showToast('Title is required for a custom slide.','error'); return; }
+    setLoading(true);
+    try {
+      const r = editSlideId
+        ? await fetch(`/api/hero-slides/${editSlideId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...slideForm})})
+        : await fetch('/api/hero-slides',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...slideForm})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed');
+      showToast(editSlideId?'✓ Slide updated!':'✓ Slide added!','success');
+      await loadSlides(); setView('dashboard'); setTab('slides');
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setLoading(false); }
+  }
+
   async function delBook(slug) {
     if (!confirm('Delete this book?')) return;
     try {
@@ -291,9 +332,43 @@ export default function AdminPage() {
     } catch { showToast('Failed.','error'); }
   }
 
+  async function delSlide(id) {
+    if (!confirm('Delete this slide?')) return;
+    try {
+      await fetch(`/api/hero-slides/${id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session})});
+      showToast('Slide deleted.'); await loadSlides();
+    } catch { showToast('Failed.','error'); }
+  }
+
+  async function toggleSlideActive(id, active) {
+    try {
+      await fetch(`/api/hero-slides/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,active})});
+      await loadSlides(); showToast(active?'Slide shown on homepage.':'Slide hidden.','success');
+    } catch { showToast('Failed.','error'); }
+  }
+
+  async function moveSlide(id, dir) {
+    const ordered = [...slides].sort((a,b)=>(a.order??0)-(b.order??0));
+    const idx = ordered.findIndex(s=>s.id===id);
+    const swapIdx = idx + dir;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= ordered.length) return;
+    const a = ordered[idx], b = ordered[swapIdx];
+    try {
+      await Promise.all([
+        fetch(`/api/hero-slides/${a.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,order:b.order??0})}),
+        fetch(`/api/hero-slides/${b.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,order:a.order??0})}),
+      ]);
+      await loadSlides();
+    } catch { showToast('Failed to reorder.','error'); }
+  }
+
   function handleImg(e) {
     const file=e.target.files?.[0]; if(!file) return;
     new Promise((res,rej)=>{const r=new FileReader();r.onload=ev=>res(ev.target.result);r.onerror=rej;r.readAsDataURL(file);}).then(d=>f('coverUrl',d));
+  }
+  function handleSlideImg(e) {
+    const file=e.target.files?.[0]; if(!file) return;
+    new Promise((res,rej)=>{const r=new FileReader();r.onload=ev=>res(ev.target.result);r.onerror=rej;r.readAsDataURL(file);}).then(d=>sf('imageUrl',d));
   }
 
   function exportBooksCsv() {
@@ -639,6 +714,129 @@ export default function AdminPage() {
     </div>
   );
 
+  /* ── SLIDE EDITOR ── */
+  if (view==='slideEditor') return (
+    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
+      <PageBackground subtle/>
+      <header style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,48px)',background:'rgba(250,249,245,0.92)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:14}}>
+          <Image src="/logo.png" alt="Logo" width={36} height={36} style={{height:36,width:'auto'}}/>
+          <div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332'}}>{editSlideId?'Edit Slide':'Add Slide'}</div>
+            <div style={{fontSize:10,color:'#b8965a',letterSpacing:'1.5px',textTransform:'uppercase'}}>Admin · Homepage Slider</div>
+          </div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <Btn variant="ghost" onClick={()=>setView('dashboard')}>← Dashboard</Btn>
+          <Btn onClick={saveSlide} disabled={loading}>{loading?'Saving…':editSlideId?'Save Changes':'Add Slide'}</Btn>
+        </div>
+      </header>
+
+      <div style={{position:'relative',zIndex:1,maxWidth:900,margin:'0 auto',padding:'40px clamp(20px,5vw,48px) 80px',display:'flex',flexDirection:'column',gap:20}}>
+
+        <Card title="Slide Type">
+          <div style={{display:'flex',gap:8}}>
+            {[{id:'book',label:'Feature a Book'},{id:'custom',label:'Custom Slide'}].map(m=>(
+              <button key={m.id} onClick={()=>sf('mode',m.id)} style={{padding:'9px 20px',borderRadius:20,border:`1.5px solid ${slideForm.mode===m.id?'#1b4332':'rgba(27,67,50,0.15)'}`,background:slideForm.mode===m.id?'rgba(27,67,50,0.07)':'transparent',color:slideForm.mode===m.id?'#1b4332':'#6b6460',fontSize:13,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <p style={{fontSize:12,color:'#a09890',marginTop:12,marginBottom:0}}>
+            {slideForm.mode==='book'
+              ? "Pick a book below — its cover, title and description feed the slide automatically. You can still override any of it."
+              : 'Build a standalone promotional slide with your own image, text and link.'}
+          </p>
+        </Card>
+
+        {slideForm.mode==='book' && (
+          <Card title="Select Book">
+            {books.length === 0 ? (
+              <div style={{textAlign:'center',padding:'24px 0',color:'#a09890',fontSize:13}}>No books found. Add a book first.</div>
+            ) : (
+              <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:340,overflowY:'auto',paddingRight:4}}>
+                {books.map(b => {
+                  const sel = slideForm.bookSlug === b.slug;
+                  return (
+                    <div key={b.slug} onClick={()=>sf('bookSlug',b.slug)}
+                      style={{display:'flex',alignItems:'center',gap:14,padding:'12px 16px',borderRadius:10,border:`1.5px solid ${sel?'#1b4332':'rgba(27,67,50,0.1)'}`,background:sel?'rgba(27,67,50,0.05)':'#fff',cursor:'pointer',transition:'all .15s'}}>
+                      <span style={{width:18,height:18,borderRadius:'50%',border:`1.5px solid ${sel?'#1b4332':'rgba(27,67,50,0.22)'}`,background:sel?'#1b4332':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        {sel && <span style={{width:7,height:7,borderRadius:'50%',background:'#fff'}}/>}
+                      </span>
+                      {b.coverUrl && <img src={b.coverUrl} alt="" style={{width:36,height:48,objectFit:'cover',borderRadius:5,flexShrink:0}}/>}
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</div>
+                        <div style={{fontSize:11,color:'#a09890'}}>{b.author} · {b.category}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {slideForm.mode==='custom' && (
+          <Card title="Slide Image">
+            <div style={{display:'flex',gap:8,marginBottom:14}}>
+              {['url','upload'].map(m=>(
+                <button key={m} onClick={()=>setSlideImgMode(m)} style={{padding:'7px 18px',borderRadius:20,border:`1.5px solid ${slideImgMode===m?'#1b4332':'rgba(27,67,50,0.15)'}`,background:slideImgMode===m?'rgba(27,67,50,0.07)':'transparent',color:slideImgMode===m?'#1b4332':'#6b6460',fontSize:12,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+                  {m==='url'?'Paste URL':'Upload Image'}
+                </button>
+              ))}
+            </div>
+            {slideImgMode==='url'
+              ? <FInput value={slideForm.imageUrl.startsWith('data:')?'':slideForm.imageUrl} onChange={e=>sf('imageUrl',e.target.value)} placeholder="https://… (image URL)"/>
+              : (
+                <div onClick={()=>document.getElementById('slide-img-input')?.click()} style={{border:'2px dashed rgba(27,67,50,0.15)',borderRadius:12,padding:slideForm.imageUrl?0:32,textAlign:'center',cursor:'pointer',overflow:'hidden',background:'#faf9f5'}} onMouseEnter={e=>e.currentTarget.style.borderColor='#1b4332'} onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(27,67,50,0.15)'}>
+                  {slideForm.imageUrl?<img src={slideForm.imageUrl} alt="Preview" style={{width:'100%',maxHeight:240,objectFit:'contain',borderRadius:10}}/>:<><div style={{fontSize:13,color:'#6b6460',marginBottom:6}}>Click to upload an image</div><div style={{fontSize:11,color:'#a09890'}}>JPG or PNG</div></>}
+                  <input id="slide-img-input" type="file" accept="image/*" style={{display:'none'}} onChange={handleSlideImg}/>
+                </div>
+              )
+            }
+            {slideForm.imageUrl && <button onClick={()=>sf('imageUrl','')} style={{marginTop:8,fontSize:11,color:'#a09890',background:'none',border:'none',cursor:'pointer',padding:0}}>✕ Remove image</button>}
+          </Card>
+        )}
+
+        <Card title={slideForm.mode==='book' ? 'Text Overrides (optional)' : 'Slide Text'}>
+          <div style={{marginBottom:16}}>
+            <Label hint="Small label above the title, e.g. ISLAMIC BOOKS">Eyebrow</Label>
+            <FInput value={slideForm.eyebrow} onChange={e=>sf('eyebrow',e.target.value)} placeholder="e.g. Islamic Books"/>
+          </div>
+          <div style={{marginBottom:16}}>
+            <Label hint={slideForm.mode==='book' ? 'Optional — defaults to the book title' : undefined}>Title{slideForm.mode==='custom' && ' *'}</Label>
+            <FInput value={slideForm.title} onChange={e=>sf('title',e.target.value)} placeholder="e.g. Where Is Allah?"/>
+          </div>
+          <div style={{marginBottom:16}}>
+            <Label hint={slideForm.mode==='book' ? 'Optional — defaults to the book description' : 'Optional'}>Subtitle</Label>
+            <textarea value={slideForm.subtitle} onChange={e=>sf('subtitle',e.target.value)} placeholder="A short line under the title…" rows={2}
+              style={{width:'100%',padding:'12px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',resize:'vertical',lineHeight:1.65,transition:'border-color .2s'}}
+              onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+            <div><Label hint="Optional — defaults to 'Shop Now'">Button Text</Label><FInput value={slideForm.ctaLabel} onChange={e=>sf('ctaLabel',e.target.value)} placeholder="Shop Now"/></div>
+            <div><Label hint={slideForm.mode==='book' ? "Optional — defaults to this book's page" : undefined}>Button Link{slideForm.mode==='custom' && ' *'}</Label><FInput value={slideForm.ctaUrl} onChange={e=>sf('ctaUrl',e.target.value)} placeholder="/books?category=Aqeedah"/></div>
+          </div>
+        </Card>
+
+        <Card title="Visibility">
+          <label onClick={()=>sf('active',!slideForm.active)} style={{display:'flex',alignItems:'center',gap:12,cursor:'pointer',width:'fit-content'}}>
+            <div style={{width:44,height:26,borderRadius:13,background:slideForm.active?'#1b4332':'rgba(27,67,50,0.15)',position:'relative',transition:'background .25s',flexShrink:0}}>
+              <div style={{position:'absolute',top:3,left:slideForm.active?20:3,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left .25s',boxShadow:'0 1px 4px rgba(0,0,0,.2)'}}/>
+            </div>
+            <span style={{fontSize:14,color:slideForm.active?'#1b4332':'#6b6460'}}>{slideForm.active?'Live (shown on homepage)':'Hidden (paused)'}</span>
+          </label>
+        </Card>
+
+        <div style={{display:'flex',gap:10}}>
+          <Btn variant="ghost" onClick={()=>setView('dashboard')}>Cancel</Btn>
+          <Btn onClick={saveSlide} disabled={loading}>{loading?'Saving…':editSlideId?'Save Changes':'Add Slide'}</Btn>
+        </div>
+      </div>
+      <Toast t={toast}/>
+    </div>
+  );
+
   /* ── LOGIN ── */
   if (view==='login') return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',display:'flex',alignItems:'center',justifyContent:'center',padding:24,fontFamily:"'DM Sans',sans-serif"}}>
@@ -678,7 +876,9 @@ export default function AdminPage() {
             ? <Btn onClick={()=>{setEditSlug(null);setForm(EMPTY_BOOK);setImgMode('url');setView('bookEditor');}}>+ Add Book</Btn>
             : tab==='bundles'
               ? <Btn onClick={()=>{setEditBundleId(null);setBundleForm(EMPTY_BUNDLE);setView('bundleEditor');}}>+ Create Bundle</Btn>
-              : null
+              : tab==='slides'
+                ? <Btn onClick={()=>{setEditSlideId(null);setSlideForm(EMPTY_SLIDE);setSlideImgMode('url');setView('slideEditor');}}>+ Add Slide</Btn>
+                : null
           }
           <Btn variant="ghost" onClick={()=>{setSession('');setView('login');}}>Log Out</Btn>
         </div>
@@ -700,7 +900,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:`Homepage Slides (${slides.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif'"}}>
               {t.label}
             </button>
@@ -838,6 +1038,57 @@ export default function AdminPage() {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
                       </button>
                       <button onClick={()=>delBundle(b.id)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',color:'#6b6460',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .2s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(180,60,60,0.07)';e.currentTarget.style.color='#b44';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#6b6460';}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SLIDES LIST */}
+        {tab==='slides' && (
+          <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
+            <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)'}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:'#1b4332'}}>Homepage Featured Slider</div>
+              <p style={{margin:'6px 0 0',fontSize:12,color:'#a09890'}}>These slides rotate on the homepage, right below the hero. Feature a book directly, or build a custom promotional slide.</p>
+            </div>
+            {slides.length===0 ? (
+              <div style={{textAlign:'center',padding:'60px 24px'}}>
+                <div style={{fontSize:44,marginBottom:12,opacity:.2}}>🖼️</div>
+                <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:'0 0 20px'}}>No slides yet.</p>
+                <Btn onClick={()=>{setEditSlideId(null);setSlideForm(EMPTY_SLIDE);setSlideImgMode('url');setView('slideEditor');}}>+ Add First Slide</Btn>
+              </div>
+            ) : (
+              <div>
+                {[...slides].sort((a,b)=>(a.order??0)-(b.order??0)).map((s,i,arr)=>(
+                  <div key={s.id} style={{display:'flex',alignItems:'center',gap:16,padding:'16px 24px',borderBottom:i<arr.length-1?'1px solid rgba(27,67,50,0.05)':'none',transition:'background .15s'}}
+                    onMouseEnter={e=>e.currentTarget.style.background='rgba(27,67,50,0.02)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    <div style={{display:'flex',flexDirection:'column',gap:2,flexShrink:0}}>
+                      <button onClick={()=>moveSlide(s.id,-1)} disabled={i===0} style={{width:22,height:18,border:'1px solid rgba(27,67,50,0.15)',borderRadius:5,background:'transparent',color:i===0?'#d8d3cb':'#6b6460',cursor:i===0?'default':'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>▲</button>
+                      <button onClick={()=>moveSlide(s.id,1)} disabled={i===arr.length-1} style={{width:22,height:18,border:'1px solid rgba(27,67,50,0.15)',borderRadius:5,background:'transparent',color:i===arr.length-1?'#d8d3cb':'#6b6460',cursor:i===arr.length-1?'default':'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>▼</button>
+                    </div>
+                    <div style={{width:44,height:58,borderRadius:6,overflow:'hidden',flexShrink:0,background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      {s.imageUrl?<img src={s.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#d4ab70'}}>ك</span>}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                        <span style={{fontSize:15,color:'#1a1712',fontWeight:400}}>{s.title || (s.mode==='book'?'(Book slide — no title override)':'(Untitled)')}</span>
+                        <span style={{fontSize:9,color:'#a09890',background:'rgba(27,67,50,0.05)',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase'}}>{s.mode==='book'?'Book':'Custom'}</span>
+                        {!s.active && <span style={{fontSize:9,color:'#a09890',background:'rgba(0,0,0,0.06)',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase'}}>Hidden</span>}
+                      </div>
+                      <div style={{fontSize:12,color:'#a09890'}}>{s.mode==='book' ? `Featuring: ${s.bookSlug}` : (s.ctaUrl || 'No link set')}</div>
+                    </div>
+                    <div style={{display:'flex',gap:6,flexShrink:0,alignItems:'center'}}>
+                      <button onClick={()=>toggleSlideActive(s.id,!s.active)} style={{padding:'5px 12px',borderRadius:20,border:`1.5px solid ${s.active?'rgba(45,106,79,0.3)':'rgba(27,67,50,0.15)'}`,background:s.active?'rgba(45,106,79,0.07)':'transparent',color:s.active?'#2d6a4f':'#6b6460',fontSize:10,cursor:'pointer',letterSpacing:.8,textTransform:'uppercase',transition:'all .2s'}}>
+                        {s.active?'Live':'Hidden'}
+                      </button>
+                      <button onClick={()=>openEditSlide(s)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',color:'#6b6460',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .2s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(27,67,50,0.07)';e.currentTarget.style.color='#1b4332';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#6b6460';}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+                      </button>
+                      <button onClick={()=>delSlide(s.id)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',color:'#6b6460',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .2s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(180,60,60,0.07)';e.currentTarget.style.color='#b44';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#6b6460';}}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
                       </button>
                     </div>

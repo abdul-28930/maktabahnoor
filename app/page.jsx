@@ -3,6 +3,36 @@ import redis from '@/lib/redis';
 
 export const revalidate = 60; // ISR — revalidate every 60 seconds
 
+async function getHeroSlides() {
+  try {
+    const all = await redis.get('mn_hero_slides') || [];
+    const active = all.filter(s => s.active !== false).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    // Resolve "feature a book" slides against the live book record, so the
+    // slide always shows the book's current cover/title/price even if it
+    // changes after the slide was set up — and drops the slide cleanly if
+    // the book was later deleted or hidden.
+    const resolved = await Promise.all(active.map(async (s) => {
+      if (s.mode !== 'book') return s;
+      const book = await redis.get(`mn_book:${s.bookSlug}`);
+      if (!book || book.visible === false) return null;
+      return {
+        ...s,
+        imageUrl: s.imageUrl || book.coverUrl || '',
+        title:    s.title    || book.title    || '',
+        subtitle: s.subtitle || book.description || '',
+        ctaLabel: s.ctaLabel || 'Shop Now',
+        ctaUrl:   s.ctaUrl   || `/book/${book.slug}`,
+        book,
+      };
+    }));
+    return resolved.filter(Boolean);
+  } catch (e) {
+    console.error('Hero slides fetch error:', e);
+    return [];
+  }
+}
+
 export default async function HomePage() {
   let featuredBooks = [], newArrivals = [];
   try {
@@ -21,5 +51,6 @@ export default async function HomePage() {
   } catch (e) {
     console.error('Homepage data fetch error:', e);
   }
-  return <HomeClient featuredBooks={featuredBooks} newArrivals={newArrivals} />;
+  const heroSlides = await getHeroSlides();
+  return <HomeClient featuredBooks={featuredBooks} newArrivals={newArrivals} heroSlides={heroSlides} />;
 }

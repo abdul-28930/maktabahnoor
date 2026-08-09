@@ -67,7 +67,77 @@ function BookCard({ book, idx }) {
   );
 }
 
-export default function HomeClient({ featuredBooks = [], newArrivals = [] }) {
+function FeaturedSlider({ slides = [] }) {
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const count = slides.length;
+
+  useEffect(() => {
+    if (count < 2 || paused) return;
+    const t = setInterval(() => setActive(i => (i + 1) % count), 6000);
+    return () => clearInterval(t);
+  }, [count, paused]);
+
+  if (count === 0) return null;
+
+  const s = slides[active];
+  const ar = CAT_AR[s.book?.category] || 'كتاب';
+
+  return (
+    <section
+      className="hp-reveal"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      style={{position:'relative',zIndex:1,background:'linear-gradient(180deg,#faf9f5,#f3f1ea)',borderTop:'1px solid rgba(27,67,50,0.08)',borderBottom:'1px solid rgba(27,67,50,0.08)',overflow:'hidden'}}>
+      <div style={{maxWidth:1280,margin:'0 auto',padding:'clamp(48px,7vw,84px) clamp(20px,5vw,72px)',display:'grid',gridTemplateColumns:'1.2fr 1fr',gap:48,alignItems:'center'}}>
+        <div key={s.id}>
+          {s.eyebrow && (
+            <div style={{display:'inline-flex',alignItems:'center',gap:10,marginBottom:16,color:'#b8965a',fontSize:11,letterSpacing:'2.5px',textTransform:'uppercase'}}>
+              <span style={{width:16,height:1,background:'#b8965a',display:'inline-block'}}/>{s.eyebrow}
+            </div>
+          )}
+          <h2 style={{margin:'0 0 14px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(32px,4.6vw,52px)',color:'#1b4332',lineHeight:1.1}}>{s.title}</h2>
+          {s.subtitle && <p style={{margin:'0 0 30px',fontSize:15,lineHeight:1.7,color:'#6b6460',fontWeight:300,maxWidth:460}}>{s.subtitle}</p>}
+          {s.ctaUrl && (
+            <Link href={s.ctaUrl} style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'#1b4332',color:'#fff',padding:'15px 30px',borderRadius:40,fontSize:13,letterSpacing:.6,textTransform:'uppercase',fontWeight:500}}>
+              {s.ctaLabel || 'Shop Now'} <span style={{fontSize:15}}>→</span>
+            </Link>
+          )}
+        </div>
+
+        <div style={{display:'flex',justifyContent:'center'}}>
+          <div style={{position:'relative',width:'min(80%,260px)',aspectRatio:'3/4',borderRadius:14,overflow:'hidden',boxShadow:'0 24px 60px rgba(27,67,50,0.18)',animation:'floatBook 6s ease-in-out infinite'}}>
+            {s.imageUrl ? (
+              <img src={s.imageUrl} alt={s.title} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+            ) : (
+              <div style={{width:'100%',height:'100%',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14,padding:24}}>
+                <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:44,color:'#d4ab70'}}>{ar}</span>
+                <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:16,color:'rgba(255,255,255,0.85)',textAlign:'center'}}>{s.title}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {count > 1 && (
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:18,paddingBottom:32}}>
+          <button onClick={()=>setActive(i=>(i-1+count)%count)} aria-label="Previous slide"
+            style={{width:36,height:36,borderRadius:'50%',border:'1px solid rgba(27,67,50,0.2)',background:'#fff',color:'#1b4332',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>
+          <div style={{display:'flex',gap:8}}>
+            {slides.map((_,i)=>(
+              <button key={i} onClick={()=>setActive(i)} aria-label={`Go to slide ${i+1}`}
+                style={{width:i===active?22:8,height:8,borderRadius:4,border:'none',background:i===active?'#1b4332':'rgba(27,67,50,0.2)',cursor:'pointer',transition:'width .3s,background .3s',padding:0}}/>
+            ))}
+          </div>
+          <button onClick={()=>setActive(i=>(i+1)%count)} aria-label="Next slide"
+            style={{width:36,height:36,borderRadius:'50%',border:'1px solid rgba(27,67,50,0.2)',background:'#fff',color:'#1b4332',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+export default function HomeClient({ featuredBooks = [], newArrivals = [], heroSlides = [] }) {
   const rootRef = useRef(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -256,6 +326,8 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [] }) {
           <span style={{width:1,height:42,background:'#b8965a',transformOrigin:'top',animation:'scrollLine 2.4s ease-in-out infinite'}}/>
         </div>
       </header>
+
+      <FeaturedSlider slides={heroSlides}/>
 
       {/* MARQUEE */}
       <div style={{position:'relative',zIndex:1,background:'#1b4332',overflow:'hidden',padding:'15px 0'}}>
