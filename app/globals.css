@@ -403,8 +403,6 @@ img{max-width:100%;display:block}
   .hp-hero-grid { grid-template-columns:1fr!important; }
   .hp-four-grid { grid-template-columns:1fr 1fr!important; }
   .hp-about-grid { grid-template-columns:1fr!important; }
-  .hp-stats-row { flex-wrap:wrap!important; }
-  .hp-stat-cell { flex:1 0 42%!important;border-left:none!important; }
 }
 @media(min-width:861px) {
   .hp-hamburger { display:none!important; }

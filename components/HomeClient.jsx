@@ -271,7 +271,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
 
         <div className="hp-hero-grid" style={{position:'relative',zIndex:2,width:'100%',maxWidth:1320,margin:'0 auto',display:'grid',gridTemplateColumns:'1.4fr 1fr',gap:48,alignItems:'center'}}>
           <div>
-            <div className="hp-hero-anim" style={{opacity:0,animation:'heroFadeUp .7s ease .3s both',display:'inline-flex',alignItems:'center',gap:8,color:'#b8965a',fontSize:12,letterSpacing:'3.5px',textTransform:'uppercase',marginBottom:28}}>✦ Est. 2026 · Chennai, India</div>
+            <div className="hp-hero-anim" style={{opacity:0,animation:'heroFadeUp .7s ease .3s both',display:'inline-flex',alignItems:'center',gap:8,color:'#b8965a',fontSize:12,letterSpacing:'3.5px',textTransform:'uppercase',marginBottom:28}}>✦ Est. 2026</div>
             <h1 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",lineHeight:.96,fontWeight:400}}>
               <span className="hp-hero-anim" style={{display:'block',opacity:0,animation:'heroInLeft .7s ease .5s both',fontSize:'clamp(54px,7vw,90px)',color:'#1b4332'}}>Maktabah</span>
               <span className="hp-hero-anim" style={{display:'block',opacity:0,animation:'heroInLeft .7s ease .65s both',fontSize:'clamp(58px,7.6vw,98px)',fontStyle:'italic',fontWeight:500,color:'#b8965a'}}>An Noor</span>
@@ -339,21 +339,6 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           ))}
         </div>
       </div>
-
-      {/* STATS */}
-      <section className="hp-reveal" style={{position:'relative',zIndex:1,background:'#faf9f5',borderTop:'1px solid rgba(27,67,50,0.08)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
-        <div className="hp-stats-row" style={{maxWidth:1200,margin:'0 auto',display:'flex'}}>
-          {[{count:500,suffix:'+',label:'Books in Collection'},{count:10,suffix:'+',label:'Subject Categories'},{count:3,suffix:'',label:'Languages'},{val:'All India',label:'Delivery'}].map((s,i)=>(
-            <div key={i} className="hp-stat-cell" style={{flex:1,textAlign:'center',padding:'46px 20px',borderLeft:i>0?'1px solid rgba(27,67,50,0.08)':'none'}}>
-              {s.count!==undefined
-                ? <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:54,color:'#1b4332',lineHeight:1}} data-count={s.count} data-suffix={s.suffix}>0{s.suffix}</div>
-                : <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:54,color:'#1b4332',lineHeight:1}}>{s.val}</div>
-              }
-              <div style={{marginTop:8,fontSize:12,letterSpacing:'1.5px',textTransform:'uppercase',color:'#6b6460'}}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* FEATURED */}
       <section id="collection" style={{position:'relative',zIndex:1,padding:'96px clamp(20px,5vw,72px)'}}>
@@ -425,7 +410,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           <div className="hp-reveal" style={{position:'relative',maxWidth:460}}>
             <div style={{color:'#d4ab70',fontSize:12,letterSpacing:'3.5px',textTransform:'uppercase',marginBottom:18}}>✦ Our Mission</div>
             <h2 style={{margin:'0 0 22px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(36px,4.4vw,52px)',color:'#fff',lineHeight:1.08}}>Every Home Deserves a Library</h2>
-            <p style={{margin:'0 0 18px',fontSize:15,lineHeight:1.8,color:'rgba(255,255,255,0.78)',fontWeight:300}}>Maktabah An Noor was founded in Chennai with a simple conviction — that authentic Islamic knowledge should reach every doorstep. We source and curate trusted editions across Arabic, Urdu and English.</p>
+            <p style={{margin:'0 0 18px',fontSize:15,lineHeight:1.8,color:'rgba(255,255,255,0.78)',fontWeight:300}}>Maktabah An Noor was founded with a simple conviction — that authentic Islamic knowledge should reach every doorstep. We source and curate trusted editions across Arabic, Urdu and English.</p>
             <p style={{margin:'0 0 30px',fontSize:15,lineHeight:1.8,color:'rgba(255,255,255,0.78)',fontWeight:300}}>Each title is chosen with care for accuracy, binding quality, and the light it brings to the heart. Orders &amp; enquiries via DM on Instagram.</p>
             <Link href="/books" className="hp-glow-cta" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'#b8965a',color:'#1b4332',padding:'15px 30px',borderRadius:40,fontSize:14,letterSpacing:.4,fontWeight:500}}>Explore Collection →</Link>
           </div>
@@ -527,7 +512,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
               <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,color:'#fff'}}>Maktabah An Noor</span>
             </div>
             <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:17,color:'#d4ab70',margin:'0 0 10px'}}>Books That Illuminate The Heart</p>
-            <p style={{fontSize:12,color:'rgba(255,255,255,0.45)',letterSpacing:'1.5px',textTransform:'uppercase',margin:'0 0 24px'}}>Est. 2026 · Chennai, India</p>
+            <p style={{fontSize:12,color:'rgba(255,255,255,0.45)',letterSpacing:'1.5px',textTransform:'uppercase',margin:'0 0 24px'}}>Est. 2026</p>
             <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:24,color:'rgba(184,150,90,0.55)',lineHeight:1.6}}>مكتبة النور</div>
           </div>
 
@@ -589,9 +574,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
         <div style={{position:'relative',zIndex:1,borderTop:'1px solid rgba(255,255,255,0.06)',marginTop:40,padding:'20px clamp(20px,5vw,72px)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
           <span style={{fontSize:12,color:'rgba(255,255,255,0.35)',letterSpacing:.5}}>© 2026 Maktabah An Noor · Built with care for the Ummah</span>
           <div style={{display:'flex',alignItems:'center',gap:20}}>
-            <span style={{fontSize:11,color:'rgba(255,255,255,0.3)',letterSpacing:1,textTransform:'uppercase'}}>Chennai, India</span>
             <span style={{fontSize:11,color:'rgba(255,255,255,0.3)',letterSpacing:1,textTransform:'uppercase'}}>Arabic · Urdu · English</span>
-            <span style={{fontSize:11,color:'rgba(255,255,255,0.3)',letterSpacing:1,textTransform:'uppercase'}}>Pan-India Delivery</span>
           </div>
         </div>
       </footer>

@@ -5,7 +5,7 @@ import CartDrawer from '@/components/CartDrawer';
 
 export const metadata = {
   title: 'Maktabah An Noor — Books That Illuminate The Heart',
-  description: "Spreading beneficial knowledge — Qurans, Islamic Books & Essentials. Shipping across India. Orders via DM. Based in Chennai.",
+  description: "Spreading beneficial knowledge — Qurans, Islamic Books & Essentials. Shipping across India. Orders via DM.",
 };
 
 export default function RootLayout({ children }) {

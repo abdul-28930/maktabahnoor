@@ -117,6 +117,7 @@ export default function AdminPage() {
   const [orders, setOrders]       = useState([]);
   const [views, setViews]         = useState({});
   const [slides, setSlides]       = useState([]);
+  const [picks, setPicks]         = useState({ featured: [], newArrivals: [] });
   const [taxonomy, setTaxonomy]   = useState({ categories: DEFAULT_CATEGORIES, languages: DEFAULT_LANGUAGES, offerTypes: DEFAULT_OFFER_TYPES });
   const [loading, setLoading]     = useState(false);
   const [editSlug, setEditSlug]   = useState(null);
@@ -153,7 +154,7 @@ export default function AdminPage() {
       const r = await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
       const d = await r.json();
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
-      setSession(pw); await Promise.all([loadBooks(pw),loadBundles(pw),loadOrders(pw),loadViews(pw),loadTaxonomy(),loadSlides(pw)]); setView('dashboard'); setPw('');
+      setSession(pw); await Promise.all([loadBooks(pw),loadBundles(pw),loadOrders(pw),loadViews(pw),loadTaxonomy(),loadSlides(pw),loadPicks()]); setView('dashboard'); setPw('');
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -175,6 +176,19 @@ export default function AdminPage() {
   }
   async function loadSlides(s=session) {
     try { const r=await fetch(`/api/hero-slides?password=${encodeURIComponent(s)}`); const d=await r.json(); setSlides(d.slides||[]); } catch {}
+  }
+  async function loadPicks() {
+    try { const r=await fetch('/api/homepage-picks'); const d=await r.json(); setPicks(d.picks||{featured:[],newArrivals:[]}); } catch {}
+  }
+  async function savePicks() {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/homepage-picks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...picks})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed');
+      showToast('✓ Homepage picks saved!','success');
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setLoading(false); }
   }
   async function addTaxonomyOption(field, value) {
     try {
@@ -900,7 +914,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:`Homepage Slides (${slides.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif'"}}>
               {t.label}
             </button>
@@ -1048,8 +1062,27 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* SLIDES LIST */}
+        {/* HOMEPAGE PICKS + SLIDES */}
         {tab==='slides' && (
+          <>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:20}}>
+            <BookPicker
+              title="Featured Books" max={4}
+              hint="Shown in the 'Featured Books' section on the homepage. Pick up to 4 — if you don't pick any, books tagged 'Featured' are shown automatically instead."
+              selected={picks.featured} books={books}
+              onChange={(next)=>setPicks(p=>({...p,featured:next}))}
+            />
+            <BookPicker
+              title="New Arrivals" max={4}
+              hint="Shown in the 'New Arrivals' section on the homepage. Pick up to 4 — if you don't pick any, books tagged 'New Arrival' are shown automatically instead."
+              selected={picks.newArrivals} books={books}
+              onChange={(next)=>setPicks(p=>({...p,newArrivals:next}))}
+            />
+          </div>
+          <div style={{display:'flex',justifyContent:'flex-end',marginBottom:20}}>
+            <Btn onClick={savePicks} disabled={loading}>{loading?'Saving…':'Save Homepage Picks'}</Btn>
+          </div>
+
           <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
             <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)'}}>
               <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:'#1b4332'}}>Homepage Featured Slider</div>
@@ -1097,6 +1130,7 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+          </>
         )}
 
         {/* ORDERS LIST */}
@@ -1155,6 +1189,70 @@ function Card({title,children}) {
       <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,color:'#1b4332',fontWeight:500,marginBottom:20,paddingBottom:14,borderBottom:'1px solid rgba(27,67,50,0.06)'}}>{title}</div>
       {children}
     </div>
+  );
+}
+
+// A book multi-select with manual reordering, used to curate the homepage's
+// Featured Books / New Arrivals sections. `selected` is an ordered array of
+// slugs; `onChange` receives the full next array.
+function BookPicker({ title, hint, max, selected, books, onChange }) {
+  const [q, setQ] = useState('');
+  const bySlug = Object.fromEntries(books.map(b => [b.slug, b]));
+  const atMax = max && selected.length >= max;
+  const filtered = books.filter(b =>
+    !q || b.title?.toLowerCase().includes(q.toLowerCase()) || b.author?.toLowerCase().includes(q.toLowerCase())
+  );
+
+  function toggle(slug) {
+    if (selected.includes(slug)) onChange(selected.filter(s => s !== slug));
+    else if (!atMax) onChange([...selected, slug]);
+  }
+  function move(slug, dir) {
+    const idx = selected.indexOf(slug);
+    const swap = idx + dir;
+    if (idx < 0 || swap < 0 || swap >= selected.length) return;
+    const next = [...selected];
+    [next[idx], next[swap]] = [next[swap], next[idx]];
+    onChange(next);
+  }
+
+  const smallBtn = {width:22,height:22,border:'1px solid rgba(27,67,50,0.15)',borderRadius:5,background:'transparent',color:'#6b6460',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0};
+
+  return (
+    <Card title={`${title} (${selected.length}${max?`/${max}`:''})`}>
+      {hint && <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 16px',lineHeight:1.6}}>{hint}</p>}
+      {selected.length > 0 && (
+        <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:16,paddingBottom:16,borderBottom:'1px solid rgba(27,67,50,0.07)'}}>
+          {selected.map((slug, i) => (
+            <div key={slug} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:'rgba(27,67,50,0.04)'}}>
+              <span style={{fontSize:11,color:'#a09890',width:14,flexShrink:0}}>{i+1}.</span>
+              <span style={{flex:1,fontSize:12.5,color:'#1a1712',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{bySlug[slug]?.title || slug}</span>
+              <button onClick={()=>move(slug,-1)} disabled={i===0} style={{...smallBtn,color:i===0?'#d8d3cb':'#6b6460'}}>▲</button>
+              <button onClick={()=>move(slug,1)} disabled={i===selected.length-1} style={{...smallBtn,color:i===selected.length-1?'#d8d3cb':'#6b6460'}}>▼</button>
+              <button onClick={()=>toggle(slug)} style={smallBtn}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <FInput value={q} onChange={e=>setQ(e.target.value)} placeholder="Search books to add…"/>
+      <div style={{display:'flex',flexDirection:'column',gap:6,maxHeight:220,overflowY:'auto',marginTop:10,paddingRight:2}}>
+        {filtered.length === 0 && <div style={{fontSize:12,color:'#a09890',padding:'8px 0'}}>No books match.</div>}
+        {filtered.slice(0,40).map(b => {
+          const sel = selected.includes(b.slug);
+          const disabled = !sel && atMax;
+          return (
+            <div key={b.slug} onClick={()=>!disabled && toggle(b.slug)}
+              style={{display:'flex',alignItems:'center',gap:10,padding:'7px 12px',borderRadius:8,border:`1px solid ${sel?'#1b4332':'rgba(27,67,50,0.1)'}`,background:sel?'rgba(27,67,50,0.05)':'#fff',cursor:disabled?'default':'pointer',opacity:disabled?0.45:1,fontSize:12.5}}>
+              <span style={{width:15,height:15,borderRadius:4,border:`1.5px solid ${sel?'#1b4332':'rgba(27,67,50,0.22)'}`,background:sel?'#1b4332':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                {sel && <svg width="8" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+              </span>
+              <span style={{flex:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</span>
+              <span style={{fontSize:11,color:'#a09890',flexShrink:0}}>{b.author}</span>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 

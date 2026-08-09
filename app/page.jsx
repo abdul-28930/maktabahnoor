@@ -46,8 +46,21 @@ export default async function HomePage() {
       if (aOut !== bOut) return aOut - bOut;
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
-    featuredBooks = sorted.filter(b => b.tags?.includes('Featured')).slice(0, 4);
-    newArrivals   = sorted.filter(b => b.tags?.includes('New Arrival')).slice(0, 4);
+
+    // Admin can hand-pick which books appear in each section (and in what
+    // order) from the admin panel. If they haven't set any picks yet, fall
+    // back to the original tag-based auto-selection so the homepage never
+    // looks empty on a fresh setup.
+    const picks = await redis.get('mn_homepage_picks') || { featured: [], newArrivals: [] };
+    const bySlug = Object.fromEntries(visible.map(b => [b.slug, b]));
+
+    featuredBooks = picks.featured?.length
+      ? picks.featured.map(slug => bySlug[slug]).filter(Boolean).slice(0, 4)
+      : sorted.filter(b => b.tags?.includes('Featured')).slice(0, 4);
+
+    newArrivals = picks.newArrivals?.length
+      ? picks.newArrivals.map(slug => bySlug[slug]).filter(Boolean).slice(0, 4)
+      : sorted.filter(b => b.tags?.includes('New Arrival')).slice(0, 4);
   } catch (e) {
     console.error('Homepage data fetch error:', e);
   }
