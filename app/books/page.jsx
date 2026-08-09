@@ -260,8 +260,12 @@ function BooksContent() {
           && (!selStock|| (selStock === 'in' ? b.inStock : !b.inStock));
     });
 
-    // Sort
+    // Sort — out-of-stock books always sink to the bottom, whatever sort
+    // criterion is chosen; the criterion just orders within each group.
     list = [...list].sort((a, b) => {
+      const aOut = a.inStock === false ? 1 : 0;
+      const bOut = b.inStock === false ? 1 : 0;
+      if (aOut !== bOut) return aOut - bOut;
       switch (sortBy) {
         case 'newest':     return new Date(b.createdAt) - new Date(a.createdAt);
         case 'oldest':     return new Date(a.createdAt) - new Date(b.createdAt);

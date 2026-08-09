@@ -9,7 +9,7 @@ const EMPTY_BOOK = {
   title:'',author:'',translator:'',sku:'',language:'Arabic',category:'Aqeedah',
   description:'',volumes:1,binding:'Hardcover',pages:'',
   mrp:'',price:'',offerType:'',stockCount:'',
-  inStock:true,tags:[],coverUrl:'',gallery:[],
+  inStock:true,visible:true,tags:[],coverUrl:'',gallery:[],
 };
 
 // Labels shown next to the field + used to build the "please fill these in"
@@ -149,7 +149,7 @@ export default function AdminPage() {
   }
 
   async function loadBooks(s=session) {
-    try { const r=await fetch('/api/books?all=1'); const d=await r.json(); setBooks(d.books||[]); } catch {}
+    try { const r=await fetch(`/api/books?all=1&password=${encodeURIComponent(s)}`); const d=await r.json(); setBooks(d.books||[]); } catch {}
   }
   async function loadBundles(s=session) {
     try { const r=await fetch('/api/bundles'); const d=await r.json(); setBundles(d.bundles||[]); } catch {}
@@ -198,7 +198,7 @@ export default function AdminPage() {
           category:d.book.category||'Aqeedah',description:d.book.description||'',
           volumes:d.book.volumes||1,binding:d.book.binding||'Hardcover',pages:d.book.pages||'',
           mrp:d.book.mrp||'',price:d.book.price||'',offerType:d.book.offerType||'',
-          stockCount:d.book.stockCount??'',inStock:d.book.inStock!==false,
+          stockCount:d.book.stockCount??'',inStock:d.book.inStock!==false,visible:d.book.visible!==false,
           tags:d.book.tags||[],coverUrl:d.book.coverUrl||'',gallery:d.book.gallery||[],
         });
         setImgMode('url'); setView('bookEditor');
@@ -284,6 +284,13 @@ export default function AdminPage() {
     } catch { showToast('Failed.','error'); }
   }
 
+  async function toggleBookVisible(slug, visible) {
+    try {
+      await fetch(`/api/books/${slug}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,visible})});
+      await loadBooks(); showToast(visible?'Book shown on site.':'Book hidden from site.','success');
+    } catch { showToast('Failed.','error'); }
+  }
+
   function handleImg(e) {
     const file=e.target.files?.[0]; if(!file) return;
     new Promise((res,rej)=>{const r=new FileReader();r.onload=ev=>res(ev.target.result);r.onerror=rej;r.readAsDataURL(file);}).then(d=>f('coverUrl',d));
@@ -321,7 +328,11 @@ export default function AdminPage() {
     if (total > 0) bf('totalMrp', total);
   }
 
-  const filteredBooks = useMemo(()=>books.filter(b=>!search||b.title?.toLowerCase().includes(search.toLowerCase())||b.author?.toLowerCase().includes(search.toLowerCase())),[books,search]);
+  const filteredBooks = useMemo(()=>{
+    const list = books.filter(b=>!search||b.title?.toLowerCase().includes(search.toLowerCase())||b.author?.toLowerCase().includes(search.toLowerCase()));
+    // Out-of-stock books sink to the bottom of the admin table by default too.
+    return [...list].sort((a,b)=>(a.inStock?0:1)-(b.inStock?0:1));
+  },[books,search]);
   const totalBookPages = Math.max(1, Math.ceil(filteredBooks.length / BOOK_PAGE_SIZE));
   const pagedBooks = useMemo(()=>filteredBooks.slice((bookPage-1)*BOOK_PAGE_SIZE, bookPage*BOOK_PAGE_SIZE),[filteredBooks,bookPage]);
 
@@ -490,7 +501,7 @@ export default function AdminPage() {
 
         {/* Tags */}
         <Card title="Tags & Visibility">
-          <div style={{marginBottom:16}}>
+          <div style={{marginBottom:20}}>
             <Label>Tags</Label>
             <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:4}}>
               {TAGS.map(t=>(
@@ -499,6 +510,15 @@ export default function AdminPage() {
                 </label>
               ))}
             </div>
+          </div>
+          <div style={{paddingTop:16,borderTop:'1px solid rgba(27,67,50,0.07)'}}>
+            <Label hint="Hidden books stay in your catalog and are still reachable by direct link, but won't appear in the storefront's collection, search, filters, or homepage.">Storefront Visibility</Label>
+            <label onClick={()=>f('visible',!form.visible)} style={{display:'flex',alignItems:'center',gap:12,cursor:'pointer',width:'fit-content',marginTop:6}}>
+              <div style={{width:44,height:26,borderRadius:13,background:form.visible?'#1b4332':'rgba(27,67,50,0.15)',position:'relative',transition:'background .25s',flexShrink:0}}>
+                <div style={{position:'absolute',top:3,left:form.visible?20:3,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left .25s',boxShadow:'0 1px 4px rgba(0,0,0,.2)'}}/>
+              </div>
+              <span style={{fontSize:14,color:form.visible?'#1b4332':'#6b6460'}}>{form.visible?'Visible (shown on site)':'Hidden (unlisted)'}</span>
+            </label>
           </div>
         </Card>
 
@@ -731,6 +751,7 @@ export default function AdminPage() {
                         <span style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:240}}>{b.title}</span>
                         {b.sku && <span style={{fontSize:9,color:'#a09890',background:'rgba(27,67,50,0.05)',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase'}}>{b.sku}</span>}
                         {b.offerType && <OfferBadge type={b.offerType}/>}
+                        {b.visible === false && <span style={{fontSize:9,color:'#a09890',background:'rgba(0,0,0,0.06)',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase'}}>Hidden</span>}
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
                         <span style={{padding:'2px 10px',background:'rgba(27,67,50,0.07)',borderRadius:10,fontSize:9,color:'#1b4332',fontWeight:500,letterSpacing:.8,textTransform:'uppercase'}}>{b.category}</span>
@@ -749,6 +770,9 @@ export default function AdminPage() {
                       {views[b.slug] > 0 && <div style={{fontSize:10,color:'#a09890',marginTop:2}}>👁 {views[b.slug]} views</div>}
                     </div>
                     <div style={{display:'flex',gap:6,flexShrink:0}}>
+                      <button onClick={()=>toggleBookVisible(b.slug,b.visible===false)} style={{padding:'5px 12px',borderRadius:20,border:`1.5px solid ${b.visible!==false?'rgba(45,106,79,0.3)':'rgba(27,67,50,0.15)'}`,background:b.visible!==false?'rgba(45,106,79,0.07)':'transparent',color:b.visible!==false?'#2d6a4f':'#6b6460',fontSize:10,cursor:'pointer',letterSpacing:.8,textTransform:'uppercase',transition:'all .2s',flexShrink:0}}>
+                        {b.visible!==false?'Visible':'Hidden'}
+                      </button>
                       <button onClick={()=>openEditBook(b.slug)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',color:'#6b6460',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .2s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(27,67,50,0.07)';e.currentTarget.style.color='#1b4332';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#6b6460';}}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
                       </button>

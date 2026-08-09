@@ -18,14 +18,28 @@ export async function GET(req) {
   const tag      = searchParams.get('tag');
   const author   = searchParams.get('author');
   const all      = searchParams.get('all') === '1';
+  // Only the admin panel (which sends its session password) can see books
+  // that have been hidden from the storefront. Every other caller — the
+  // public listing, the author page, related-books, etc. — never sees them,
+  // regardless of the `all` (out-of-stock-inclusive) flag.
+  const isAdmin  = searchParams.get('password') === process.env.ADMIN_PASSWORD;
   try {
     const meta = await redis.get('mn_books_meta') || [];
-    let list = all ? meta : meta.filter(b => (b.stockCount ?? (b.inStock ? 1 : 0)) > 0);
+    let list = isAdmin ? meta : meta.filter(b => b.visible !== false);
+    if (!all) list = list.filter(b => (b.stockCount ?? (b.inStock ? 1 : 0)) > 0);
     if (category) list = list.filter(b => b.category === category);
     if (language)  list = list.filter(b => b.language === language);
     if (tag)       list = list.filter(b => b.tags?.includes(tag));
     if (author)    list = list.filter(b => b.author?.toLowerCase() === author.toLowerCase());
-    list = list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Out-of-stock books sink to the bottom by default; newest-first within
+    // each group. Pages that want a different order (e.g. the /books
+    // listing's sort dropdown) re-sort this on the client.
+    list = list.sort((a, b) => {
+      const aOut = (a.stockCount ?? (a.inStock ? 1 : 0)) <= 0 ? 1 : 0;
+      const bOut = (b.stockCount ?? (b.inStock ? 1 : 0)) <= 0 ? 1 : 0;
+      if (aOut !== bOut) return aOut - bOut;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
     return NextResponse.json({ books: list });
   } catch { return NextResponse.json({ books: [] }); }
 }
@@ -60,6 +74,7 @@ export async function POST(req) {
       offerType:   data.offerType || '',
       stockCount,
       inStock:     stockCount > 0,
+      visible:     data.visible !== false,
       tags:        data.tags || [],
       coverUrl:    data.coverUrl || '',
       gallery:     Array.isArray(data.gallery) ? data.gallery.filter(Boolean) : [],
@@ -72,7 +87,7 @@ export async function POST(req) {
     const m = { slug, sku: book.sku, title: book.title, author: book.author, translator: book.translator,
                 category: book.category, language: book.language, binding: book.binding,
                 volumes: book.volumes, pages: book.pages, mrp: book.mrp, price: book.price,
-                offerType: book.offerType, stockCount, inStock: book.inStock,
+                offerType: book.offerType, stockCount, inStock: book.inStock, visible: book.visible,
                 tags: book.tags, coverUrl: book.coverUrl, createdAt: now };
     const idx = meta.findIndex(b => b.slug === slug);
     if (idx >= 0) meta[idx] = m; else meta.unshift(m);

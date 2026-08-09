@@ -54,7 +54,10 @@ export default function AuthorPage() {
     if (!authorName) return;
     fetch(`/api/books?author=${encodeURIComponent(authorName)}&all=1`)
       .then(r => r.json())
-      .then(d => { setBooks(d.books || []); setLoading(false); })
+      .then(d => {
+        const list = [...(d.books || [])].sort((a, b) => (a.inStock===false?1:0) - (b.inStock===false?1:0));
+        setBooks(list); setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [authorName]);
 
