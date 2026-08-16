@@ -14,7 +14,7 @@ const EMPTY_BOOK = {
 
 // Labels shown next to the field + used to build the "please fill these in"
 // validation message. Must match MANDATORY_BOOK_FIELDS keys in lib/constants.js.
-const FIELD_LABELS = { title:'Title', author:'Author', category:'Category', language:'Language', price:'Sale Price' };
+const FIELD_LABELS = { title:'Title', author:'Author', category:'Category', language:'Language', price:'Sale Price', stockCount:'Stock Count' };
 const EMPTY_BUNDLE = {
   name:'',description:'',sku:'',bookSlugs:[],
   totalMrp:'',bundlePrice:'',offerType:'Limited Deal',stockCount:'',active:true,
@@ -521,7 +521,7 @@ export default function AdminPage() {
             <div><Label hint="Optional">Offer Type</Label>
               <TaxonomySelect value={form.offerType} onChange={e=>f('offerType',e.target.value)} options={taxonomy.offerTypes} placeholder="None" onAddOption={v=>addTaxonomyOption('offerTypes',v)}/>
             </div>
-            <div><Label hint="Optional · exact pieces available">Stock Count</Label><FInput type="number" value={form.stockCount} onChange={e=>f('stockCount',e.target.value)} placeholder="50"/></div>
+            <div><Label hint="Exact pieces available">Stock Count *</Label><FInput type="number" value={form.stockCount} onChange={e=>f('stockCount',e.target.value)} placeholder="50"/></div>
           </div>
           {(form.mrp || form.price) && (
             <div style={{padding:'14px 16px',background:'rgba(27,67,50,0.04)',borderRadius:10,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>

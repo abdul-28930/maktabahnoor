@@ -2,7 +2,7 @@ import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { slugify, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
 
-const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price' };
+const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count' };
 
 function missingMandatoryFields(data) {
   return MANDATORY_BOOK_FIELDS.filter(k => {
