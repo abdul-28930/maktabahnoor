@@ -65,11 +65,6 @@ export default function BookCard({ book }) {
         </div>
         <div className="book-title">{book.title}</div>
         <div className="book-author">{book.author}</div>
-        <div className="book-details-row">
-          {book.binding && <span className="book-detail-item">{book.binding}</span>}
-          {book.volumes > 1 && <span className="book-detail-item">{book.volumes} vols</span>}
-          {book.pages && <span className="book-detail-item">{book.pages} pp</span>}
-        </div>
         <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:4}}>
           {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
           {book.mrp > book.price && (
