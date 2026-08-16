@@ -72,7 +72,12 @@ export default function BookCard({ book }) {
         </div>
         <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:4}}>
           {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
-          {book.mrp > book.price && <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>}
+          {book.mrp > book.price && (
+            <>
+              <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
+              <span style={{fontSize:10,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+            </>
+          )}
         </div>
         {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
           <div style={{fontSize:10,color:'#b8965a',letterSpacing:.3,marginTop:2}}>Only {book.stockCount} left</div>

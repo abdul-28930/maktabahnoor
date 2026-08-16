@@ -75,7 +75,12 @@ function GridCard({ book, idx }) {
         <div style={{fontSize:12,color:'#6b6460',fontWeight:300}}>{book.author}</div>
         <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:2}}>
           {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
-          {book.mrp > book.price && <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>}
+          {book.mrp > book.price && (
+            <>
+              <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
+              <span style={{fontSize:10,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+            </>
+          )}
         </div>
         {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
           <div style={{fontSize:10,color:'#b8965a',letterSpacing:.3}}>Only {book.stockCount} left</div>
@@ -122,7 +127,12 @@ function ListCard({ book }) {
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,flexShrink:0}}>
         <div style={{display:'flex',alignItems:'baseline',gap:6}}>
           {book.price != null && <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
-          {book.mrp > book.price && <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>}
+          {book.mrp > book.price && (
+            <>
+              <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
+              <span style={{fontSize:10,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+            </>
+          )}
         </div>
         {book.binding && <span style={{fontSize:11,color:'#a09890'}}>{book.binding}</span>}
         {book.volumes > 1 && <span style={{fontSize:11,color:'#b8965a'}}>{book.volumes} Vols</span>}
