@@ -192,7 +192,7 @@ function BooksContent() {
   const backdropRef = useRef(null);
 
   useEffect(() => {
-    fetch('/api/books')
+    fetch('/api/books?all=1')
       .then(r => r.json())
       .then(d => { setAllBooks(d.books || []); setLoading(false); })
       .catch(() => setLoading(false));
