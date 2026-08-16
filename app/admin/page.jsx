@@ -154,7 +154,8 @@ export default function AdminPage() {
       const r = await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
       const d = await r.json();
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
-      setSession(pw); await Promise.all([loadBooks(pw),loadBundles(pw),loadOrders(pw),loadViews(pw),loadTaxonomy(),loadSlides(pw),loadPicks()]); setView('dashboard'); setPw('');
+      setSession(pw); setView('dashboard'); setPw('');
+      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks();
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
