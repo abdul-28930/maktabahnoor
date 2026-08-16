@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import PageBackground from '@/components/PageBackground';
-import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, TAGS } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 
 /* ── constants ── */
@@ -198,7 +198,6 @@ function BooksContent() {
   const [search, setSearch]       = useState(searchParams.get('q') || '');
   const [selCat, setSelCat]       = useState(searchParams.get('category') || '');
   const [selLang, setSelLang]     = useState(searchParams.get('language') || '');
-  const [selTag, setSelTag]       = useState(searchParams.get('tag') || '');
   const [selStock, setSelStock]   = useState(searchParams.get('stock') || '');
   const [sortBy, setSortBy]       = useState(searchParams.get('sort') || 'newest');
   const [view, setView]           = useState('3col');
@@ -231,11 +230,10 @@ function BooksContent() {
     if (search)   p.set('q', search);
     if (selCat)   p.set('category', selCat);
     if (selLang)  p.set('language', selLang);
-    if (selTag)   p.set('tag', selTag);
     if (selStock) p.set('stock', selStock);
     if (sortBy !== 'newest') p.set('sort', sortBy);
     router.replace(`/books${p.toString() ? '?' + p.toString() : ''}`, { scroll: false });
-  }, [search, selCat, selLang, selTag, selStock, sortBy]);
+  }, [search, selCat, selLang, selStock, sortBy]);
 
   useEffect(() => {
     if (drawerRef.current)   drawerRef.current.style.transform   = drawerOpen ? 'translateX(0)' : 'translateX(-100%)';
@@ -271,7 +269,6 @@ function BooksContent() {
       return (!q || b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q) || b.translator?.toLowerCase().includes(q))
           && (!selCat  || b.category === selCat)
           && (!selLang || b.language === selLang)
-          && (!selTag  || b.tags?.includes(selTag))
           && (!selStock|| (selStock === 'in' ? b.inStock : !b.inStock));
     });
 
@@ -296,13 +293,12 @@ function BooksContent() {
       }
     });
     return list;
-  }, [allBooks, search, selCat, selLang, selTag, selStock, sortBy]);
+  }, [allBooks, search, selCat, selLang, selStock, sortBy]);
 
-  const hasFilters = selCat || selLang || selTag || selStock || search;
+  const hasFilters = selCat || selLang || selStock || search;
   const activeFilters = [
     selCat   && { label: selCat,    clear: () => setSelCat('') },
     selLang  && { label: selLang,   clear: () => setSelLang('') },
-    selTag   && { label: selTag,    clear: () => setSelTag('') },
     selStock && { label: selStock === 'in' ? 'In Stock' : 'Out of Stock', clear: () => setSelStock('') },
     search   && { label: `"${search}"`, clear: () => setSearch('') },
   ].filter(Boolean);
@@ -345,7 +341,6 @@ function BooksContent() {
       <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>
       <FilterSection title="Language"     options={languages}  value={selLang}  onSet={setSelLang}  counts={langCounts}/>
       <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>
-      <FilterSection title="Tags"         options={TAGS}       value={selTag}   onSet={setSelTag}   counts={tagCounts}/>
       <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>
       <FilterSection title="Availability" options={['In Stock','Out of Stock']} value={selStock==='in'?'In Stock':selStock==='out'?'Out of Stock':''}
         onSet={v => setSelStock(v==='In Stock'?'in':v==='Out of Stock'?'out':'')}/>
