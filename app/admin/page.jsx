@@ -14,7 +14,7 @@ const EMPTY_BOOK = {
 
 // Labels shown next to the field + used to build the "please fill these in"
 // validation message. Must match MANDATORY_BOOK_FIELDS keys in lib/constants.js.
-const FIELD_LABELS = { title:'Title', author:'Author', category:'Category', language:'Language', price:'Sale Price', stockCount:'Stock Count' };
+const FIELD_LABELS = { title:'Title', author:'Author', category:'Category', language:'Language', price:'Sale Price', stockCount:'Stock Count', binding:'Binding' };
 const EMPTY_BUNDLE = {
   name:'',description:'',sku:'',bookSlugs:[],
   totalMrp:'',bundlePrice:'',offerType:'Limited Deal',stockCount:'',active:true,
@@ -585,7 +585,7 @@ export default function AdminPage() {
               onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
-            <div><Label hint="Optional">Binding</Label><FSelect value={form.binding} onChange={e=>f('binding',e.target.value)} options={BINDINGS} placeholder="— Select —"/></div>
+            <div><Label>Binding *</Label><FSelect value={form.binding} onChange={e=>f('binding',e.target.value)} options={BINDINGS} placeholder="— Select —"/></div>
             <div><Label hint="Optional">Volumes</Label><FInput type="number" value={form.volumes} onChange={e=>f('volumes',e.target.value)}/></div>
             <div><Label hint="Optional">Pages</Label><FInput type="number" value={form.pages} onChange={e=>f('pages',e.target.value)} placeholder="480"/></div>
           </div>
