@@ -63,6 +63,7 @@ export async function POST(req) {
       title:       data.title?.trim() || '',
       author:      data.author?.trim() || '',
       translator:  data.translator?.trim() || '',
+      publisher:   data.publisher?.trim() || '',
       language:    data.language || 'Arabic',
       category:    data.category || 'General',
       description: data.description?.trim() || '',
@@ -84,7 +85,7 @@ export async function POST(req) {
     await redis.set(`mn_book:${slug}`, book);
     await redis.set(`mn_stock:book:${slug}`, stockCount);
     const meta = await redis.get('mn_books_meta') || [];
-    const m = { slug, sku: book.sku, title: book.title, author: book.author, translator: book.translator,
+    const m = { slug, sku: book.sku, title: book.title, author: book.author, translator: book.translator, publisher: book.publisher,
                 category: book.category, language: book.language, binding: book.binding,
                 volumes: book.volumes, pages: book.pages, mrp: book.mrp, price: book.price,
                 offerType: book.offerType, stockCount, inStock: book.inStock, visible: book.visible,

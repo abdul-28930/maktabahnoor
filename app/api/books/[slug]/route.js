@@ -46,7 +46,7 @@ export async function PUT(req, { params }) {
     const meta = await redis.get('mn_books_meta') || [];
     const idx  = meta.findIndex(b => b.slug === params.slug);
     if (idx >= 0) {
-      meta[idx] = { ...meta[idx], sku: updated.sku, title: updated.title, translator: updated.translator,
+      meta[idx] = { ...meta[idx], sku: updated.sku, title: updated.title, translator: updated.translator, publisher: updated.publisher,
         author: updated.author, category: updated.category, language: updated.language,
         binding: updated.binding, volumes: updated.volumes, pages: updated.pages,
         mrp: updated.mrp, price: updated.price, offerType: updated.offerType,

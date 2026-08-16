@@ -6,7 +6,7 @@ import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TY
 import PageBackground from '@/components/PageBackground';
 
 const EMPTY_BOOK = {
-  title:'',author:'',translator:'',sku:'',language:'Arabic',category:'Aqeedah',
+  title:'',author:'',translator:'',publisher:'',sku:'',language:'Arabic',category:'Aqeedah',
   description:'',volumes:1,binding:'Hardcover',pages:'',
   mrp:'',price:'',offerType:'',stockCount:'',
   inStock:true,visible:true,tags:[],coverUrl:'',gallery:[],
@@ -220,7 +220,7 @@ export default function AdminPage() {
       if (d.book) {
         setEditSlug(slug);
         setForm({
-          title:d.book.title||'',author:d.book.author||'',translator:d.book.translator||'',
+          title:d.book.title||'',author:d.book.author||'',translator:d.book.translator||'',publisher:d.book.publisher||'',
           sku:d.book.sku||'',language:d.book.language||'Arabic',
           category:d.book.category||'Aqeedah',description:d.book.description||'',
           volumes:d.book.volumes||1,binding:d.book.binding||'Hardcover',pages:d.book.pages||'',
@@ -386,7 +386,7 @@ export default function AdminPage() {
   }
 
   function exportBooksCsv() {
-    const cols = ['slug','sku','title','author','translator','category','language','binding','volumes','pages','mrp','price','offerType','stockCount','inStock','tags','coverUrl','createdAt'];
+    const cols = ['slug','sku','title','author','translator','publisher','category','language','binding','volumes','pages','mrp','price','offerType','stockCount','inStock','tags','coverUrl','createdAt'];
     const esc = (v) => `"${String(v ?? '').replace(/"/g,'""')}"`;
     const rows = [cols.join(',')].concat(
       books.map(b => cols.map(c => esc(Array.isArray(b[c]) ? b[c].join('|') : b[c])).join(','))
@@ -500,9 +500,10 @@ export default function AdminPage() {
             <Label>Title *</Label>
             <FInput value={form.title} onChange={e=>f('title',e.target.value)} placeholder="e.g. Sahih Al-Bukhari"/>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
             <div><Label>Author *</Label><FInput value={form.author} onChange={e=>f('author',e.target.value)} placeholder="e.g. Imam Al-Bukhari"/></div>
             <div><Label hint="Optional">Translator</Label><FInput value={form.translator} onChange={e=>f('translator',e.target.value)} placeholder="e.g. Dr. Muhammad Muhsin Khan"/></div>
+            <div><Label hint="Optional">Publisher</Label><FInput value={form.publisher} onChange={e=>f('publisher',e.target.value)} placeholder="e.g. Darussalam"/></div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
             <div><Label hint="Optional · unique product code">SKU / Book Code</Label><FInput value={form.sku} onChange={e=>f('sku',e.target.value)} placeholder="e.g. HAD-001"/></div>

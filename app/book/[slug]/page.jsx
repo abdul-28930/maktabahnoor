@@ -102,6 +102,7 @@ export default function BookPage() {
     book.language   && { label:'Language',   val:book.language },
     book.category   && { label:'Category',   val:book.category },
     book.translator && { label:'Translator', val:book.translator },
+    book.publisher  && { label:'Publisher',  val:book.publisher },
   ].filter(Boolean);
 
   return (
