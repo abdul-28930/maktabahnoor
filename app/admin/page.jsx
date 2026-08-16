@@ -25,6 +25,8 @@ const EMPTY_SLIDE = {
   ctaLabel:'', ctaUrl:'', active:true,
 };
 
+const EMPTY_ACCESSORY = { name:'',description:'',price:'',mrp:'',stockCount:'',coverUrl:'',visible:true };
+
 const OFFER_COLORS = {
   'Sale':                {bg:'rgba(220,38,38,0.1)',  border:'rgba(220,38,38,0.3)',  text:'#dc2626'},
   'Limited Edition':     {bg:'rgba(124,58,237,0.1)', border:'rgba(124,58,237,0.3)', text:'#7c3aed'},
@@ -118,6 +120,10 @@ export default function AdminPage() {
   const [views, setViews]         = useState({});
   const [slides, setSlides]       = useState([]);
   const [picks, setPicks]         = useState({ featured: [], newArrivals: [] });
+  const [accessories, setAccessories] = useState([]);
+  const [editAccId, setEditAccId] = useState(null);
+  const [accForm, setAccForm]     = useState(EMPTY_ACCESSORY);
+  const [accImgMode, setAccImgMode] = useState('url');
   const [taxonomy, setTaxonomy]   = useState({ categories: DEFAULT_CATEGORIES, languages: DEFAULT_LANGUAGES, offerTypes: DEFAULT_OFFER_TYPES });
   const [loading, setLoading]     = useState(false);
   const [editSlug, setEditSlug]   = useState(null);
@@ -140,6 +146,42 @@ export default function AdminPage() {
   function f(k,v)  { setForm(p=>({...p,[k]:v})); }
   function bf(k,v) { setBundleForm(p=>({...p,[k]:v})); }
   function sf(k,v) { setSlideForm(p=>({...p,[k]:v})); }
+  function af(k,v) { setAccForm(p=>({...p,[k]:v})); }
+  async function loadAccessories(s=session) {
+    try { const r=await fetch(`/api/accessories?password=${encodeURIComponent(s)}`); const d=await r.json(); setAccessories(d.accessories||[]); } catch {}
+  }
+  async function saveAcc() {
+    if (!accForm.name.trim()) { showToast('Name is required.','error'); return; }
+    if (accForm.price==='') { showToast('Price is required.','error'); return; }
+    if (accForm.stockCount==='') { showToast('Stock count is required.','error'); return; }
+    setLoading(true);
+    try {
+      const r = editAccId
+        ? await fetch(`/api/accessories/${editAccId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...accForm})})
+        : await fetch('/api/accessories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...accForm})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed');
+      showToast(editAccId?'✓ Accessory updated!':'✓ Accessory added!','success');
+      await loadAccessories(); setView('dashboard'); setTab('accessories');
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setLoading(false); }
+  }
+  async function delAcc(id) {
+    if (!confirm('Delete this accessory?')) return;
+    try { await fetch(`/api/accessories/${id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session})}); showToast('Deleted.'); await loadAccessories(); } catch { showToast('Failed.','error'); }
+  }
+  async function toggleAccVisible(id, visible) {
+    try { await fetch(`/api/accessories/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,visible})}); await loadAccessories(); showToast(visible?'Shown on site.':'Hidden from site.','success'); } catch { showToast('Failed.','error'); }
+  }
+  function openEditAcc(a) {
+    setEditAccId(a.id);
+    setAccForm({ name:a.name||'',description:a.description||'',price:a.price??'',mrp:a.mrp??'',stockCount:a.stockCount??'',coverUrl:a.coverUrl||'',visible:a.visible!==false });
+    setAccImgMode('url'); setView('accEditor');
+  }
+  function handleAccImg(e) {
+    const file=e.target.files?.[0]; if(!file) return;
+    new Promise((res,rej)=>{const r=new FileReader();r.onload=ev=>res(ev.target.result);r.onerror=rej;r.readAsDataURL(file);}).then(d=>af('coverUrl',d));
+  }
 
   function showToast(msg,type='') {
     setToast({msg,type,show:true});
@@ -155,7 +197,7 @@ export default function AdminPage() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
       setSession(pw); setView('dashboard'); setPw('');
-      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks();
+      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw);
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -853,6 +895,59 @@ export default function AdminPage() {
     </div>
   );
 
+  /* ── ACCESSORY EDITOR ── */
+  if (view==='accEditor') return (
+    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
+      <PageBackground subtle/>
+      <header style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,48px)',background:'rgba(250,249,245,0.92)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332'}}>{editAccId?'Edit Accessory':'Add Accessory'}</div>
+        <div style={{display:'flex',gap:10}}>
+          <Btn variant="ghost" onClick={()=>setView('dashboard')}>← Dashboard</Btn>
+          <Btn onClick={saveAcc} disabled={loading}>{loading?'Saving…':'Save'}</Btn>
+        </div>
+      </header>
+      <div style={{position:'relative',zIndex:1,maxWidth:700,margin:'0 auto',padding:'40px clamp(20px,5vw,48px) 80px',display:'flex',flexDirection:'column',gap:20}}>
+        <Card title="Details">
+          <div style={{marginBottom:16}}><Label>Name *</Label><FInput value={accForm.name} onChange={e=>af('name',e.target.value)} placeholder="e.g. Wooden Tasbih Watch"/></div>
+          <div style={{marginBottom:16}}><Label hint="Optional">Description</Label><FInput value={accForm.description} onChange={e=>af('description',e.target.value)}/></div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
+            <div><Label hint="Optional · original">MRP (₹)</Label><FInput type="number" value={accForm.mrp} onChange={e=>af('mrp',e.target.value)}/></div>
+            <div><Label>Price (₹) *</Label><FInput type="number" value={accForm.price} onChange={e=>af('price',e.target.value)}/></div>
+            <div><Label>Stock Count *</Label><FInput type="number" value={accForm.stockCount} onChange={e=>af('stockCount',e.target.value)}/></div>
+          </div>
+        </Card>
+        <Card title="Image">
+          <div style={{display:'flex',gap:8,marginBottom:14}}>
+            {['url','upload'].map(m=>(
+              <button key={m} onClick={()=>setAccImgMode(m)} style={{padding:'7px 18px',borderRadius:20,border:`1.5px solid ${accImgMode===m?'#1b4332':'rgba(27,67,50,0.15)'}`,background:accImgMode===m?'rgba(27,67,50,0.07)':'transparent',color:accImgMode===m?'#1b4332':'#6b6460',fontSize:12,cursor:'pointer'}}>{m==='url'?'Paste URL':'Upload'}</button>
+            ))}
+          </div>
+          {accImgMode==='url'
+            ? <FInput value={accForm.coverUrl.startsWith('data:')?'':accForm.coverUrl} onChange={e=>af('coverUrl',e.target.value)} placeholder="https://…"/>
+            : (
+              <div onClick={()=>document.getElementById('acc-img-input')?.click()} style={{border:'2px dashed rgba(27,67,50,0.15)',borderRadius:12,padding:accForm.coverUrl?0:32,textAlign:'center',cursor:'pointer',overflow:'hidden'}}>
+                {accForm.coverUrl?<img src={accForm.coverUrl} alt="" style={{width:'100%',maxHeight:200,objectFit:'contain'}}/>:<div style={{fontSize:13,color:'#6b6460'}}>Click to upload</div>}
+                <input id="acc-img-input" type="file" accept="image/*" style={{display:'none'}} onChange={handleAccImg}/>
+              </div>
+            )}
+        </Card>
+        <Card title="Visibility">
+          <label onClick={()=>af('visible',!accForm.visible)} style={{display:'flex',alignItems:'center',gap:12,cursor:'pointer',width:'fit-content'}}>
+            <div style={{width:44,height:26,borderRadius:13,background:accForm.visible?'#1b4332':'rgba(27,67,50,0.15)',position:'relative'}}>
+              <div style={{position:'absolute',top:3,left:accForm.visible?20:3,width:20,height:20,borderRadius:'50%',background:'#fff'}}/>
+            </div>
+            <span style={{fontSize:14,color:accForm.visible?'#1b4332':'#6b6460'}}>{accForm.visible?'Visible (shown on site)':'Hidden'}</span>
+          </label>
+        </Card>
+        <div style={{display:'flex',gap:10}}>
+          <Btn variant="ghost" onClick={()=>setView('dashboard')}>Cancel</Btn>
+          <Btn onClick={saveAcc} disabled={loading}>{loading?'Saving…':'Save'}</Btn>
+        </div>
+      </div>
+      <Toast t={toast}/>
+    </div>
+  );
+
   /* ── LOGIN ── */
   if (view==='login') return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',display:'flex',alignItems:'center',justifyContent:'center',padding:24,fontFamily:"'DM Sans',sans-serif"}}>
@@ -894,7 +989,9 @@ export default function AdminPage() {
               ? <Btn onClick={()=>{setEditBundleId(null);setBundleForm(EMPTY_BUNDLE);setView('bundleEditor');}}>+ Create Bundle</Btn>
               : tab==='slides'
                 ? <Btn onClick={()=>{setEditSlideId(null);setSlideForm(EMPTY_SLIDE);setSlideImgMode('url');setView('slideEditor');}}>+ Add Slide</Btn>
-                : null
+                : tab==='accessories'
+                  ? <Btn onClick={()=>{setEditAccId(null);setAccForm(EMPTY_ACCESSORY);setAccImgMode('url');setView('accEditor');}}>+ Add Accessory</Btn>
+                  : null
           }
           <Btn variant="ghost" onClick={()=>{setSession('');setView('login');}}>Log Out</Btn>
         </div>
@@ -916,7 +1013,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif'"}}>
               {t.label}
             </button>
@@ -1133,6 +1230,31 @@ export default function AdminPage() {
             )}
           </div>
           </>
+        )}
+
+        {/* ACCESSORIES LIST */}
+        {tab==='accessories' && (
+          <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',overflow:'hidden'}}>
+            {accessories.length===0 ? (
+              <div style={{textAlign:'center',padding:'60px 24px'}}>
+                <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:'0 0 20px'}}>No accessories yet.</p>
+                <Btn onClick={()=>{setEditAccId(null);setAccForm(EMPTY_ACCESSORY);setAccImgMode('url');setView('accEditor');}}>+ Add First Accessory</Btn>
+              </div>
+            ) : accessories.map((a,i)=>(
+              <div key={a.id} style={{display:'flex',alignItems:'center',gap:16,padding:'16px 24px',borderBottom:i<accessories.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
+                <div style={{width:44,height:44,borderRadius:6,overflow:'hidden',flexShrink:0,background:'linear-gradient(155deg,#2d6a4f,#1b4332)'}}>
+                  {a.coverUrl && <img src={a.coverUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:15,color:'#1a1712'}}>{a.name} {a.visible===false && <span style={{fontSize:9,color:'#a09890',background:'rgba(0,0,0,0.06)',padding:'2px 8px',borderRadius:8,marginLeft:6}}>HIDDEN</span>}</div>
+                  <div style={{fontSize:12,color:'#a09890'}}>₹{a.price} · Stock: {a.stockCount}</div>
+                </div>
+                <button onClick={()=>toggleAccVisible(a.id,a.visible===false)} style={{padding:'5px 12px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#6b6460',fontSize:10,cursor:'pointer'}}>{a.visible!==false?'Visible':'Hidden'}</button>
+                <button onClick={()=>openEditAcc(a)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',cursor:'pointer'}}>✎</button>
+                <button onClick={()=>delAcc(a.id)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',cursor:'pointer'}}>✕</button>
+              </div>
+            ))}
+          </div>
         )}
 
         {/* ORDERS LIST */}

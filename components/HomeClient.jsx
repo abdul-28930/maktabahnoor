@@ -225,6 +225,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
             <a key={n} href={`#${n.toLowerCase().replace(/ /g,'-')}`} className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>{n}</a>
           ))}
           <Link href="/bundles" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>Bundles</Link>
+          <Link href="/accessories" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>Accessories</Link>
           <Link href="/wishlist" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>♡ Wishlist</Link>
         </div>
         <button
@@ -252,6 +253,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
               style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px',borderBottom:'1px solid rgba(27,67,50,0.06)'}}>{n}</a>
           ))}
           <Link href="/bundles" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Bundles</Link>
+          <Link href="/accessories" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Accessories</Link>
           <Link href="/wishlist" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>♡ Wishlist</Link>
         </div>
       )}

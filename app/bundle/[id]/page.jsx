@@ -46,6 +46,7 @@ export default function BundlePage() {
         <Link href="/"        style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Home</Link>
         <Link href="/books"   style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Collection</Link>
         <Link href="/bundles" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Bundles</Link>
+        <Link href="/accessories" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Accessories</Link>
         <Link href="/wishlist" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>♡ Wishlist</Link>
       </div>
     </nav>
@@ -89,6 +90,7 @@ export default function BundlePage() {
           <Link href="/"        style={{textDecoration:'none',color:'#a09890'}}>Home</Link>
           <span style={{color:'rgba(27,67,50,0.2)'}}>›</span>
           <Link href="/bundles" style={{textDecoration:'none',color:'#a09890'}}>Bundles</Link>
+          <Link href="/accessories" style={{textDecoration:'none',color:'#a09890'}}>Accessories</Link>
           <span style={{color:'rgba(27,67,50,0.2)'}}>›</span>
           <span style={{color:'#1b4332'}}>{bundle.name}</span>
         </div>

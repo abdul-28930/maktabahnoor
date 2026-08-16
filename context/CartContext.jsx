@@ -69,6 +69,21 @@ export function CartProvider({ children }) {
     setIsOpen(true);
   }, []);
 
+  /* ── Add an accessory to cart ── */
+  const addAccessoryToCart = useCallback((item) => {
+    const slug = `accessory:${item.id}`;
+    setItems(prev => {
+      const exists = prev.find(i => i.slug === slug);
+      if (exists) return prev.map(i => i.slug === slug ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, {
+        type: 'accessory', slug, accessoryId: item.id,
+        title: item.name, author: '', category: 'Accessory',
+        coverUrl: item.coverUrl || '', price: item.price || null, mrp: item.mrp || null, qty: 1,
+      }];
+    });
+    setIsOpen(true);
+  }, []);
+
   const removeFromCart = useCallback((slug) => {
     setItems(prev => prev.filter(i => i.slug !== slug));
   }, []);
@@ -90,7 +105,7 @@ export function CartProvider({ children }) {
   return (
     <CartContext.Provider value={{
       items, cartCount, isOpen,
-      addToCart, addBundleToCart, removeFromCart, updateQty, clearCart,
+      addToCart, addBundleToCart, addAccessoryToCart, removeFromCart, updateQty, clearCart,
       isInCart, openCart, closeCart,
     }}>
       {children}
