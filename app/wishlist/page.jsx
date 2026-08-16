@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import BooksNavDropdown from '@/components/BooksNavDropdown';
 import Image from 'next/image';
 import PageBackground from '@/components/PageBackground';
 import { useWishlist } from '@/context/WishlistContext';
@@ -26,7 +27,7 @@ export default function WishlistPage() {
         </Link>
         <div style={{display:'flex',alignItems:'center',gap:6}}>
           <Link href="/" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3}}>Home</Link>
-          <Link href="/books" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3}}>Books</Link>
+          <BooksNavDropdown/>
           <Link href="/bundles" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3}}>Bundles</Link>
           <Link href="/accessories" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3}}>Accessories</Link>
         </div>

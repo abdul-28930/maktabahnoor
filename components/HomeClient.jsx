@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { IG_URL, WA_NUMBER, EMAIL, PHONE_DISPLAY } from '@/lib/constants';
 import InstagramEmbed from '@/components/InstagramEmbed';
+import BooksNavDropdown from '@/components/BooksNavDropdown';
 
 const CAT_AR = {
   'Aqeedah':'عقيدة','Fiqh':'فقه','Hadith':'حديث','Tafsir':'تفسير',
@@ -224,6 +225,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           {NAV.map(n => (
             <a key={n} href={`#${n.toLowerCase().replace(/ /g,'-')}`} className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>{n}</a>
           ))}
+          <BooksNavDropdown className="hp-nlink" style={{fontSize:14,color:'#6b6460'}}/>
           <Link href="/bundles" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>Bundles</Link>
           <Link href="/accessories" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>Accessories</Link>
           <Link href="/wishlist" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>♡ Wishlist</Link>
@@ -252,6 +254,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
             <a key={n} href={`#${n.toLowerCase().replace(/ /g,'-')}`} onClick={()=>setMobileMenuOpen(false)}
               style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px',borderBottom:'1px solid rgba(27,67,50,0.06)'}}>{n}</a>
           ))}
+          <Link href="/books" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Books</Link>
           <Link href="/bundles" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Bundles</Link>
           <Link href="/accessories" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Accessories</Link>
           <Link href="/wishlist" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>♡ Wishlist</Link>

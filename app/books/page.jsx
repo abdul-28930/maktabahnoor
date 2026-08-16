@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'rea
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
+import BooksNavDropdown from '@/components/BooksNavDropdown';
 import PageBackground from '@/components/PageBackground';
 import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
@@ -365,7 +366,7 @@ function BooksContent() {
         </Link>
         <div style={{display:'flex',alignItems:'center',gap:6}}>
           <Link href="/" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3,transition:'color .15s,background .15s'}} onMouseEnter={e=>{e.currentTarget.style.color='#1b4332';e.currentTarget.style.background='rgba(27,67,50,0.05)';}} onMouseLeave={e=>{e.currentTarget.style.color='#6b6460';e.currentTarget.style.background='transparent';}}>Home</Link>
-          <Link href="/books" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#1b4332',fontWeight:500,background:'rgba(27,67,50,0.07)'}}>Books</Link>
+          <BooksNavDropdown active/>
           <Link href="/bundles" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3,transition:'color .15s,background .15s'}} onMouseEnter={e=>{e.currentTarget.style.color='#1b4332';e.currentTarget.style.background='rgba(27,67,50,0.05)';}} onMouseLeave={e=>{e.currentTarget.style.color='#6b6460';e.currentTarget.style.background='transparent';}}>Bundles</Link>
           <Link href="/accessories" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3,transition:'color .15s,background .15s'}} onMouseEnter={e=>{e.currentTarget.style.color='#1b4332';e.currentTarget.style.background='rgba(27,67,50,0.05)';}} onMouseLeave={e=>{e.currentTarget.style.color='#6b6460';e.currentTarget.style.background='transparent';}}>Accessories</Link>
           <Link href="/wishlist" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3,transition:'color .15s,background .15s'}} onMouseEnter={e=>{e.currentTarget.style.color='#1b4332';e.currentTarget.style.background='rgba(27,67,50,0.05)';}} onMouseLeave={e=>{e.currentTarget.style.color='#6b6460';e.currentTarget.style.background='transparent';}}>♡ Wishlist</Link>
