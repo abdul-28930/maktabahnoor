@@ -72,7 +72,15 @@ function GridCard({ book, idx }) {
           {book.binding && <span style={{fontSize:9,color:'#c0b8b0'}}>{book.binding}</span>}
         </div>
         <h3 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:17,color:'#1a1712',lineHeight:1.2}}>{book.title}</h3>
-        <div style={{fontSize:12,color:'#6b6460',fontWeight:300,marginTop:'auto',paddingTop:4}}>{book.author}</div>
+        <div style={{fontSize:12,color:'#6b6460',fontWeight:300}}>{book.author}</div>
+        <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:2}}>
+          {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
+          {book.mrp > book.price && <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>}
+        </div>
+        {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
+          <div style={{fontSize:10,color:'#b8965a',letterSpacing:.3}}>Only {book.stockCount} left</div>
+        )}
+        <div style={{marginTop:'auto',paddingTop:4}}/>
         {book.volumes > 1 && <div style={{fontSize:10,color:'#b8965a',letterSpacing:.5}}>{book.volumes} Volumes</div>}
         {book.inStock !== false && (
           <button className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`} onClick={handleAddToCart}>
@@ -112,11 +120,18 @@ function ListCard({ book }) {
         <div style={{fontSize:13,color:'#6b6460',fontWeight:300}}>{book.author}{book.translator && <span style={{color:'#a09890'}}> · Tr. {book.translator}</span>}</div>
       </div>
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,flexShrink:0}}>
+        <div style={{display:'flex',alignItems:'baseline',gap:6}}>
+          {book.price != null && <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
+          {book.mrp > book.price && <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>}
+        </div>
         {book.binding && <span style={{fontSize:11,color:'#a09890'}}>{book.binding}</span>}
         {book.volumes > 1 && <span style={{fontSize:11,color:'#b8965a'}}>{book.volumes} Vols</span>}
         <span style={{padding:'4px 12px',borderRadius:20,fontSize:9,fontWeight:500,letterSpacing:.8,textTransform:'uppercase',background:book.inStock?'rgba(45,106,79,0.08)':'rgba(180,60,60,0.07)',color:book.inStock?'#2d6a4f':'#b44',border:`1px solid ${book.inStock?'rgba(45,106,79,0.2)':'rgba(180,60,60,0.15)'}`}}>
           {book.inStock ? 'In Stock' : 'Out of Stock'}
         </span>
+        {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
+          <span style={{fontSize:10,color:'#b8965a'}}>Only {book.stockCount} left</span>
+        )}
         {book.inStock !== false && (
           <AddToCartListBtn book={book}/>
         )}
