@@ -1,5 +1,6 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 
 const KEY = 'mn_hero_slides';
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -49,6 +50,7 @@ export async function POST(req) {
       createdAt: now, updatedAt: now,
     };
     await redis.set(KEY, [...all, slide]);
+    revalidatePath('/');
     return NextResponse.json({ success: true, slide });
   } catch (e) {
     console.error(e);

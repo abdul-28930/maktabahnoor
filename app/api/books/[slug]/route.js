@@ -1,5 +1,6 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { MANDATORY_BOOK_FIELDS } from '@/lib/constants';
 
 const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
@@ -53,6 +54,7 @@ export async function PUT(req, { params }) {
         stockCount, inStock: updated.inStock, visible: updated.visible !== false, tags: updated.tags, coverUrl: updated.coverUrl,
         gallery: updated.gallery };
       await redis.set('mn_books_meta', meta);
+      revalidatePath('/');
     }
     return NextResponse.json({ success: true });
   } catch { return NextResponse.json({ error: 'Failed.' }, { status: 500 }); }
@@ -67,6 +69,7 @@ export async function DELETE(req, { params }) {
     await redis.del(`mn_stock:book:${params.slug}`);
     const meta = await redis.get('mn_books_meta') || [];
     await redis.set('mn_books_meta', meta.filter(b => b.slug !== params.slug));
+    revalidatePath('/');
     return NextResponse.json({ success: true });
   } catch { return NextResponse.json({ error: 'Failed.' }, { status: 500 }); }
 }

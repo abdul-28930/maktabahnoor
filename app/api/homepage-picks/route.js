@@ -1,5 +1,6 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 
 const KEY = 'mn_homepage_picks';
 
@@ -23,6 +24,7 @@ export async function POST(req) {
       newArrivals: Array.isArray(newArrivals) ? newArrivals.filter(Boolean) : [],
     };
     await redis.set(KEY, picks);
+    revalidatePath('/');
     return NextResponse.json({ success: true, picks });
   } catch (e) {
     console.error(e);

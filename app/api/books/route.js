@@ -1,5 +1,6 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { slugify, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
 
 const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
@@ -95,6 +96,7 @@ export async function POST(req) {
     const idx = meta.findIndex(b => b.slug === slug);
     if (idx >= 0) meta[idx] = m; else meta.unshift(m);
     await redis.set('mn_books_meta', meta);
+    revalidatePath('/');
     return NextResponse.json({ success: true, slug });
   } catch (e) {
     console.error(e);
