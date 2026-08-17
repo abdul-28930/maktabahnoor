@@ -83,7 +83,7 @@ function GridCard({ book, idx }) {
           )}
         </div>
         {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
-          <div style={{fontSize:10,color:'#b8965a',letterSpacing:.3}}>Only {book.stockCount} left</div>
+          <div style={{fontSize:12,fontWeight:700,color:'#b8965a',letterSpacing:.3}}>Only {book.stockCount} left</div>
         )}
         <div style={{marginTop:'auto',paddingTop:4}}/>
         {book.inStock !== false && (
@@ -137,7 +137,7 @@ function ListCard({ book }) {
           {book.inStock ? 'In Stock' : 'Out of Stock'}
         </span>
         {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
-          <span style={{fontSize:10,color:'#b8965a'}}>Only {book.stockCount} left</span>
+          <span style={{fontSize:12,fontWeight:700,color:'#b8965a'}}>Only {book.stockCount} left</span>
         )}
         {book.inStock !== false && (
           <AddToCartListBtn book={book}/>
