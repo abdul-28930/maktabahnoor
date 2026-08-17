@@ -26,6 +26,7 @@ const EMPTY_SLIDE = {
 };
 
 const EMPTY_ACCESSORY = { name:'',description:'',price:'',mrp:'',stockCount:'',coverUrl:'',variants:[],visible:true };
+const EMPTY_COUPON = { code:'',type:'percent',value:'',minOrder:'',expiresAt:'',active:true };
 
 const OFFER_COLORS = {
   'Sale':                {bg:'rgba(220,38,38,0.1)',  border:'rgba(220,38,38,0.3)',  text:'#dc2626'},
@@ -121,6 +122,8 @@ export default function AdminPage() {
   const [slides, setSlides]       = useState([]);
   const [picks, setPicks]         = useState({ featured: [], newArrivals: [] });
   const [accessories, setAccessories] = useState([]);
+  const [coupons, setCoupons]     = useState([]);
+  const [couponForm, setCouponForm] = useState(EMPTY_COUPON);
   const [editAccId, setEditAccId] = useState(null);
   const [accForm, setAccForm]     = useState(EMPTY_ACCESSORY);
   const [accImgMode, setAccImgMode] = useState('url');
@@ -150,6 +153,30 @@ export default function AdminPage() {
   function addVariant() { setAccForm(p=>({...p,variants:[...p.variants,{id:Date.now().toString(36),label:'',color:'#1b4332',stockCount:0}]})); }
   function updVariant(id,k,v) { setAccForm(p=>({...p,variants:p.variants.map(x=>x.id===id?{...x,[k]:v}:x)})); }
   function rmVariant(id) { setAccForm(p=>({...p,variants:p.variants.filter(x=>x.id!==id)})); }
+  function cf(k,v) { setCouponForm(p=>({...p,[k]:v})); }
+  async function loadCoupons(s=session) {
+    try { const r=await fetch(`/api/coupons?password=${encodeURIComponent(s)}`); const d=await r.json(); setCoupons(d.coupons||[]); } catch {}
+  }
+  async function saveCoupon() {
+    if (!couponForm.code.trim()) { showToast('Coupon code is required.','error'); return; }
+    if (!couponForm.value) { showToast('Discount value is required.','error'); return; }
+    setLoading(true);
+    try {
+      const r = await fetch('/api/coupons',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...couponForm})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed');
+      showToast('✓ Coupon created!','success');
+      setCouponForm(EMPTY_COUPON); await loadCoupons();
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setLoading(false); }
+  }
+  async function delCoupon(code) {
+    if (!confirm(`Delete coupon ${code}?`)) return;
+    try { await fetch(`/api/coupons/${code}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session})}); showToast('Deleted.'); await loadCoupons(); } catch { showToast('Failed.','error'); }
+  }
+  async function toggleCouponActive(code, active) {
+    try { await fetch(`/api/coupons/${code}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,active})}); await loadCoupons(); showToast(active?'Activated.':'Deactivated.','success'); } catch { showToast('Failed.','error'); }
+  }
   async function loadAccessories(s=session) {
     try { const r=await fetch(`/api/accessories?password=${encodeURIComponent(s)}`); const d=await r.json(); setAccessories(d.accessories||[]); } catch {}
   }
@@ -200,7 +227,7 @@ export default function AdminPage() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
       setSession(pw); setView('dashboard'); setPw('');
-      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw);
+      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadCoupons(pw);
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -1028,7 +1055,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif'"}}>
               {t.label}
             </button>
@@ -1270,6 +1297,44 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* COUPONS */}
+        {tab==='coupons' && (
+          <>
+          <Card title="Create Coupon">
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
+              <div><Label>Code *</Label><FInput value={couponForm.code} onChange={e=>cf('code',e.target.value.toUpperCase())} placeholder="RAMADAN10"/></div>
+              <div><Label>Type</Label><FSelect value={couponForm.type} onChange={e=>cf('type',e.target.value)} options={['percent','flat']}/></div>
+              <div><Label>{couponForm.type==='percent'?'Percent Off *':'Amount Off (₹) *'}</Label><FInput type="number" min="0" value={couponForm.value} onChange={e=>cf('value',e.target.value)} placeholder={couponForm.type==='percent'?'10':'100'}/></div>
+              <div><Label hint="Optional">Min Order (₹)</Label><FInput type="number" min="0" value={couponForm.minOrder} onChange={e=>cf('minOrder',e.target.value)}/></div>
+            </div>
+            <div style={{display:'flex',gap:16,alignItems:'flex-end'}}>
+              <div style={{flex:1}}><Label hint="Optional">Expires</Label><FInput type="date" value={couponForm.expiresAt} onChange={e=>cf('expiresAt',e.target.value)}/></div>
+              <Btn onClick={saveCoupon} disabled={loading}>{loading?'Saving…':'+ Create Coupon'}</Btn>
+            </div>
+          </Card>
+
+          <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',overflow:'hidden',marginTop:20}}>
+            {coupons.length===0 ? (
+              <div style={{textAlign:'center',padding:'40px 24px',color:'#a09890',fontSize:13}}>No coupons yet.</div>
+            ) : coupons.map((c,i)=>(
+              <div key={c.code} style={{display:'flex',alignItems:'center',gap:16,padding:'14px 24px',borderBottom:i<coupons.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:15,color:'#1a1712',fontWeight:600,letterSpacing:.5}}>{c.code}</div>
+                  <div style={{fontSize:12,color:'#a09890'}}>
+                    {c.type==='percent' ? `${c.value}% off` : `₹${c.value} off`}
+                    {c.minOrder>0 && ` · Min ₹${c.minOrder}`}
+                    {c.expiresAt && ` · Expires ${c.expiresAt}`}
+                    {` · Used ${c.usedCount||0}x`}
+                  </div>
+                </div>
+                <button onClick={()=>toggleCouponActive(c.code,c.active===false)} style={{padding:'5px 12px',borderRadius:20,border:`1.5px solid ${c.active!==false?'rgba(45,106,79,0.3)':'rgba(27,67,50,0.15)'}`,background:c.active!==false?'rgba(45,106,79,0.07)':'transparent',color:c.active!==false?'#2d6a4f':'#6b6460',fontSize:10,cursor:'pointer'}}>{c.active!==false?'Active':'Inactive'}</button>
+                <button onClick={()=>delCoupon(c.code)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',cursor:'pointer'}}>✕</button>
+              </div>
+            ))}
+          </div>
+          </>
         )}
 
         {/* ORDERS LIST */}
