@@ -23,7 +23,7 @@ const DISPLAY_CATS = [
   {name:'Aqeedah',ar:'عقيدة',slug:'Aqeedah'},{name:'Duʿā & Dhikr',ar:'دعاء',slug:'Dua & Dhikr'},
   {name:'Manners',ar:'أخلاق',slug:'Manners & Character'},{name:'Arabic',ar:'لغة',slug:'Arabic Language'},
 ];
-const NAV = ['Collection','Categories','New Arrivals','About'];
+const NAV = ['About'];
 const MARQUEE_ITEMS = ['Arabic Books','Urdu Books','Hadith Collections','Tafsīr','ʿAqīdah','Seerah','Fiqh','Manners & Character','New Arrivals','Arabic Books','Urdu Books','Hadith Collections','Tafsīr','ʿAqīdah','Seerah','Fiqh','Manners & Character','New Arrivals'];
 const PLACEHOLDER_BOOKS = [
   {slug:'#',title:'Riyāḍ aṣ-Ṣāliḥīn',author:'Imam an-Nawawī',category:'Hadith',meta:'Hardcover · 2 Vols',tags:['Bestseller'],coverUrl:'',ar:'رياض'},
@@ -226,7 +226,6 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
             <a key={n} href={`#${n.toLowerCase().replace(/ /g,'-')}`} className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>{n}</a>
           ))}
           <BooksNavDropdown className="hp-nlink" style={{fontSize:14,color:'#6b6460'}}/>
-          <Link href="/bundles" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>Bundles</Link>
           <Link href="/accessories" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>Accessories</Link>
           <Link href="/wishlist" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>♡ Wishlist</Link>
         </div>
@@ -244,7 +243,6 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
             )}
           </svg>
         </button>
-        <Link href="/books" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:8,background:'#1b4332',color:'#fff',padding:'10px 20px',borderRadius:30,fontSize:12,letterSpacing:.4}}>Browse All →</Link>
       </nav>
 
       {/* MOBILE DROPDOWN MENU */}
@@ -255,7 +253,6 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
               style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px',borderBottom:'1px solid rgba(27,67,50,0.06)'}}>{n}</a>
           ))}
           <Link href="/books" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Books</Link>
-          <Link href="/bundles" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Bundles</Link>
           <Link href="/accessories" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Accessories</Link>
           <Link href="/wishlist" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>♡ Wishlist</Link>
         </div>
@@ -391,20 +388,6 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:'clamp(30px,4.4vw,44px)',color:'#1b4332',lineHeight:1.7,marginBottom:20}}>وَقُل رَّبِّ زِدْنِي عِلْمًا</div>
           <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:21,color:'#6b6460',margin:'0 0 14px'}}>&ldquo;And say: My Lord, increase me in knowledge.&rdquo;</p>
           <div style={{fontSize:11,letterSpacing:'2.5px',textTransform:'uppercase',color:'#b8965a'}}>— Surah Ta-Ha · 20:114</div>
-        </div>
-      </section>
-
-      {/* NEW ARRIVALS */}
-      <section id="new-arrivals" style={{position:'relative',zIndex:1,padding:'96px clamp(20px,5vw,72px)',background:'#f4f1e9',overflow:'hidden'}}>
-        <div className="hp-reveal" style={{position:'relative',textAlign:'center',marginBottom:54}}>
-          <div style={{color:'#b8965a',fontSize:12,letterSpacing:'3.5px',textTransform:'uppercase',marginBottom:14}}>✦ Fresh on the Shelf</div>
-          <h2 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(40px,5vw,60px)',color:'#1b4332'}}>New Arrivals</h2>
-        </div>
-        <div className="hp-four-grid" style={{position:'relative',maxWidth:1240,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:26}}>
-          {displayNew.map((b,i) => <BookCard key={b.slug||i} book={b} idx={i}/>)}
-        </div>
-        <div style={{textAlign:'center',marginTop:36}}>
-          <Link href="/books?tag=New+Arrival" className="hp-glow-cta" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,border:'1px solid rgba(27,67,50,0.25)',color:'#1b4332',padding:'14px 30px',borderRadius:40,fontSize:13,letterSpacing:.5}}>View All New Arrivals →</Link>
         </div>
       </section>
 
