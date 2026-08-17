@@ -130,6 +130,8 @@ export default function AdminPage() {
   const [taxonomy, setTaxonomy]   = useState({ categories: DEFAULT_CATEGORIES, languages: DEFAULT_LANGUAGES, offerTypes: DEFAULT_OFFER_TYPES });
   const [loading, setLoading]     = useState(false);
   const [editSlug, setEditSlug]   = useState(null);
+  const [slugInput, setSlugInput] = useState('');
+  const [slugSaving, setSlugSaving] = useState(false);
   const [editBundleId, setEditBundleId] = useState(null);
   const [editSlideId, setEditSlideId] = useState(null);
   const [form, setForm]           = useState(EMPTY_BOOK);
@@ -301,10 +303,24 @@ export default function AdminPage() {
           stockCount:d.book.stockCount??'',inStock:d.book.inStock!==false,visible:d.book.visible!==false,
           tags:d.book.tags||[],coverUrl:d.book.coverUrl||'',gallery:d.book.gallery||[],
         });
-        setImgMode('url'); setView('bookEditor');
+        setImgMode('url'); setSlugInput(slug); setView('bookEditor');
       }
     } catch { showToast('Failed to load.','error'); }
     finally { setLoading(false); }
+  }
+
+  async function renameSlug() {
+    if (!slugInput.trim() || slugInput === editSlug) return;
+    setSlugSaving(true);
+    try {
+      const r = await fetch(`/api/books/${editSlug}/rename`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,newSlug:slugInput})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed to rename.');
+      showToast(`✓ URL changed to /book/${d.newSlug}`,'success');
+      setEditSlug(d.newSlug); setSlugInput(d.newSlug);
+      await loadBooks();
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setSlugSaving(false); }
   }
 
   async function openEditBundle(id) {
@@ -584,6 +600,18 @@ export default function AdminPage() {
             <div><Label>Language *</Label><TaxonomySelect value={form.language} onChange={e=>f('language',e.target.value)} options={taxonomy.languages} onAddOption={v=>addTaxonomyOption('languages',v)}/></div>
           </div>
         </Card>
+
+        {editSlug && (
+          <Card title="URL Slug">
+            <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
+              This is the book's web address: yoursite.com/book/<b>{editSlug}</b>. Changing it updates every link on the site automatically (bundles, homepage picks, hero slides) — but any old link already shared (e.g. on Instagram) will stop working.
+            </p>
+            <div style={{display:'flex',gap:8}}>
+              <div style={{flex:1}}><FInput value={slugInput} onChange={e=>setSlugInput(e.target.value.toLowerCase())} placeholder="book-slug"/></div>
+              <Btn onClick={renameSlug} disabled={slugSaving || !slugInput.trim() || slugInput===editSlug}>{slugSaving?'Saving…':'Change URL'}</Btn>
+            </div>
+          </Card>
+        )}
 
         {/* Pricing */}
         <Card title="Pricing">
