@@ -138,18 +138,6 @@ export default function BookPage() {
               </div>
             )}
           </div>
-          {book.tags?.length > 0 && (
-            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:20,justifyContent:'center'}}>
-              {book.tags.map(t => (
-                <span key={t} style={{padding:'5px 14px',borderRadius:20,fontSize:10,fontWeight:500,letterSpacing:1,textTransform:'uppercase',
-                  background:t==='Bestseller'?'rgba(184,150,90,0.12)':'rgba(27,67,50,0.08)',
-                  color:t==='Bestseller'?'#b8965a':'#1b4332',
-                  border:`1px solid ${t==='Bestseller'?'rgba(184,150,90,0.3)':'rgba(27,67,50,0.15)'}`}}>
-                  {t}
-                </span>
-              ))}
-            </div>
-          )}
           {book.gallery?.length > 0 && (
             <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:16,justifyContent:'center'}}>
               {book.gallery.map((url, i) => (
