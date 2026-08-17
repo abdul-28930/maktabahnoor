@@ -128,7 +128,7 @@ export default function BookPage() {
         <div style={{position:'sticky',top:92}}>
           <div style={{borderRadius:18,overflow:'hidden',boxShadow:'0 20px 60px rgba(27,67,50,0.2)',animation:'floatBook 6s ease-in-out infinite',aspectRatio:'3/4'}}>
             {book.coverUrl ? (
-              <img src={book.coverUrl} alt={book.title} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+              <img src={book.coverUrl} alt={book.title} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
             ) : (
               <div style={{width:'100%',height:'100%',background:COVER_BG,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,padding:32,position:'relative'}}>
                 <div style={{position:'absolute',inset:16,border:'1px solid rgba(212,171,112,0.4)',borderRadius:10}}/>
@@ -155,7 +155,7 @@ export default function BookPage() {
               {book.gallery.map((url, i) => (
                 <div key={i} style={{width:56,height:76,borderRadius:8,overflow:'hidden',border:'1px solid rgba(27,67,50,0.12)',cursor:'pointer'}}
                   onClick={() => window.open(url, '_blank', 'noreferrer')}>
-                  <img src={url} alt={`${book.title} — additional view ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                  <img src={url} alt={`${book.title} — additional view ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
                 </div>
               ))}
             </div>
@@ -317,7 +317,7 @@ export default function BookPage() {
               <Link key={rb.slug} href={`/book/${rb.slug}`} style={{textDecoration:'none',display:'block',background:'#fff',borderRadius:14,border:'1px solid rgba(27,67,50,0.08)',overflow:'hidden',boxShadow:'0 2px 12px rgba(27,67,50,0.05)',transition:'transform .2s'}}
                 onMouseEnter={e=>e.currentTarget.style.transform='translateY(-3px)'} onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
                 <div style={{aspectRatio:'3/4',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  {rb.coverUrl ? <img src={rb.coverUrl} alt={rb.title} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                  {rb.coverUrl ? <img src={rb.coverUrl} alt={rb.title} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
                     : <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:24,color:'#d4ab70'}}>{CAT_AR[rb.category]||'كتاب'}</span>}
                 </div>
                 <div style={{padding:'12px 14px'}}>

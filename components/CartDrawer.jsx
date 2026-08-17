@@ -147,7 +147,7 @@ export default function CartDrawer() {
                     {/* Cover */}
                     <div className="cart-item-cover">
                       {item.coverUrl ? (
-                        <img src={item.coverUrl} alt={item.title} />
+                        <img src={item.coverUrl} alt={item.title} loading="lazy"/>
                       ) : (
                         <div className="cart-item-cover-ph" style={{ background: COVER_BG }}>
                           <span className="cart-item-cover-ar">{ar}</span>

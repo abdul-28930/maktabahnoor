@@ -44,7 +44,7 @@ function BookCard({ book, idx }) {
     <Link href={isReal ? `/book/${book.slug}` : '#'} className="hp-book-card hp-reveal" style={{textDecoration:'none',color:'inherit',background:'#fff',borderRadius:14,overflow:'hidden',border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 10px 24px rgba(27,67,50,0.06)',cursor:'pointer',display:'block'}} data-reveal data-reveal-delay={idx * 0.1}>
       <div style={{position:'relative',aspectRatio:'3/4',overflow:'hidden'}}>
         {book.coverUrl ? (
-          <img src={book.coverUrl} alt={book.title} className="hp-book-cover-img" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
+          <img src={book.coverUrl} alt={book.title} className="hp-book-cover-img" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
         ) : (
           <div className="hp-book-cover-img" style={{position:'absolute',inset:0,background:bg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14,padding:24}}>
             <div style={{position:'absolute',inset:12,border:'1px solid rgba(212,171,112,0.45)',borderRadius:6}}/>
@@ -109,7 +109,7 @@ function FeaturedSlider({ slides = [] }) {
         <div style={{display:'flex',justifyContent:'center'}}>
           <div style={{position:'relative',width:'min(80%,260px)',aspectRatio:'3/4',borderRadius:14,overflow:'hidden',boxShadow:'0 24px 60px rgba(27,67,50,0.18)',animation:'floatBook 6s ease-in-out infinite'}}>
             {s.imageUrl ? (
-              <img src={s.imageUrl} alt={s.title} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+              <img src={s.imageUrl} alt={s.title} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="eager" fetchPriority="high"/>
             ) : (
               <div style={{width:'100%',height:'100%',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14,padding:24}}>
                 <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:44,color:'#d4ab70'}}>{ar}</span>

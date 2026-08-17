@@ -49,7 +49,7 @@ function BundleCard({ bundle }) {
             marginLeft: i === 0 ? 0 : -28, transform: `rotate(${(i - (covers.length-1)/2) * 8}deg)`,
             border:'2px solid rgba(255,255,255,0.15)', zIndex: covers.length - i, background:'#fff',
           }}>
-            {b.coverUrl ? <img src={b.coverUrl} alt={b.title} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+            {b.coverUrl ? <img src={b.coverUrl} alt={b.title} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
               : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Noto Naskh Arabic',serif",fontSize:20,color:'#b8965a'}}>ك</div>}
           </div>
         )) : <span style={{fontSize:52,opacity:.35}}>📦</span>}
@@ -121,9 +121,9 @@ export default function BundlesPage() {
       <nav style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,72px)',backdropFilter:'blur(12px)',background:'rgba(250,249,245,0.88)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
         <Link href="/" style={{display:'flex',alignItems:'center',gap:12,textDecoration:'none',color:'#1b4332'}}>
           <Image src="/logo.png" alt="Logo" width={36} height={36} style={{height:36,width:'auto'}}/>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,letterSpacing:.5}}>Maktabah An Noor</span>
+          <span className="site-name-text" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,letterSpacing:.5}}>Maktabah An Noor</span>
         </Link>
-        <div style={{display:'flex',alignItems:'center',gap:6}}>
+        <div className="nav-links-scroll" style={{display:'flex',alignItems:'center',gap:6,overflowX:'auto',scrollbarWidth:'none',maxWidth:'70vw'}}>
           <Link href="/" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3}}>Home</Link>
           <BooksNavDropdown/>
           <Link href="/bundles" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#1b4332',fontWeight:500,background:'rgba(27,67,50,0.07)'}}>Bundles</Link>

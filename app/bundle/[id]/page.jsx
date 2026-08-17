@@ -103,7 +103,7 @@ export default function BundlePage() {
           <div style={{borderRadius:18,overflow:'hidden',boxShadow:'0 20px 60px rgba(27,67,50,0.2)',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',aspectRatio:'3/4',display:'flex',alignItems:'center',justifyContent:'center',flexWrap:'wrap',gap:6,padding:24}}>
             {books.length > 0 ? books.slice(0, 6).map(b => (
               <div key={b.slug} style={{width:80,height:112,borderRadius:6,overflow:'hidden',boxShadow:'0 6px 18px rgba(0,0,0,0.3)',border:'2px solid rgba(255,255,255,0.15)'}}>
-                {b.coverUrl ? <img src={b.coverUrl} alt={b.title} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                {b.coverUrl ? <img src={b.coverUrl} alt={b.title} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
                   : <div style={{width:'100%',height:'100%',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#b8965a'}}>ك</div>}
               </div>
             )) : <span style={{fontSize:64,opacity:.4}}>📦</span>}
@@ -158,7 +158,7 @@ export default function BundlePage() {
                 <Link key={b.slug} href={`/book/${b.slug}`} style={{textDecoration:'none',display:'flex',alignItems:'center',gap:14,padding:'12px 16px',background:'#fff',borderRadius:12,border:'1px solid rgba(27,67,50,0.08)',boxShadow:'0 2px 8px rgba(27,67,50,0.04)',transition:'box-shadow .2s'}}
                   onMouseEnter={e=>e.currentTarget.style.boxShadow='0 6px 18px rgba(27,67,50,0.1)'} onMouseLeave={e=>e.currentTarget.style.boxShadow='0 2px 8px rgba(27,67,50,0.04)'}>
                   <div style={{width:40,height:56,borderRadius:5,overflow:'hidden',flexShrink:0,background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                    {b.coverUrl ? <img src={b.coverUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/> : <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#d4ab70'}}>ك</span>}
+                    {b.coverUrl ? <img src={b.coverUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/> : <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#d4ab70'}}>ك</span>}
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</div>

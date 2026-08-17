@@ -404,6 +404,13 @@ img{max-width:100%;display:block}
   .hp-four-grid { grid-template-columns:1fr 1fr!important; }
   .hp-about-grid { grid-template-columns:1fr!important; }
 }
+.nav-links-scroll{-ms-overflow-style:none;}
+.nav-links-scroll::-webkit-scrollbar{display:none;}
+.nav-links-scroll a,.nav-links-scroll>div{flex-shrink:0;}
+@media(max-width:520px){
+  .site-name-text{display:none;}
+  .nav-links-scroll{max-width:60vw!important;}
+}
 @media(min-width:861px) {
   .hp-hamburger { display:none!important; }
 }

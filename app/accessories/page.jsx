@@ -19,7 +19,7 @@ function AccessoryCard({ item }) {
     <div style={{background:'#fff',borderRadius:18,border:'1px solid rgba(27,67,50,0.08)',overflow:'hidden',boxShadow:'0 4px 20px rgba(27,67,50,0.05)'}}>
       <div style={{position:'relative',aspectRatio:'1/1',background:'linear-gradient(155deg,#2d6a4f,#1b4332)'}}>
         {item.coverUrl
-          ? <img src={item.coverUrl} alt={item.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+          ? <img src={item.coverUrl} alt={item.name} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
           : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.6)',fontSize:13}}>{item.name}</div>}
         {soldOut && <div style={{position:'absolute',inset:0,background:'rgba(250,249,245,0.65)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{padding:'6px 14px',background:'#1a1712',color:'#fff',fontSize:9,letterSpacing:1.5,textTransform:'uppercase',borderRadius:20}}>Out of Stock</span></div>}
       </div>
@@ -70,9 +70,9 @@ export default function AccessoriesPage() {
       <nav style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,72px)',backdropFilter:'blur(12px)',background:'rgba(250,249,245,0.88)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
         <Link href="/" style={{display:'flex',alignItems:'center',gap:12,textDecoration:'none',color:'#1b4332'}}>
           <Image src="/logo.png" alt="Logo" width={36} height={36} style={{height:36,width:'auto'}}/>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,letterSpacing:.5}}>Maktabah An Noor</span>
+          <span className="site-name-text" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,letterSpacing:.5}}>Maktabah An Noor</span>
         </Link>
-        <div style={{display:'flex',alignItems:'center',gap:6}}>
+        <div className="nav-links-scroll" style={{display:'flex',alignItems:'center',gap:6,overflowX:'auto',scrollbarWidth:'none',maxWidth:'70vw'}}>
           <Link href="/" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>Home</Link>
           <BooksNavDropdown/>
           <Link href="/bundles" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>Bundles</Link>

@@ -634,7 +634,7 @@ export default function AdminPage() {
             ? <FInput value={form.coverUrl.startsWith('data:')?'':form.coverUrl} onChange={e=>f('coverUrl',e.target.value)} placeholder="https://… (image URL)"/>
             : (
               <div onClick={()=>fileRef.current?.click()} style={{border:`2px dashed rgba(27,67,50,0.15)`,borderRadius:12,padding:form.coverUrl?0:32,textAlign:'center',cursor:'pointer',overflow:'hidden',background:'#faf9f5'}} onMouseEnter={e=>e.currentTarget.style.borderColor='#1b4332'} onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(27,67,50,0.15)'}>
-                {form.coverUrl?<img src={form.coverUrl} alt="Preview" style={{width:'100%',maxHeight:240,objectFit:'contain',borderRadius:10}}/>:<><div style={{fontSize:13,color:'#6b6460',marginBottom:6}}>Click to upload cover image</div><div style={{fontSize:11,color:'#a09890'}}>JPG or PNG</div></>}
+                {form.coverUrl?<img src={form.coverUrl} alt="Preview" style={{width:'100%',maxHeight:240,objectFit:'contain',borderRadius:10}} loading="lazy"/>:<><div style={{fontSize:13,color:'#6b6460',marginBottom:6}}>Click to upload cover image</div><div style={{fontSize:11,color:'#a09890'}}>JPG or PNG</div></>}
                 <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleImg}/>
               </div>
             )
@@ -653,7 +653,7 @@ export default function AdminPage() {
               <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
                 {form.gallery.map((url,idx) => (
                   <div key={idx} style={{position:'relative',width:72,height:96,borderRadius:8,overflow:'hidden',border:'1px solid rgba(27,67,50,0.12)'}}>
-                    <img src={url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                    <img src={url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
                     <button onClick={()=>removeGalleryUrl(idx)} style={{position:'absolute',top:2,right:2,width:20,height:20,borderRadius:'50%',border:'none',background:'rgba(0,0,0,0.6)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                   </div>
                 ))}
@@ -741,7 +741,7 @@ export default function AdminPage() {
                     <span style={{width:20,height:20,borderRadius:5,border:`1.5px solid ${sel?'#1b4332':'rgba(27,67,50,0.22)'}`,background:sel?'#1b4332':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}}>
                       {sel && <svg width="9" height="9" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                     </span>
-                    {b.coverUrl && <img src={b.coverUrl} alt="" style={{width:36,height:48,objectFit:'cover',borderRadius:5,flexShrink:0}}/>}
+                    {b.coverUrl && <img src={b.coverUrl} alt="" style={{width:36,height:48,objectFit:'cover',borderRadius:5,flexShrink:0}} loading="lazy"/>}
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</div>
                       <div style={{fontSize:11,color:'#a09890'}}>{b.author} · {b.category}</div>
@@ -851,7 +851,7 @@ export default function AdminPage() {
                       <span style={{width:18,height:18,borderRadius:'50%',border:`1.5px solid ${sel?'#1b4332':'rgba(27,67,50,0.22)'}`,background:sel?'#1b4332':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
                         {sel && <span style={{width:7,height:7,borderRadius:'50%',background:'#fff'}}/>}
                       </span>
-                      {b.coverUrl && <img src={b.coverUrl} alt="" style={{width:36,height:48,objectFit:'cover',borderRadius:5,flexShrink:0}}/>}
+                      {b.coverUrl && <img src={b.coverUrl} alt="" style={{width:36,height:48,objectFit:'cover',borderRadius:5,flexShrink:0}} loading="lazy"/>}
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</div>
                         <div style={{fontSize:11,color:'#a09890'}}>{b.author} · {b.category}</div>
@@ -877,7 +877,7 @@ export default function AdminPage() {
               ? <FInput value={slideForm.imageUrl.startsWith('data:')?'':slideForm.imageUrl} onChange={e=>sf('imageUrl',e.target.value)} placeholder="https://… (image URL)"/>
               : (
                 <div onClick={()=>document.getElementById('slide-img-input')?.click()} style={{border:'2px dashed rgba(27,67,50,0.15)',borderRadius:12,padding:slideForm.imageUrl?0:32,textAlign:'center',cursor:'pointer',overflow:'hidden',background:'#faf9f5'}} onMouseEnter={e=>e.currentTarget.style.borderColor='#1b4332'} onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(27,67,50,0.15)'}>
-                  {slideForm.imageUrl?<img src={slideForm.imageUrl} alt="Preview" style={{width:'100%',maxHeight:240,objectFit:'contain',borderRadius:10}}/>:<><div style={{fontSize:13,color:'#6b6460',marginBottom:6}}>Click to upload an image</div><div style={{fontSize:11,color:'#a09890'}}>JPG or PNG</div></>}
+                  {slideForm.imageUrl?<img src={slideForm.imageUrl} alt="Preview" style={{width:'100%',maxHeight:240,objectFit:'contain',borderRadius:10}} loading="lazy"/>:<><div style={{fontSize:13,color:'#6b6460',marginBottom:6}}>Click to upload an image</div><div style={{fontSize:11,color:'#a09890'}}>JPG or PNG</div></>}
                   <input id="slide-img-input" type="file" accept="image/*" style={{display:'none'}} onChange={handleSlideImg}/>
                 </div>
               )
@@ -956,7 +956,7 @@ export default function AdminPage() {
             ? <FInput value={accForm.coverUrl.startsWith('data:')?'':accForm.coverUrl} onChange={e=>af('coverUrl',e.target.value)} placeholder="https://…"/>
             : (
               <div onClick={()=>document.getElementById('acc-img-input')?.click()} style={{border:'2px dashed rgba(27,67,50,0.15)',borderRadius:12,padding:accForm.coverUrl?0:32,textAlign:'center',cursor:'pointer',overflow:'hidden'}}>
-                {accForm.coverUrl?<img src={accForm.coverUrl} alt="" style={{width:'100%',maxHeight:200,objectFit:'contain'}}/>:<div style={{fontSize:13,color:'#6b6460'}}>Click to upload</div>}
+                {accForm.coverUrl?<img src={accForm.coverUrl} alt="" style={{width:'100%',maxHeight:200,objectFit:'contain'}} loading="lazy"/>:<div style={{fontSize:13,color:'#6b6460'}}>Click to upload</div>}
                 <input id="acc-img-input" type="file" accept="image/*" style={{display:'none'}} onChange={handleAccImg}/>
               </div>
             )}
@@ -1099,7 +1099,7 @@ export default function AdminPage() {
                     onMouseEnter={e=>e.currentTarget.style.background='rgba(27,67,50,0.02)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                     <input type="checkbox" checked={selected.has(b.slug)} onChange={()=>toggleSelect(b.slug)} style={{width:16,height:16,accentColor:'#1b4332',cursor:'pointer',flexShrink:0}}/>
                     <div style={{width:40,height:54,borderRadius:5,overflow:'hidden',flexShrink:0,background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                      {b.coverUrl?<img src={b.coverUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#d4ab70'}}>ك</span>}
+                      {b.coverUrl?<img src={b.coverUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>:<span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#d4ab70'}}>ك</span>}
                     </div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
@@ -1245,7 +1245,7 @@ export default function AdminPage() {
                       <button onClick={()=>moveSlide(s.id,1)} disabled={i===arr.length-1} style={{width:22,height:18,border:'1px solid rgba(27,67,50,0.15)',borderRadius:5,background:'transparent',color:i===arr.length-1?'#d8d3cb':'#6b6460',cursor:i===arr.length-1?'default':'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>▼</button>
                     </div>
                     <div style={{width:44,height:58,borderRadius:6,overflow:'hidden',flexShrink:0,background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                      {s.imageUrl?<img src={s.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#d4ab70'}}>ك</span>}
+                      {s.imageUrl?<img src={s.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>:<span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#d4ab70'}}>ك</span>}
                     </div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
@@ -1285,7 +1285,7 @@ export default function AdminPage() {
             ) : accessories.map((a,i)=>(
               <div key={a.id} style={{display:'flex',alignItems:'center',gap:16,padding:'16px 24px',borderBottom:i<accessories.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
                 <div style={{width:44,height:44,borderRadius:6,overflow:'hidden',flexShrink:0,background:'linear-gradient(155deg,#2d6a4f,#1b4332)'}}>
-                  {a.coverUrl && <img src={a.coverUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
+                  {a.coverUrl && <img src={a.coverUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:15,color:'#1a1712'}}>{a.name} {a.visible===false && <span style={{fontSize:9,color:'#a09890',background:'rgba(0,0,0,0.06)',padding:'2px 8px',borderRadius:8,marginLeft:6}}>HIDDEN</span>}</div>

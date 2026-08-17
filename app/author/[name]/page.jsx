@@ -22,7 +22,7 @@ function BookTile({ book }) {
     <Link href={`/book/${book.slug}`} style={{textDecoration:'none',display:'block',background:'#fff',borderRadius:14,border:'1px solid rgba(27,67,50,0.08)',overflow:'hidden',boxShadow:'0 2px 12px rgba(27,67,50,0.05)',transition:'transform .2s'}}
       onMouseEnter={e=>e.currentTarget.style.transform='translateY(-3px)'} onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
       <div style={{aspectRatio:'3/4',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-        {book.coverUrl ? <img src={book.coverUrl} alt={book.title} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+        {book.coverUrl ? <img src={book.coverUrl} alt={book.title} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
           : <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:26,color:'#d4ab70'}}>{CAT_AR[book.category]||'كتاب'}</span>}
         {!book.inStock && (
           <div style={{position:'absolute',inset:0,background:'rgba(26,23,18,0.5)',display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -77,9 +77,9 @@ export default function AuthorPage() {
       <nav style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,72px)',backdropFilter:'blur(12px)',background:'rgba(250,249,245,0.88)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
         <Link href="/" style={{display:'flex',alignItems:'center',gap:12,textDecoration:'none',color:'#1b4332'}}>
           <Image src="/logo.png" alt="Logo" width={36} height={36} style={{height:36,width:'auto'}}/>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,letterSpacing:.5}}>Maktabah An Noor</span>
+          <span className="site-name-text" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,letterSpacing:.5}}>Maktabah An Noor</span>
         </Link>
-        <div style={{display:'flex',alignItems:'center',gap:6}}>
+        <div className="nav-links-scroll" style={{display:'flex',alignItems:'center',gap:6,overflowX:'auto',scrollbarWidth:'none',maxWidth:'70vw'}}>
           <Link href="/" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3}}>Home</Link>
           <BooksNavDropdown/>
           <Link href="/bundles" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3}}>Bundles</Link>
