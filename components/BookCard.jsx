@@ -42,7 +42,6 @@ export default function BookCard({ book }) {
             <span>مكتبة النور</span>
           </div>
         )}
-        {topTag && <div className="book-badges"><span className={`badge-tag ${TAG_STYLES[topTag]}`}>{topTag}</span></div>}
         {!book.inStock && (
           <div className="out-of-stock-overlay">
             <span className="out-of-stock-label">Out of Stock</span>
