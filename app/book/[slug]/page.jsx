@@ -103,7 +103,6 @@ export default function BookPage() {
     book.language   && { label:'Language',   val:book.language },
     book.category   && { label:'Category',   val:book.category },
     book.translator && { label:'Translator', val:book.translator },
-    book.publisher  && { label:'Publisher',  val:book.publisher },
   ].filter(Boolean);
 
   return (
@@ -177,11 +176,16 @@ export default function BookPage() {
             By <Link href={`/author/${encodeURIComponent(book.author)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{book.author}</Link>
           </div>
           {book.translator && (
-            <div style={{fontSize:13,color:'#a09890',marginBottom:28,fontWeight:300}}>
+            <div style={{fontSize:13,color:'#a09890',marginBottom:6,fontWeight:300}}>
               Translated by <span style={{color:'#6b6460'}}>{book.translator}</span>
             </div>
           )}
-          {!book.translator && <div style={{marginBottom:20}}/>}
+          {book.publisher && (
+            <div style={{fontSize:13,color:'#a09890',marginBottom:28,fontWeight:300}}>
+              Published by <Link href={`/publisher/${encodeURIComponent(book.publisher)}`} style={{color:'#6b6460',textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{book.publisher}</Link>
+            </div>
+          )}
+          {!book.translator && !book.publisher && <div style={{marginBottom:20}}/>}
 
           <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:28}}>
             <span style={{flex:1,height:1,background:'linear-gradient(90deg,rgba(27,67,50,0.2),transparent)'}}/>
