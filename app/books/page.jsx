@@ -279,9 +279,13 @@ function BooksContent() {
           && (!selStock|| (selStock === 'in' ? b.inStock : !b.inStock));
     });
 
-    // Sort — out-of-stock books always sink to the bottom, whatever sort
-    // criterion is chosen; the criterion just orders within each group.
+    // Sort — Featured-tagged books always float to the top, out-of-stock
+    // books always sink to the bottom (within the featured/non-featured
+    // groups), and the chosen sort criterion orders within each group.
     list = [...list].sort((a, b) => {
+      const aFeat = a.tags?.includes('Featured') ? 0 : 1;
+      const bFeat = b.tags?.includes('Featured') ? 0 : 1;
+      if (aFeat !== bFeat) return aFeat - bFeat;
       const aOut = a.inStock === false ? 1 : 0;
       const bOut = b.inStock === false ? 1 : 0;
       if (aOut !== bOut) return aOut - bOut;
