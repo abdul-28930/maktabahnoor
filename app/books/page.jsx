@@ -69,7 +69,7 @@ function GridCard({ book, idx }) {
       </div>
       <div style={{padding:'14px 16px 18px',flex:1,display:'flex',flexDirection:'column',gap:6}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <span style={{fontSize:9,letterSpacing:1.2,textTransform:'uppercase',color:'#b8965a'}}>{book.language}</span>
+          <span style={{fontSize:11,fontWeight:700,letterSpacing:1.2,textTransform:'uppercase',color:'#b8965a'}}>{book.language}</span>
         </div>
         <h3 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:17,color:'#1a1712',lineHeight:1.2}}>{book.title}</h3>
         <div style={{fontSize:12,color:'#6b6460',fontWeight:300}}>{book.author}</div>
@@ -78,7 +78,7 @@ function GridCard({ book, idx }) {
           {book.mrp > book.price && (
             <>
               <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
-              <span style={{fontSize:10,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+              <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
             </>
           )}
         </div>
@@ -116,7 +116,7 @@ function ListCard({ book }) {
       <div style={{flex:1,minWidth:0}}>
         <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
           <span style={{padding:'2px 10px',background:'rgba(27,67,50,0.07)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#1b4332'}}>{book.category}</span>
-          <span style={{fontSize:9,color:'#b8965a',letterSpacing:1,textTransform:'uppercase'}}>{book.language}</span>
+          <span style={{fontSize:11,fontWeight:700,color:'#b8965a',letterSpacing:1,textTransform:'uppercase'}}>{book.language}</span>
           {book.tags?.includes('New Arrival') && <span style={{padding:'2px 10px',background:'rgba(45,106,79,0.1)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#2d6a4f'}}>New Arrival</span>}
           {book.tags?.includes('Bestseller') && <span style={{padding:'2px 10px',background:'rgba(184,150,90,0.1)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#b8965a'}}>Bestseller</span>}
         </div>
@@ -129,7 +129,7 @@ function ListCard({ book }) {
           {book.mrp > book.price && (
             <>
               <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
-              <span style={{fontSize:10,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+              <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
             </>
           )}
         </div>

@@ -38,7 +38,7 @@ function BookTile({ book }) {
           {book.mrp > book.price && (
             <>
               <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{Number(book.mrp).toLocaleString('en-IN')}</span>
-              <span style={{fontSize:11,color:'#2d6a4f'}}>{Math.round((1 - book.price/book.mrp)*100)}% off</span>
+              <span style={{fontSize:13,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1 - book.price/book.mrp)*100)}% off</span>
             </>
           )}
         </div>
