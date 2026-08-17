@@ -169,20 +169,20 @@ export default function BookPage() {
             <span style={{padding:'5px 14px',background:'rgba(184,150,90,0.08)',borderRadius:20,fontSize:10,fontWeight:500,letterSpacing:1,textTransform:'uppercase',color:'#b8965a',border:'1px solid rgba(184,150,90,0.25)'}}>{book.language}</span>
           </div>
 
-          <h1 style={{margin:'0 0 8px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(32px,4.5vw,52px)',color:'#1b4332',lineHeight:1.12}}>
+          <h1 style={{margin:'0 0 10px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(32px,4.5vw,52px)',color:'#1b4332',lineHeight:1.12}}>
             {book.title}
           </h1>
-          <div style={{fontSize:16,color:'#6b6460',marginBottom:8,fontWeight:300}}>
+          <div style={{fontSize:16,color:'#6b6460',marginBottom:10,fontWeight:300}}>
             By <Link href={`/author/${encodeURIComponent(book.author)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{book.author}</Link>
           </div>
           {book.translator && (
-            <div style={{fontSize:13,color:'#a09890',marginBottom:6,fontWeight:300}}>
-              Translated by <span style={{color:'#6b6460'}}>{book.translator}</span>
+            <div style={{fontSize:14.5,color:'#8a827a',marginBottom:10,fontWeight:300}}>
+              Translated by <span style={{color:'#4a453f',fontWeight:400}}>{book.translator}</span>
             </div>
           )}
           {book.publisher && (
-            <div style={{fontSize:13,color:'#a09890',marginBottom:28,fontWeight:300}}>
-              Published by <Link href={`/publisher/${encodeURIComponent(book.publisher)}`} style={{color:'#6b6460',textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{book.publisher}</Link>
+            <div style={{fontSize:14.5,color:'#8a827a',marginBottom:28,fontWeight:300}}>
+              Published by <Link href={`/publisher/${encodeURIComponent(book.publisher)}`} style={{color:'#4a453f',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{book.publisher}</Link>
             </div>
           )}
           {!book.translator && !book.publisher && <div style={{marginBottom:20}}/>}
@@ -234,20 +234,20 @@ export default function BookPage() {
           )}
 
           {/* Stock badge */}
-          <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 20px',borderRadius:30,marginBottom:28,
-            background:book.inStock?'rgba(45,106,79,0.08)':'rgba(180,60,60,0.06)',
-            border:`1px solid ${book.inStock?'rgba(45,106,79,0.2)':'rgba(180,60,60,0.15)'}`,
-            color:book.inStock?'#2d6a4f':'#b44444',fontSize:12,fontWeight:500,letterSpacing:1,textTransform:'uppercase'}}>
-            <span style={{width:7,height:7,borderRadius:'50%',background:'currentColor'}}/>
-            {book.stockCount !== undefined && book.stockCount !== null
-              ? book.stockCount <= 0
-                ? 'Out of Stock'
-                : book.stockCount <= 5
-                  ? `Only ${book.stockCount} left!`
-                  : 'In Stock'
-              : book.inStock ? 'In Stock' : 'Out of Stock'
-            }
-          </div>
+          {(() => {
+            const isOut = book.stockCount !== undefined && book.stockCount !== null ? book.stockCount <= 0 : !book.inStock;
+            const isLow = !isOut && book.stockCount !== undefined && book.stockCount !== null && book.stockCount <= 5;
+            const urgent = isOut || isLow;
+            return (
+              <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 20px',borderRadius:30,marginBottom:28,
+                background:urgent?'rgba(192,57,43,0.08)':'rgba(45,106,79,0.08)',
+                border:`1px solid ${urgent?'rgba(192,57,43,0.25)':'rgba(45,106,79,0.2)'}`,
+                color:urgent?'#c0392b':'#2d6a4f',fontSize:12,fontWeight:600,letterSpacing:1,textTransform:'uppercase'}}>
+                <span style={{width:7,height:7,borderRadius:'50%',background:'currentColor'}}/>
+                {isOut ? 'Out of Stock' : isLow ? `Only ${book.stockCount} left!` : 'In Stock'}
+              </div>
+            );
+          })()}
 
           {book.description && (
             <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:18,color:'#6b6460',lineHeight:1.8,marginBottom:36,paddingBottom:36,borderBottom:'1px solid rgba(27,67,50,0.08)'}}>

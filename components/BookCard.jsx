@@ -74,7 +74,7 @@ export default function BookCard({ book }) {
           )}
         </div>
         {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
-          <div style={{fontSize:12,fontWeight:700,color:'#b8965a',letterSpacing:.3,marginTop:2}}>Only {book.stockCount} left</div>
+          <div style={{fontSize:12,fontWeight:700,color:'#c0392b',letterSpacing:.3,marginTop:2}}>Only {book.stockCount} left</div>
         )}
 
         {/* Add to Cart button */}

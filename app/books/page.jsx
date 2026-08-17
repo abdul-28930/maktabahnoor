@@ -64,7 +64,10 @@ function GridCard({ book, idx }) {
             </div>
         }
         <span style={{position:'absolute',top:10,left:10,background:'rgba(27,67,50,0.88)',backdropFilter:'blur(4px)',color:'#fff',fontSize:9,letterSpacing:1.2,textTransform:'uppercase',padding:'4px 10px',borderRadius:20}}>{book.category}</span>
-        {tag && <span style={{position:'absolute',top:10,right:10,background:tag==='Bestseller'?'rgba(184,150,90,0.9)':'rgba(45,106,79,0.9)',backdropFilter:'blur(4px)',color:'#fff',fontSize:9,letterSpacing:1,textTransform:'uppercase',padding:'4px 10px',borderRadius:20}}>{tag}</span>}
+        {tag==='Bestseller' && <span style={{position:'absolute',top:10,right:10,background:'rgba(184,150,90,0.9)',backdropFilter:'blur(4px)',color:'#fff',fontSize:9,letterSpacing:1,textTransform:'uppercase',padding:'4px 10px',borderRadius:20}}>Bestseller</span>}
+        {tag==='New Arrival' && (
+          <div style={{position:'absolute',top:16,right:-34,width:130,transform:'rotate(45deg)',background:'#b8965a',color:'#fff',fontSize:9,fontWeight:600,letterSpacing:1.2,textTransform:'uppercase',textAlign:'center',padding:'4px 0',boxShadow:'0 2px 6px rgba(0,0,0,0.2)',zIndex:2}}>New Arrival</div>
+        )}
         {!book.inStock && <div style={{position:'absolute',inset:0,background:'rgba(250,249,245,0.65)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{padding:'6px 14px',background:'#1a1712',color:'#fff',fontSize:9,letterSpacing:1.5,textTransform:'uppercase',borderRadius:20}}>Out of Stock</span></div>}
       </div>
       <div style={{padding:'14px 16px 18px',flex:1,display:'flex',flexDirection:'column',gap:6}}>
@@ -83,7 +86,7 @@ function GridCard({ book, idx }) {
           )}
         </div>
         {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
-          <div style={{fontSize:12,fontWeight:700,color:'#b8965a',letterSpacing:.3}}>Only {book.stockCount} left</div>
+          <div style={{fontSize:12,fontWeight:700,color:'#c0392b',letterSpacing:.3}}>Only {book.stockCount} left</div>
         )}
         <div style={{marginTop:'auto',paddingTop:4}}/>
         {book.inStock !== false && (
@@ -137,7 +140,7 @@ function ListCard({ book }) {
           {book.inStock ? 'In Stock' : 'Out of Stock'}
         </span>
         {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
-          <span style={{fontSize:12,fontWeight:700,color:'#b8965a'}}>Only {book.stockCount} left</span>
+          <span style={{fontSize:12,fontWeight:700,color:'#c0392b'}}>Only {book.stockCount} left</span>
         )}
         {book.inStock !== false && (
           <AddToCartListBtn book={book}/>
