@@ -52,10 +52,10 @@ const Label = ({children,hint}) => (
     {hint && <div style={{fontSize:11,color:'#a09890',marginTop:2}}>{hint}</div>}
   </div>
 );
-const FInput = ({value,onChange,placeholder,type='text',dir,prefix,style={}}) => (
+const FInput = ({value,onChange,placeholder,type='text',dir,prefix,min,style={}}) => (
   <div style={{position:'relative'}}>
     {prefix && <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',fontSize:14,color:'#6b6460',pointerEvents:'none'}}>{prefix}</span>}
-    <input type={type} value={value} onChange={onChange} placeholder={placeholder} dir={dir}
+    <input type={type} value={value} onChange={onChange} placeholder={placeholder} dir={dir} min={min}
       style={{width:'100%',padding:`11px 14px 11px ${prefix?'28px':'14px'}`,background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',transition:'border-color .2s',...style}}
       onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
   </div>
@@ -563,7 +563,7 @@ export default function AdminPage() {
             <div><Label hint="Optional">Offer Type</Label>
               <TaxonomySelect value={form.offerType} onChange={e=>f('offerType',e.target.value)} options={taxonomy.offerTypes} placeholder="None" onAddOption={v=>addTaxonomyOption('offerTypes',v)}/>
             </div>
-            <div><Label hint="Exact pieces available">Stock Count *</Label><FInput type="number" value={form.stockCount} onChange={e=>f('stockCount',e.target.value)} placeholder="50"/></div>
+            <div><Label hint="Exact pieces available">Stock Count *</Label><FInput type="number" min="0" value={form.stockCount} onChange={e=>f('stockCount',e.target.value)} placeholder="50"/></div>
           </div>
           {(form.mrp || form.price) && (
             <div style={{padding:'14px 16px',background:'rgba(27,67,50,0.04)',borderRadius:10,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>

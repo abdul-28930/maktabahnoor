@@ -59,7 +59,7 @@ export async function POST(req) {
 
     const slug = slugify(data.title, data.author || '');
     const now  = new Date().toISOString();
-    const stockCount = parseInt(data.stockCount) || 0;
+    const stockCount = Math.max(0, parseInt(data.stockCount) || 0);
     const book = {
       slug,
       sku:         data.sku?.trim() || '',

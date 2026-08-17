@@ -36,7 +36,7 @@ export async function PUT(req, { params }) {
     const missing = missingMandatoryFields(merged);
     if (missing.length)
       return NextResponse.json({ error: `Required field${missing.length > 1 ? 's' : ''} missing: ${missing.join(', ')}.` }, { status: 400 });
-    const stockCount = parseInt(updates.stockCount ?? existing.stockCount) || 0;
+    const stockCount = Math.max(0, parseInt(updates.stockCount ?? existing.stockCount) || 0);
     const updated = { ...existing, ...updates,
       stockCount, inStock: stockCount > 0,
       mrp: parseFloat(updates.mrp ?? existing.mrp) || 0,

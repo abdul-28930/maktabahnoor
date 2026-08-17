@@ -240,7 +240,7 @@ export default function BookPage() {
             color:book.inStock?'#2d6a4f':'#b44444',fontSize:12,fontWeight:500,letterSpacing:1,textTransform:'uppercase'}}>
             <span style={{width:7,height:7,borderRadius:'50%',background:'currentColor'}}/>
             {book.stockCount !== undefined && book.stockCount !== null
-              ? book.stockCount === 0
+              ? book.stockCount <= 0
                 ? 'Out of Stock'
                 : book.stockCount <= 5
                   ? `Only ${book.stockCount} left!`
