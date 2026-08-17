@@ -70,14 +70,14 @@ export function CartProvider({ children }) {
   }, []);
 
   /* ── Add an accessory to cart ── */
-  const addAccessoryToCart = useCallback((item) => {
-    const slug = `accessory:${item.id}`;
+  const addAccessoryToCart = useCallback((item, variant) => {
+    const slug = `accessory:${item.id}${variant ? ':' + variant.id : ''}`;
     setItems(prev => {
       const exists = prev.find(i => i.slug === slug);
       if (exists) return prev.map(i => i.slug === slug ? { ...i, qty: i.qty + 1 } : i);
       return [...prev, {
         type: 'accessory', slug, accessoryId: item.id,
-        title: item.name, author: '', category: 'Accessory',
+        title: item.name + (variant ? ` (${variant.label})` : ''), author: '', category: 'Accessory',
         coverUrl: item.coverUrl || '', price: item.price || null, mrp: item.mrp || null, qty: 1,
       }];
     });

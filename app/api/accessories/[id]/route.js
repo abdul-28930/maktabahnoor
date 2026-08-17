@@ -14,6 +14,12 @@ export async function PUT(req, { params }) {
     if (updates.price !== undefined) updates.price = Number(updates.price);
     if (updates.mrp !== undefined) updates.mrp = updates.mrp ? Number(updates.mrp) : null;
     if (updates.stockCount !== undefined) updates.stockCount = parseInt(updates.stockCount) || 0;
+    if (updates.variants !== undefined) {
+      updates.variants = Array.isArray(updates.variants) ? updates.variants
+        .filter(v => v.label?.trim())
+        .map(v => ({ id: v.id || (Date.now().toString(36)+Math.random().toString(36).slice(2,6)), label: v.label.trim(), color: v.color || '#1b4332', stockCount: Math.max(0, parseInt(v.stockCount) || 0) }))
+        : [];
+    }
     all[idx] = { ...all[idx], ...updates, id: params.id, updatedAt: new Date().toISOString() };
     await redis.set(KEY, all);
     return NextResponse.json({ success: true, item: all[idx] });

@@ -25,7 +25,7 @@ const EMPTY_SLIDE = {
   ctaLabel:'', ctaUrl:'', active:true,
 };
 
-const EMPTY_ACCESSORY = { name:'',description:'',price:'',mrp:'',stockCount:'',coverUrl:'',visible:true };
+const EMPTY_ACCESSORY = { name:'',description:'',price:'',mrp:'',stockCount:'',coverUrl:'',variants:[],visible:true };
 
 const OFFER_COLORS = {
   'Sale':                {bg:'rgba(220,38,38,0.1)',  border:'rgba(220,38,38,0.3)',  text:'#dc2626'},
@@ -147,6 +147,9 @@ export default function AdminPage() {
   function bf(k,v) { setBundleForm(p=>({...p,[k]:v})); }
   function sf(k,v) { setSlideForm(p=>({...p,[k]:v})); }
   function af(k,v) { setAccForm(p=>({...p,[k]:v})); }
+  function addVariant() { setAccForm(p=>({...p,variants:[...p.variants,{id:Date.now().toString(36),label:'',color:'#1b4332',stockCount:0}]})); }
+  function updVariant(id,k,v) { setAccForm(p=>({...p,variants:p.variants.map(x=>x.id===id?{...x,[k]:v}:x)})); }
+  function rmVariant(id) { setAccForm(p=>({...p,variants:p.variants.filter(x=>x.id!==id)})); }
   async function loadAccessories(s=session) {
     try { const r=await fetch(`/api/accessories?password=${encodeURIComponent(s)}`); const d=await r.json(); setAccessories(d.accessories||[]); } catch {}
   }
@@ -175,7 +178,7 @@ export default function AdminPage() {
   }
   function openEditAcc(a) {
     setEditAccId(a.id);
-    setAccForm({ name:a.name||'',description:a.description||'',price:a.price??'',mrp:a.mrp??'',stockCount:a.stockCount??'',coverUrl:a.coverUrl||'',visible:a.visible!==false });
+    setAccForm({ name:a.name||'',description:a.description||'',price:a.price??'',mrp:a.mrp??'',stockCount:a.stockCount??'',coverUrl:a.coverUrl||'',variants:a.variants||[],visible:a.visible!==false });
     setAccImgMode('url'); setView('accEditor');
   }
   function handleAccImg(e) {
@@ -930,6 +933,18 @@ export default function AdminPage() {
                 <input id="acc-img-input" type="file" accept="image/*" style={{display:'none'}} onChange={handleAccImg}/>
               </div>
             )}
+        </Card>
+        <Card title="Colors (optional)">
+          <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px'}}>Add color options like on Amazon — each with its own stock count. Leave empty for a single-color product.</p>
+          {accForm.variants.map(v => (
+            <div key={v.id} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+              <input type="color" value={v.color} onChange={e=>updVariant(v.id,'color',e.target.value)} style={{width:36,height:36,padding:0,border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:8,cursor:'pointer',flexShrink:0}}/>
+              <div style={{flex:1}}><FInput value={v.label} onChange={e=>updVariant(v.id,'label',e.target.value)} placeholder="e.g. Black"/></div>
+              <div style={{width:90}}><FInput type="number" min="0" value={v.stockCount} onChange={e=>updVariant(v.id,'stockCount',e.target.value)} placeholder="Stock"/></div>
+              <button onClick={()=>rmVariant(v.id)} style={{width:36,height:36,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',cursor:'pointer',flexShrink:0}}>✕</button>
+            </div>
+          ))}
+          <button onClick={addVariant} style={{marginTop:4,padding:'8px 16px',borderRadius:20,border:'1.5px dashed rgba(27,67,50,0.25)',background:'transparent',color:'#1b4332',fontSize:12,cursor:'pointer'}}>+ Add Color</button>
         </Card>
         <Card title="Visibility">
           <label onClick={()=>af('visible',!accForm.visible)} style={{display:'flex',alignItems:'center',gap:12,cursor:'pointer',width:'fit-content'}}>

@@ -8,9 +8,12 @@ import { useCart } from '@/context/CartContext';
 
 function AccessoryCard({ item }) {
   const { addAccessoryToCart, isInCart } = useCart();
-  const slug = `accessory:${item.id}`;
+  const hasVariants = item.variants?.length > 0;
+  const [selected, setSelected] = useState(hasVariants ? item.variants[0] : null);
+  const effectiveStock = hasVariants ? (selected?.stockCount ?? 0) : item.stockCount;
+  const slug = `accessory:${item.id}${selected ? ':' + selected.id : ''}`;
   const inCart = isInCart(slug);
-  const soldOut = item.stockCount <= 0;
+  const soldOut = effectiveStock <= 0;
 
   return (
     <div style={{background:'#fff',borderRadius:18,border:'1px solid rgba(27,67,50,0.08)',overflow:'hidden',boxShadow:'0 4px 20px rgba(27,67,50,0.05)'}}>
@@ -23,12 +26,28 @@ function AccessoryCard({ item }) {
       <div style={{padding:'16px 18px'}}>
         <h3 style={{margin:'0 0 4px',fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:18,color:'#1a1712'}}>{item.name}</h3>
         {item.description && <p style={{margin:'0 0 10px',fontSize:12,color:'#6b6460',lineHeight:1.5}}>{item.description}</p>}
-        <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:12}}>
+        <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:hasVariants?10:12}}>
           <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>₹{item.price}</span>
           {item.mrp > item.price && <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{item.mrp}</span>}
         </div>
+        {hasVariants && (
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:11,color:'#a09890',marginBottom:6}}>Color: <span style={{color:'#1a1712'}}>{selected?.label}</span></div>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+              {item.variants.map(v => (
+                <button key={v.id} onClick={()=>setSelected(v)} title={`${v.label}${v.stockCount<=0?' (out of stock)':''}`}
+                  style={{width:26,height:26,borderRadius:'50%',background:v.color,cursor:'pointer',
+                    border:selected?.id===v.id?'2px solid #1b4332':'2px solid rgba(0,0,0,0.1)',
+                    boxShadow:selected?.id===v.id?'0 0 0 2px #fff, 0 0 0 3px #1b4332':'none',
+                    opacity:v.stockCount<=0?0.35:1,position:'relative'}}>
+                  {v.stockCount<=0 && <span style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:'#fff',textShadow:'0 0 2px #000'}}>✕</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {!soldOut && (
-          <button onClick={()=>addAccessoryToCart(item)} className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`}>
+          <button onClick={()=>addAccessoryToCart(item, selected)} className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`}>
             {inCart ? 'Added' : 'Add to Cart'}
           </button>
         )}

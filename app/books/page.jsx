@@ -294,7 +294,7 @@ function BooksContent() {
         case 'author-za':  return (b.author||'').localeCompare(a.author||'');
         case 'price-low':  return (Number(a.price||a.mrp||0)) - (Number(b.price||b.mrp||0));
         case 'price-high': return (Number(b.price||b.mrp||0)) - (Number(a.price||a.mrp||0));
-        case 'language':   return (a.language||'').localeCompare(b.language||'');
+        case 'language':   return (a.language==='English'?-1:b.language==='English'?1:0) || (a.language||'').localeCompare(b.language||'');
         case 'category':   return (a.category||'').localeCompare(b.category||'');
         default:           return 0;
       }

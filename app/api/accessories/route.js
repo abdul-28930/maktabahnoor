@@ -33,6 +33,10 @@ export async function POST(req) {
       mrp: data.mrp ? Number(data.mrp) : null,
       stockCount: parseInt(data.stockCount) || 0,
       coverUrl: data.coverUrl?.trim() || '',
+      variants: Array.isArray(data.variants) ? data.variants
+        .filter(v => v.label?.trim())
+        .map(v => ({ id: v.id || uid(), label: v.label.trim(), color: v.color || '#1b4332', stockCount: Math.max(0, parseInt(v.stockCount) || 0) }))
+        : [],
       visible: data.visible !== false,
       createdAt: now, updatedAt: now,
     };
