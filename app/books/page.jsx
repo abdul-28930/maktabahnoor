@@ -279,16 +279,16 @@ function BooksContent() {
           && (!selStock|| (selStock === 'in' ? b.inStock : !b.inStock));
     });
 
-    // Sort — Featured-tagged books always float to the top, out-of-stock
-    // books always sink to the bottom (within the featured/non-featured
-    // groups), and the chosen sort criterion orders within each group.
+    // Sort — out-of-stock books always sink to the very bottom, even if
+    // Featured. Within the in-stock group, Featured floats to the top.
+    // The chosen sort criterion orders within each remaining group.
     list = [...list].sort((a, b) => {
-      const aFeat = a.tags?.includes('Featured') ? 0 : 1;
-      const bFeat = b.tags?.includes('Featured') ? 0 : 1;
-      if (aFeat !== bFeat) return aFeat - bFeat;
       const aOut = a.inStock === false ? 1 : 0;
       const bOut = b.inStock === false ? 1 : 0;
       if (aOut !== bOut) return aOut - bOut;
+      const aFeat = a.tags?.includes('Featured') ? 0 : 1;
+      const bFeat = b.tags?.includes('Featured') ? 0 : 1;
+      if (aFeat !== bFeat) return aFeat - bFeat;
       switch (sortBy) {
         case 'newest':     return new Date(b.createdAt) - new Date(a.createdAt);
         case 'oldest':     return new Date(a.createdAt) - new Date(b.createdAt);
