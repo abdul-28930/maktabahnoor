@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+import OfferBadge from '@/components/OfferBadge';
 
 const TAG_STYLES = {
   'New Arrival': 'badge-new',
@@ -64,7 +65,7 @@ export default function BookCard({ book }) {
         </div>
         <div className="book-title">{book.title}</div>
         <div className="book-author">{book.author}</div>
-        <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:4}}>
+        <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:4,flexWrap:'wrap'}}>
           {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
           {book.mrp > book.price && (
             <>
@@ -72,6 +73,7 @@ export default function BookCard({ book }) {
               <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
             </>
           )}
+          <OfferBadge type={book.offerType}/>
         </div>
         {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
           <div style={{fontSize:12,fontWeight:700,color:'#c0392b',letterSpacing:.3,marginTop:2}}>Only {book.stockCount} left</div>

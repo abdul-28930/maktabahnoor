@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import BooksNavDropdown from '@/components/BooksNavDropdown';
 import PageBackground from '@/components/PageBackground';
+import OfferBadge from '@/components/OfferBadge';
 import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 
@@ -78,7 +79,7 @@ function GridCard({ book, idx }) {
         </div>
         <h3 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:17,color:'#1a1712',lineHeight:1.2}}>{book.title}</h3>
         <div style={{fontSize:12,color:'#6b6460',fontWeight:300}}>{book.author}</div>
-        <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:2}}>
+        <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:2,flexWrap:'wrap'}}>
           {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
           {book.mrp > book.price && (
             <>
@@ -86,6 +87,7 @@ function GridCard({ book, idx }) {
               <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
             </>
           )}
+          <OfferBadge type={book.offerType}/>
         </div>
         {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
           <div style={{fontSize:12,fontWeight:700,color:'#c0392b',letterSpacing:.3}}>Only {book.stockCount} left</div>
@@ -129,7 +131,7 @@ function ListCard({ book }) {
         <div style={{fontSize:13,color:'#6b6460',fontWeight:300}}>{book.author}{book.translator && <span style={{color:'#a09890'}}> · Tr. {book.translator}</span>}</div>
       </div>
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,flexShrink:0}}>
-        <div style={{display:'flex',alignItems:'baseline',gap:6}}>
+        <div style={{display:'flex',alignItems:'baseline',gap:6,flexWrap:'wrap'}}>
           {book.price != null && <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
           {book.mrp > book.price && (
             <>
@@ -137,6 +139,7 @@ function ListCard({ book }) {
               <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
             </>
           )}
+          <OfferBadge type={book.offerType}/>
         </div>
         <span style={{padding:'4px 12px',borderRadius:20,fontSize:9,fontWeight:500,letterSpacing:.8,textTransform:'uppercase',background:book.inStock?'rgba(45,106,79,0.08)':'rgba(180,60,60,0.07)',color:book.inStock?'#2d6a4f':'#b44',border:`1px solid ${book.inStock?'rgba(45,106,79,0.2)':'rgba(180,60,60,0.15)'}`}}>
           {book.inStock ? 'In Stock' : 'Out of Stock'}

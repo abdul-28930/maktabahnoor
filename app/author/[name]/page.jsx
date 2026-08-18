@@ -6,6 +6,7 @@ import BooksNavDropdown from '@/components/BooksNavDropdown';
 import Image from 'next/image';
 import PageBackground from '@/components/PageBackground';
 import { useCart } from '@/context/CartContext';
+import OfferBadge from '@/components/OfferBadge';
 
 const CAT_AR = {
   Aqeedah:'عقيدة', Fiqh:'فقه', Hadith:'حديث', Tafsir:'تفسير',
@@ -33,7 +34,7 @@ function BookTile({ book }) {
       <div style={{padding:'12px 14px'}}>
         <div style={{fontSize:9,color:'#a09890',letterSpacing:.6,textTransform:'uppercase',marginBottom:4}}>{book.category}</div>
         <div style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',marginBottom:8}}>{book.title}</div>
-        <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:10}}>
+        <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:10,flexWrap:'wrap'}}>
           {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{Number(book.price).toLocaleString('en-IN')}</span>}
           {book.mrp > book.price && (
             <>
@@ -41,6 +42,7 @@ function BookTile({ book }) {
               <span style={{fontSize:13,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1 - book.price/book.mrp)*100)}% off</span>
             </>
           )}
+          <OfferBadge type={book.offerType}/>
         </div>
         {book.inStock !== false && (
           <button onClick={handleAdd} style={{width:'100%',padding:'9px',borderRadius:20,border:'none',fontSize:11,fontWeight:500,letterSpacing:.5,textTransform:'uppercase',cursor:'pointer',
