@@ -245,7 +245,11 @@ export default function BookPage() {
               {specs.map(s => (
                 <div key={s.label} style={{padding:'16px 20px',background:'#fff',borderRadius:12,border:'1px solid rgba(27,67,50,0.08)',boxShadow:'0 2px 8px rgba(27,67,50,0.04)'}}>
                   <div style={{fontSize:9,letterSpacing:'2px',textTransform:'uppercase',color:'#b8965a',marginBottom:5}}>{s.label}</div>
-                  <div style={{fontSize:15,color:'#1a1712',fontWeight:400}}>{s.val}</div>
+                  <div style={{fontSize:15,color:'#1a1712',fontWeight:400}}>
+                    {s.label === 'Translator'
+                      ? <Link href={`/translator/${encodeURIComponent(s.val)}`} style={{color:'#1a1712',textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{s.val}</Link>
+                      : s.val}
+                  </div>
                 </div>
               ))}
             </div>

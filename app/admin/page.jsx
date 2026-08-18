@@ -132,6 +132,9 @@ export default function AdminPage() {
   const [editSlug, setEditSlug]   = useState(null);
   const [slugInput, setSlugInput] = useState('');
   const [slugSaving, setSlugSaving] = useState(false);
+  const [origNames, setOrigNames] = useState({author:'',translator:'',publisher:''});
+  const [renameInputs, setRenameInputs] = useState({author:'',translator:'',publisher:''});
+  const [renameSaving, setRenameSaving] = useState({author:false,translator:false,publisher:false});
   const [editBundleId, setEditBundleId] = useState(null);
   const [editSlideId, setEditSlideId] = useState(null);
   const [form, setForm]           = useState(EMPTY_BOOK);
@@ -303,6 +306,8 @@ export default function AdminPage() {
           stockCount:d.book.stockCount??'',inStock:d.book.inStock!==false,visible:d.book.visible!==false,
           tags:d.book.tags||[],coverUrl:d.book.coverUrl||'',gallery:d.book.gallery||[],
         });
+        const orig = { author:d.book.author||'', translator:d.book.translator||'', publisher:d.book.publisher||'' };
+        setOrigNames(orig); setRenameInputs(orig);
         setImgMode('url'); setSlugInput(slug); setView('bookEditor');
       }
     } catch { showToast('Failed to load.','error'); }
@@ -321,6 +326,24 @@ export default function AdminPage() {
       await loadBooks();
     } catch(e) { showToast(e.message,'error'); }
     finally { setSlugSaving(false); }
+  }
+
+  const RENAME_ENDPOINTS = { author:'/api/authors/rename', translator:'/api/translators/rename', publisher:'/api/publishers/rename' };
+  async function renameField(field) {
+    const newName = renameInputs[field].trim();
+    const oldName = origNames[field];
+    if (!newName || newName === oldName) return;
+    setRenameSaving(p=>({...p,[field]:true}));
+    try {
+      const r = await fetch(RENAME_ENDPOINTS[field],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,oldName,newName})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed to rename.');
+      showToast(`✓ Renamed across ${d.count} book${d.count===1?'':'s'}!`,'success');
+      setOrigNames(p=>({...p,[field]:newName}));
+      f(field, newName);
+      await loadBooks();
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setRenameSaving(p=>({...p,[field]:false})); }
   }
 
   async function openEditBundle(id) {
@@ -613,7 +636,29 @@ export default function AdminPage() {
           </Card>
         )}
 
-        {/* Pricing */}
+        {editSlug && (
+          <Card title="Rename Author / Translator / Publisher">
+            <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
+              These names aren't unique to this book — renaming one updates it across <b>every book</b> that shares it (and their /author, /translator, /publisher pages). Use this to fix a typo or spelling consistently, not to change just this one book (edit the field above for that).
+            </p>
+            {[
+              {field:'author', label:'Author'},
+              {field:'translator', label:'Translator'},
+              {field:'publisher', label:'Publisher'},
+            ].filter(({field})=>origNames[field]).map(({field,label})=>(
+              <div key={field} style={{display:'flex',gap:8,alignItems:'center',marginBottom:10}}>
+                <span style={{fontSize:11,color:'#a09890',width:70,flexShrink:0}}>{label}</span>
+                <div style={{flex:1}}><FInput value={renameInputs[field]} onChange={e=>setRenameInputs(p=>({...p,[field]:e.target.value}))} placeholder={label}/></div>
+                <Btn variant="ghost" onClick={()=>renameField(field)} disabled={renameSaving[field] || !renameInputs[field].trim() || renameInputs[field]===origNames[field]}>
+                  {renameSaving[field]?'…':'Rename'}
+                </Btn>
+              </div>
+            ))}
+            {!origNames.author && !origNames.translator && !origNames.publisher && (
+              <p style={{fontSize:12,color:'#a09890',margin:0}}>Fill in Author/Translator/Publisher above and save the book first.</p>
+            )}
+          </Card>
+        )}
         <Card title="Pricing">
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
             <div><Label hint="Optional · original / MRP">Actual Price (₹)</Label><FInput type="number" value={form.mrp} onChange={e=>f('mrp',e.target.value)} placeholder="350" prefix="₹"/></div>

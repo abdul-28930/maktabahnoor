@@ -19,6 +19,7 @@ export async function GET(req) {
   const tag      = searchParams.get('tag');
   const author   = searchParams.get('author');
   const publisher = searchParams.get('publisher');
+  const translator = searchParams.get('translator');
   const all      = searchParams.get('all') === '1';
   // Only the admin panel (which sends its session password) can see books
   // that have been hidden from the storefront. Every other caller — the
@@ -34,6 +35,7 @@ export async function GET(req) {
     if (tag)       list = list.filter(b => b.tags?.includes(tag));
     if (author)    list = list.filter(b => b.author?.toLowerCase() === author.toLowerCase());
     if (publisher) list = list.filter(b => b.publisher?.toLowerCase() === publisher.toLowerCase());
+    if (translator) list = list.filter(b => b.translator?.toLowerCase() === translator.toLowerCase());
     // Out-of-stock books sink to the bottom by default; newest-first within
     // each group. Pages that want a different order (e.g. the /books
     // listing's sort dropdown) re-sort this on the client.
