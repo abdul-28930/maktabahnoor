@@ -64,7 +64,9 @@ function GridCard({ book, idx }) {
             </div>
         }
         <span style={{position:'absolute',top:10,left:10,background:'rgba(27,67,50,0.88)',backdropFilter:'blur(4px)',color:'#fff',fontSize:9,letterSpacing:1.2,textTransform:'uppercase',padding:'4px 10px',borderRadius:20}}>{book.category}</span>
-        {tag==='Bestseller' && <span style={{position:'absolute',top:10,right:10,background:'rgba(184,150,90,0.9)',backdropFilter:'blur(4px)',color:'#fff',fontSize:9,letterSpacing:1,textTransform:'uppercase',padding:'4px 10px',borderRadius:20}}>Bestseller</span>}
+        {tag==='Bestseller' && (
+          <div style={{position:'absolute',top:16,right:-34,width:130,transform:'rotate(45deg)',background:'#b8965a',color:'#fff',fontSize:9,fontWeight:600,letterSpacing:1.2,textTransform:'uppercase',textAlign:'center',padding:'4px 0',boxShadow:'0 2px 6px rgba(0,0,0,0.2)',zIndex:2}}>Bestseller</div>
+        )}
         {tag==='New Arrival' && (
           <div style={{position:'absolute',top:16,right:-34,width:130,transform:'rotate(45deg)',background:'#b8965a',color:'#fff',fontSize:9,fontWeight:600,letterSpacing:1.2,textTransform:'uppercase',textAlign:'center',padding:'4px 0',boxShadow:'0 2px 6px rgba(0,0,0,0.2)',zIndex:2}}>New Arrival</div>
         )}
