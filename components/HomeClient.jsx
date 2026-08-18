@@ -460,7 +460,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
         </div>
       </section>
 
-      {/* INSTAGRAM (renders nothing until IG_FEATURED_POSTS is configured) */}
+      {/* INSTAGRAM (renders nothing until posts are added in Admin → Homepage) */}
       <InstagramEmbed/>
 
       {/* PRE-FOOTER CTA */}

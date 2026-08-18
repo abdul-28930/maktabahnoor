@@ -121,6 +121,8 @@ export default function AdminPage() {
   const [views, setViews]         = useState({});
   const [slides, setSlides]       = useState([]);
   const [picks, setPicks]         = useState({ featured: [], newArrivals: [] });
+  const [igPosts, setIgPosts]     = useState([]);
+  const [igPostInput, setIgPostInput] = useState('');
   const [accessories, setAccessories] = useState([]);
   const [coupons, setCoupons]     = useState([]);
   const [couponForm, setCouponForm] = useState(EMPTY_COUPON);
@@ -232,7 +234,7 @@ export default function AdminPage() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
       setSession(pw); setView('dashboard'); setPw('');
-      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadCoupons(pw);
+      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadCoupons(pw); loadIgPosts();
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -268,6 +270,25 @@ export default function AdminPage() {
     } catch(e) { showToast(e.message,'error'); }
     finally { setLoading(false); }
   }
+  async function loadIgPosts() {
+    try { const r=await fetch('/api/ig-posts'); const d=await r.json(); setIgPosts(d.posts||[]); } catch {}
+  }
+  async function saveIgPosts(next) {
+    try {
+      const r = await fetch('/api/ig-posts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,posts:next})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed');
+      setIgPosts(d.posts); showToast('✓ Instagram posts updated!','success');
+    } catch(e) { showToast(e.message,'error'); }
+  }
+  function addIgPost() {
+    const url = igPostInput.trim();
+    if (!url) return;
+    if (igPosts.length >= 3) { showToast('Only 3 posts can be featured at once.','error'); return; }
+    saveIgPosts([...igPosts, url]); setIgPostInput('');
+  }
+  function removeIgPost(url) { saveIgPosts(igPosts.filter(u=>u!==url)); }
+
   async function addTaxonomyOption(field, value) {
     try {
       const r = await fetch('/api/taxonomy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,field,value})});
@@ -1296,6 +1317,29 @@ export default function AdminPage() {
           <div style={{display:'flex',justifyContent:'flex-end',marginBottom:20}}>
             <Btn onClick={savePicks} disabled={loading}>{loading?'Saving…':'Save Homepage Picks'}</Btn>
           </div>
+
+          <Card title={`Instagram Posts (${igPosts.length}/3)`}>
+            <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
+              Paste a post's link (open the post on Instagram → "Copy Link") to feature it in the "From Our Instagram" section on the homepage. Up to 3 — none shown means that section stays hidden.
+            </p>
+            {igPosts.length > 0 && (
+              <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:14}}>
+                {igPosts.map(url => (
+                  <div key={url} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',borderRadius:8,background:'rgba(27,67,50,0.04)'}}>
+                    <span style={{flex:1,fontSize:12,color:'#1a1712',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{url}</span>
+                    <button onClick={()=>removeIgPost(url)} style={{width:26,height:26,borderRadius:6,border:'1px solid rgba(27,67,50,0.15)',background:'transparent',cursor:'pointer',flexShrink:0}}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {igPosts.length < 3 && (
+              <div style={{display:'flex',gap:8}}>
+                <div style={{flex:1}}><FInput value={igPostInput} onChange={e=>setIgPostInput(e.target.value)} placeholder="https://www.instagram.com/p/…"/></div>
+                <Btn onClick={addIgPost} disabled={!igPostInput.trim()}>+ Add</Btn>
+              </div>
+            )}
+          </Card>
+          <div style={{marginBottom:20}}/>
 
           <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
             <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)'}}>

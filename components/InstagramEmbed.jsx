@@ -1,25 +1,31 @@
 'use client';
-import { useEffect } from 'react';
-import { IG_FEATURED_POSTS, IG_URL, IG_HANDLE } from '@/lib/constants';
+import { useEffect, useState } from 'react';
+import { IG_URL, IG_HANDLE } from '@/lib/constants';
 
-// Renders Instagram's official embed blockquote for each configured post URL,
-// then loads Instagram's embed.js to hydrate them into real post cards.
-// This does NOT pull a live/auto-updating feed — Instagram's Graph API
-// (needed for that) requires app review + a connected Business account,
-// which isn't set up here. Add post URLs to IG_FEATURED_POSTS in
-// lib/constants.js to feature them; nothing renders until you do.
+// Renders Instagram's official embed blockquote for each post URL the admin
+// has configured, then loads Instagram's embed.js to hydrate them into real
+// post cards. This does NOT pull a live/auto-updating feed — Instagram's
+// Graph API (needed for that) requires app review + a connected Business
+// account, which isn't set up here. Manage which posts show from the admin
+// panel's Homepage tab; nothing renders until at least one is added.
 export default function InstagramEmbed() {
+  const [posts, setPosts] = useState([]);
+
   useEffect(() => {
-    if (IG_FEATURED_POSTS.length === 0) return;
+    fetch('/api/ig-posts').then(r => r.json()).then(d => setPosts(d.posts || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (posts.length === 0) return;
     if (window.instgrm) { window.instgrm.Embeds.process(); return; }
     const script = document.createElement('script');
     script.src = 'https://www.instagram.com/embed.js';
     script.async = true;
     document.body.appendChild(script);
     return () => { document.body.removeChild(script); };
-  }, []);
+  }, [posts]);
 
-  if (IG_FEATURED_POSTS.length === 0) return null;
+  if (posts.length === 0) return null;
 
   return (
     <section style={{position:'relative',zIndex:1,padding:'64px clamp(20px,5vw,72px)',background:'#faf9f5',borderTop:'1px solid rgba(27,67,50,0.07)'}}>
@@ -29,8 +35,8 @@ export default function InstagramEmbed() {
           <h2 style={{margin:'0 0 8px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(26px,3.4vw,36px)',color:'#1b4332'}}>From Our Instagram</h2>
           <a href={IG_URL} target="_blank" rel="noreferrer" style={{fontSize:14,color:'#6b6460',textDecoration:'none'}}>{IG_HANDLE} →</a>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:`repeat(${Math.min(IG_FEATURED_POSTS.length,3)},1fr)`,gap:20}}>
-          {IG_FEATURED_POSTS.map((url) => (
+        <div style={{display:'grid',gridTemplateColumns:`repeat(${Math.min(posts.length,3)},1fr)`,gap:20}}>
+          {posts.map((url) => (
             <blockquote
               key={url}
               className="instagram-media"
@@ -44,3 +50,4 @@ export default function InstagramEmbed() {
     </section>
   );
 }
+
