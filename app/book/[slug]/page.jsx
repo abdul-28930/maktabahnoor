@@ -160,17 +160,19 @@ export default function BookPage() {
           <h1 style={{margin:'0 0 10px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(32px,4.5vw,52px)',color:'#1b4332',lineHeight:1.12}}>
             {book.title}
           </h1>
-          <div style={{fontSize:16,color:'#6b6460',marginBottom:10,fontWeight:300}}>
-            By <Link href={`/author/${encodeURIComponent(book.author)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{book.author}</Link>
+          <div style={{fontSize:15,color:'#6b6460',marginBottom:8,fontWeight:300}}>
+            <span style={{fontWeight:500,color:'#4a453f'}}>Author:</span>{' '}
+            <Link href={`/author/${encodeURIComponent(book.author)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{book.author}</Link>
           </div>
           {book.translator && (
-            <div style={{fontSize:14.5,color:'#8a827a',marginBottom:10,fontWeight:300}}>
-              Translated by <span style={{color:'#4a453f',fontWeight:400}}>{book.translator}</span>
+            <div style={{fontSize:15,color:'#6b6460',marginBottom:8,fontWeight:300}}>
+              <span style={{fontWeight:500,color:'#4a453f'}}>Translator:</span> {book.translator}
             </div>
           )}
           {book.publisher && (
-            <div style={{fontSize:14.5,color:'#8a827a',marginBottom:28,fontWeight:300}}>
-              Published by <Link href={`/publisher/${encodeURIComponent(book.publisher)}`} style={{color:'#4a453f',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{book.publisher}</Link>
+            <div style={{fontSize:15,color:'#6b6460',marginBottom:28,fontWeight:300}}>
+              <span style={{fontWeight:500,color:'#4a453f'}}>Publisher:</span>{' '}
+              <Link href={`/publisher/${encodeURIComponent(book.publisher)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{book.publisher}</Link>
             </div>
           )}
           {!book.translator && !book.publisher && <div style={{marginBottom:20}}/>}
