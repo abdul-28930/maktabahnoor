@@ -22,6 +22,7 @@ const CAT_AR = {
   'Arabic Language':'لغة','Dua & Dhikr':'دعاء','Quran & Tajweed':'قرآن','General':'عام',
 };
 const SORT_OPTIONS = [
+  { val:'custom',     label:'Our Order' },
   { val:'newest',     label:'Newest Added' },
   { val:'oldest',     label:'Oldest Added' },
   { val:'title-az',   label:'Title: A → Z' },
@@ -214,7 +215,7 @@ function BooksContent() {
   const [selCat, setSelCat]       = useState(searchParams.get('category') || '');
   const [selLang, setSelLang]     = useState(searchParams.get('language') || '');
   const [selStock, setSelStock]   = useState(searchParams.get('stock') || '');
-  const [sortBy, setSortBy]       = useState(searchParams.get('sort') || 'newest');
+  const [sortBy, setSortBy]       = useState(searchParams.get('sort') || 'custom');
   const [view, setView]           = useState('3col');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerRef   = useRef(null);
@@ -298,6 +299,7 @@ function BooksContent() {
       const bFeat = b.tags?.includes('Featured') ? 0 : 1;
       if (aFeat !== bFeat) return aFeat - bFeat;
       switch (sortBy) {
+        case 'custom':     return (a.order ?? new Date(a.createdAt).getTime()) - (b.order ?? new Date(b.createdAt).getTime());
         case 'newest':     return new Date(b.createdAt) - new Date(a.createdAt);
         case 'oldest':     return new Date(a.createdAt) - new Date(b.createdAt);
         case 'title-az':   return (a.title||'').localeCompare(b.title||'');

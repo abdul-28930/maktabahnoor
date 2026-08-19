@@ -124,6 +124,9 @@ export default function AdminPage() {
   const [igPosts, setIgPosts]     = useState([]);
   const [igPostInput, setIgPostInput] = useState('');
   const [accessories, setAccessories] = useState([]);
+  const [reorderList, setReorderList] = useState([]);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [reorderSaving, setReorderSaving] = useState(false);
   const [coupons, setCoupons]     = useState([]);
   const [couponForm, setCouponForm] = useState(EMPTY_COUPON);
   const [editAccId, setEditAccId] = useState(null);
@@ -333,6 +336,27 @@ export default function AdminPage() {
       }
     } catch { showToast('Failed to load.','error'); }
     finally { setLoading(false); }
+  }
+
+  function openReorder() {
+    const sorted = [...books].sort((a,b)=>(a.order ?? new Date(a.createdAt).getTime()) - (b.order ?? new Date(b.createdAt).getTime()));
+    setReorderList(sorted); setView('reorderBooks');
+  }
+  function dragDrop(dropIdx) {
+    if (dragIdx === null || dragIdx === dropIdx) return;
+    const next = [...reorderList];
+    const [moved] = next.splice(dragIdx, 1);
+    next.splice(dropIdx, 0, moved);
+    setReorderList(next); setDragIdx(null);
+  }
+  async function saveReorder() {
+    setReorderSaving(true);
+    try {
+      const r = await fetch('/api/books/reorder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,slugs:reorderList.map(b=>b.slug)})});
+      if (!r.ok) throw new Error((await r.json()).error||'Failed');
+      showToast('✓ Book order saved!','success'); await loadBooks(); setView('dashboard'); setTab('books');
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setReorderSaving(false); }
   }
 
   async function renameSlug() {
@@ -1084,6 +1108,42 @@ export default function AdminPage() {
     </div>
   );
 
+  /* ── REORDER BOOKS ── */
+  if (view==='reorderBooks') return (
+    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
+      <PageBackground subtle/>
+      <header style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,48px)',background:'rgba(250,249,245,0.92)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332'}}>Reorder Books</div>
+        <div style={{display:'flex',gap:10}}>
+          <Btn variant="ghost" onClick={()=>setView('dashboard')}>Cancel</Btn>
+          <Btn onClick={saveReorder} disabled={reorderSaving}>{reorderSaving?'Saving…':'Save Order'}</Btn>
+        </div>
+      </header>
+      <div style={{position:'relative',zIndex:1,maxWidth:700,margin:'0 auto',padding:'32px clamp(20px,5vw,48px) 80px'}}>
+        <p style={{fontSize:12,color:'#a09890',margin:'0 0 16px',lineHeight:1.6}}>
+          Drag rows to set this as "Our Order" — the default sort on the Books page. Note: <b>Featured books always show first</b> and <b>out-of-stock books always show last</b> on the site regardless of where you place them here.
+        </p>
+        <div style={{background:'#fff',borderRadius:16,border:'1px solid rgba(27,67,50,0.08)',overflow:'hidden'}}>
+          {reorderList.map((b,i)=>(
+            <div key={b.slug} draggable
+              onDragStart={()=>setDragIdx(i)}
+              onDragOver={e=>e.preventDefault()}
+              onDrop={()=>dragDrop(i)}
+              style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderBottom:i<reorderList.length-1?'1px solid rgba(27,67,50,0.06)':'none',background:dragIdx===i?'rgba(27,67,50,0.04)':'#fff',cursor:'grab'}}>
+              <span style={{color:'#c0b8b0',fontSize:16,flexShrink:0}}>⠿</span>
+              <span style={{fontSize:11,color:'#a09890',width:22,flexShrink:0}}>{i+1}</span>
+              {b.coverUrl && <img src={b.coverUrl} alt="" style={{width:32,height:42,objectFit:'cover',borderRadius:4,flexShrink:0}} loading="lazy"/>}
+              <span style={{flex:1,fontSize:13,color:'#1a1712',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</span>
+              {b.tags?.includes('Featured') && <span style={{fontSize:9,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,flexShrink:0}}>Featured</span>}
+              {!b.inStock && <span style={{fontSize:9,color:'#b44',background:'rgba(180,60,60,0.07)',padding:'2px 8px',borderRadius:8,flexShrink:0}}>Out of Stock</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+      <Toast t={toast}/>
+    </div>
+  );
+
   /* ── LOGIN ── */
   if (view==='login') return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',display:'flex',alignItems:'center',justifyContent:'center',padding:24,fontFamily:"'DM Sans',sans-serif"}}>
@@ -1119,6 +1179,7 @@ export default function AdminPage() {
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <Link href="/" style={{textDecoration:'none',padding:'9px 18px',border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:20,fontSize:11,color:'#6b6460',letterSpacing:.5,textTransform:'uppercase',transition:'all .2s'}}>View Site</Link>
           {tab==='books' && <Btn variant="ghost" onClick={exportBooksCsv}>Export CSV</Btn>}
+          {tab==='books' && <Btn variant="ghost" onClick={openReorder}>⠿ Reorder</Btn>}
           {tab==='books'
             ? <Btn onClick={()=>{setEditSlug(null);setForm(EMPTY_BOOK);setImgMode('url');setView('bookEditor');}}>+ Add Book</Btn>
             : tab==='bundles'

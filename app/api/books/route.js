@@ -81,6 +81,7 @@ export async function POST(req) {
       stockCount,
       inStock:     stockCount > 0,
       visible:     data.visible !== false,
+      order:       Date.now(),
       tags:        data.tags || [],
       coverUrl:    data.coverUrl || '',
       gallery:     Array.isArray(data.gallery) ? data.gallery.filter(Boolean) : [],
@@ -93,7 +94,7 @@ export async function POST(req) {
     const m = { slug, sku: book.sku, title: book.title, author: book.author, translator: book.translator, publisher: book.publisher,
                 category: book.category, language: book.language, binding: book.binding,
                 volumes: book.volumes, pages: book.pages, mrp: book.mrp, price: book.price,
-                offerType: book.offerType, stockCount, inStock: book.inStock, visible: book.visible,
+                offerType: book.offerType, stockCount, inStock: book.inStock, visible: book.visible, order: book.order,
                 tags: book.tags, coverUrl: book.coverUrl, createdAt: now };
     const idx = meta.findIndex(b => b.slug === slug);
     if (idx >= 0) meta[idx] = m; else meta.unshift(m);
