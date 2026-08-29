@@ -141,6 +141,11 @@ function FeaturedSlider({ slides = [] }) {
 export default function HomeClient({ featuredBooks = [], newArrivals = [], heroSlides = [] }) {
   const rootRef = useRef(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [igTiles, setIgTiles] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/ig-posts').then(r=>r.json()).then(d=>setIgTiles(d.posts||[])).catch(()=>{});
+  }, []);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -435,9 +440,19 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           </div>
           <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:'clamp(34px,5vw,52px)',color:'#b8965a',marginBottom:36}}>@maktabahannoor</div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:12,marginBottom:38}}>
-            {[0,.2,.4,.6,.8,1].map((d,i)=>(
-              <div key={i} style={{aspectRatio:'1',borderRadius:8,background:'linear-gradient(90deg,#1b4332,#2d6a4f,#1b4332)',backgroundSize:'180% 100%',animation:`skeletonShimmer 1.8s linear infinite`,animationDelay:`${d}s`}}/>
-            ))}
+            {[0,1,2,3,4,5].map((i) => {
+              const post = igTiles[i];
+              if (post?.image) {
+                return (
+                  <a key={i} href={post.url} target="_blank" rel="noreferrer" style={{aspectRatio:'1',borderRadius:8,overflow:'hidden',display:'block'}}>
+                    <img src={post.image} alt="Instagram post" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
+                  </a>
+                );
+              }
+              return (
+                <div key={i} style={{aspectRatio:'1',borderRadius:8,background:'linear-gradient(90deg,#1b4332,#2d6a4f,#1b4332)',backgroundSize:'180% 100%',animation:`skeletonShimmer 1.8s linear infinite`,animationDelay:`${i*.2}s`}}/>
+              );
+            })}
           </div>
           <a href={IG_URL} target="_blank" rel="noreferrer" className="hp-glow-cta" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'transparent',border:'1px solid rgba(184,150,90,0.5)',color:'#d4ab70',padding:'15px 32px',borderRadius:40,fontSize:14,letterSpacing:.5}}>Visit Instagram →</a>
         </div>

@@ -6,7 +6,9 @@ const KEY = 'mn_ig_posts';
 
 export async function GET() {
   try {
-    const posts = await redis.get(KEY) || [];
+    const raw = await redis.get(KEY) || [];
+    // Normalize old format (plain URL strings) to {url, image}.
+    const posts = raw.map(p => typeof p === 'string' ? { url: p, image: '' } : p);
     return NextResponse.json({ posts });
   } catch { return NextResponse.json({ posts: [] }); }
 }
@@ -16,7 +18,9 @@ export async function POST(req) {
     const { password, posts } = await req.json();
     if (password !== process.env.ADMIN_PASSWORD)
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-    const clean = Array.isArray(posts) ? posts.map(u => u.trim()).filter(Boolean).slice(0, 3) : [];
+    const clean = Array.isArray(posts)
+      ? posts.map(p => ({ url: (p.url||'').trim(), image: (p.image||'').trim() })).filter(p => p.url).slice(0, 6)
+      : [];
     await redis.set(KEY, clean);
     revalidatePath('/');
     return NextResponse.json({ success: true, posts: clean });

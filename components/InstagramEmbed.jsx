@@ -36,11 +36,11 @@ export default function InstagramEmbed() {
           <a href={IG_URL} target="_blank" rel="noreferrer" style={{fontSize:14,color:'#6b6460',textDecoration:'none'}}>{IG_HANDLE} →</a>
         </div>
         <div style={{display:'grid',gridTemplateColumns:`repeat(${Math.min(posts.length,3)},1fr)`,gap:20}}>
-          {posts.map((url) => (
+          {posts.map((p) => (
             <blockquote
-              key={url}
+              key={p.url}
               className="instagram-media"
-              data-instgrm-permalink={url}
+              data-instgrm-permalink={p.url}
               data-instgrm-version="14"
               style={{margin:0,width:'100%',background:'#fff',borderRadius:12,border:'1px solid rgba(27,67,50,0.1)'}}
             />

@@ -123,6 +123,7 @@ export default function AdminPage() {
   const [picks, setPicks]         = useState({ featured: [], newArrivals: [] });
   const [igPosts, setIgPosts]     = useState([]);
   const [igPostInput, setIgPostInput] = useState('');
+  const [igImageInput, setIgImageInput] = useState('');
   const [accessories, setAccessories] = useState([]);
   const [reorderList, setReorderList] = useState([]);
   const [dragIdx, setDragIdx] = useState(null);
@@ -287,10 +288,10 @@ export default function AdminPage() {
   function addIgPost() {
     const url = igPostInput.trim();
     if (!url) return;
-    if (igPosts.length >= 3) { showToast('Only 3 posts can be featured at once.','error'); return; }
-    saveIgPosts([...igPosts, url]); setIgPostInput('');
+    if (igPosts.length >= 6) { showToast('Only 6 posts can be featured at once.','error'); return; }
+    saveIgPosts([...igPosts, { url, image: igImageInput.trim() }]); setIgPostInput(''); setIgImageInput('');
   }
-  function removeIgPost(url) { saveIgPosts(igPosts.filter(u=>u!==url)); }
+  function removeIgPost(url) { saveIgPosts(igPosts.filter(p=>p.url!==url)); }
 
   async function addTaxonomyOption(field, value) {
     try {
@@ -1391,24 +1392,28 @@ export default function AdminPage() {
             <Btn onClick={savePicks} disabled={loading}>{loading?'Saving…':'Save Homepage Picks'}</Btn>
           </div>
 
-          <Card title={`Instagram Posts (${igPosts.length}/3)`}>
+          <Card title={`Instagram Posts (${igPosts.length}/6)`}>
             <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
-              Paste a post's link (open the post on Instagram → "Copy Link") to feature it in the "From Our Instagram" section on the homepage. Up to 3 — none shown means that section stays hidden.
+              Add a post link (open the post on Instagram → "Copy Link") plus a thumbnail image (right-click the post's photo → "Copy Image Address", or upload it anywhere and paste the link) — this fills the tile grid near the top of the homepage <i>and</i> the "From Our Instagram" section further down. Without a thumbnail, that tile stays as a placeholder.
             </p>
             {igPosts.length > 0 && (
               <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:14}}>
-                {igPosts.map(url => (
-                  <div key={url} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',borderRadius:8,background:'rgba(27,67,50,0.04)'}}>
-                    <span style={{flex:1,fontSize:12,color:'#1a1712',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{url}</span>
-                    <button onClick={()=>removeIgPost(url)} style={{width:26,height:26,borderRadius:6,border:'1px solid rgba(27,67,50,0.15)',background:'transparent',cursor:'pointer',flexShrink:0}}>✕</button>
+                {igPosts.map(p => (
+                  <div key={p.url} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',borderRadius:8,background:'rgba(27,67,50,0.04)'}}>
+                    {p.image ? <img src={p.image} alt="" style={{width:32,height:32,objectFit:'cover',borderRadius:4,flexShrink:0}} loading="lazy"/> : <div style={{width:32,height:32,borderRadius:4,background:'rgba(27,67,50,0.1)',flexShrink:0}}/>}
+                    <span style={{flex:1,fontSize:12,color:'#1a1712',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{p.url}</span>
+                    <button onClick={()=>removeIgPost(p.url)} style={{width:26,height:26,borderRadius:6,border:'1px solid rgba(27,67,50,0.15)',background:'transparent',cursor:'pointer',flexShrink:0}}>✕</button>
                   </div>
                 ))}
               </div>
             )}
-            {igPosts.length < 3 && (
-              <div style={{display:'flex',gap:8}}>
-                <div style={{flex:1}}><FInput value={igPostInput} onChange={e=>setIgPostInput(e.target.value)} placeholder="https://www.instagram.com/p/…"/></div>
-                <Btn onClick={addIgPost} disabled={!igPostInput.trim()}>+ Add</Btn>
+            {igPosts.length < 6 && (
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                <FInput value={igPostInput} onChange={e=>setIgPostInput(e.target.value)} placeholder="Post link: https://www.instagram.com/p/…"/>
+                <div style={{display:'flex',gap:8}}>
+                  <div style={{flex:1}}><FInput value={igImageInput} onChange={e=>setIgImageInput(e.target.value)} placeholder="Thumbnail image URL (optional)"/></div>
+                  <Btn onClick={addIgPost} disabled={!igPostInput.trim()}>+ Add</Btn>
+                </div>
               </div>
             )}
           </Card>
