@@ -57,20 +57,23 @@ function BookTile({ book }) {
 
 export default function TranslatorPage() {
   const { name } = useParams();
-  const translatorName = decodeURIComponent(name || '');
+  const slugParam = decodeURIComponent(name || '');
+  const fallbackName = slugParam.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const [translatorName, setTranslatorName] = useState(fallbackName);
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!translatorName) return;
-    fetch(`/api/books?translator=${encodeURIComponent(translatorName)}&all=1`)
+    if (!slugParam) return;
+    fetch(`/api/books?translator=${encodeURIComponent(slugParam)}&all=1`)
       .then(r => r.json())
       .then(d => {
         const list = [...(d.books || [])].sort((a, b) => (a.inStock===false?1:0) - (b.inStock===false?1:0));
+        if (list[0]?.translator) setTranslatorName(list[0].translator);
         setBooks(list); setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [translatorName]);
+  }, [slugParam]);
 
   return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>

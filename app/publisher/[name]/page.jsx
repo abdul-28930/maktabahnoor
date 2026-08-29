@@ -57,20 +57,23 @@ function BookTile({ book }) {
 
 export default function PublisherPage() {
   const { name } = useParams();
-  const publisherName = decodeURIComponent(name || '');
+  const slugParam = decodeURIComponent(name || '');
+  const fallbackName = slugParam.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const [publisherName, setPublisherName] = useState(fallbackName);
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!publisherName) return;
-    fetch(`/api/books?publisher=${encodeURIComponent(publisherName)}&all=1`)
+    if (!slugParam) return;
+    fetch(`/api/books?publisher=${encodeURIComponent(slugParam)}&all=1`)
       .then(r => r.json())
       .then(d => {
         const list = [...(d.books || [])].sort((a, b) => (a.inStock===false?1:0) - (b.inStock===false?1:0));
+        if (list[0]?.publisher) setPublisherName(list[0].publisher);
         setBooks(list); setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [publisherName]);
+  }, [slugParam]);
 
   return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>

@@ -1,7 +1,7 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { slugify, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
+import { slugify, nameSlug, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
 
 const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
 
@@ -33,9 +33,9 @@ export async function GET(req) {
     if (category) list = list.filter(b => b.category === category);
     if (language)  list = list.filter(b => b.language === language);
     if (tag)       list = list.filter(b => b.tags?.includes(tag));
-    if (author)    list = list.filter(b => b.author?.toLowerCase() === author.toLowerCase());
-    if (publisher) list = list.filter(b => b.publisher?.toLowerCase() === publisher.toLowerCase());
-    if (translator) list = list.filter(b => b.translator?.toLowerCase() === translator.toLowerCase());
+    if (author)    list = list.filter(b => nameSlug(b.author) === nameSlug(author));
+    if (publisher) list = list.filter(b => nameSlug(b.publisher) === nameSlug(publisher));
+    if (translator) list = list.filter(b => nameSlug(b.translator) === nameSlug(translator));
     // Out-of-stock books sink to the bottom by default; newest-first within
     // each group. Pages that want a different order (e.g. the /books
     // listing's sort dropdown) re-sort this on the client.

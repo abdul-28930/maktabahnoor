@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { EMAIL } from '@/lib/constants';
+import { EMAIL, nameSlug } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import PageBackground from '@/components/PageBackground';
@@ -181,12 +181,12 @@ export default function BookPage() {
           </h1>
           <div style={{fontSize:15,color:'#6b6460',marginBottom:8,fontWeight:300}}>
             <span style={{fontWeight:500,color:'#4a453f'}}>Author:</span>{' '}
-            <Link href={`/author/${encodeURIComponent(book.author)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{book.author}</Link>
+            <Link href={`/author/${nameSlug(book.author)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{book.author}</Link>
           </div>
           {book.publisher && (
             <div style={{fontSize:15,color:'#6b6460',marginBottom:28,fontWeight:300}}>
               <span style={{fontWeight:500,color:'#4a453f'}}>Publisher:</span>{' '}
-              <Link href={`/publisher/${encodeURIComponent(book.publisher)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{book.publisher}</Link>
+              <Link href={`/publisher/${nameSlug(book.publisher)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{book.publisher}</Link>
             </div>
           )}
           {!book.publisher && <div style={{marginBottom:20}}/>}
@@ -266,7 +266,7 @@ export default function BookPage() {
                   <div style={{fontSize:9,letterSpacing:'2px',textTransform:'uppercase',color:'#b8965a',marginBottom:5}}>{s.label}</div>
                   <div style={{fontSize:15,color:'#1a1712',fontWeight:400}}>
                     {s.label === 'Translator'
-                      ? <Link href={`/translator/${encodeURIComponent(s.val)}`} style={{color:'#1a1712',textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{s.val}</Link>
+                      ? <Link href={`/translator/${nameSlug(s.val)}`} style={{color:'#1a1712',textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{s.val}</Link>
                       : s.val}
                   </div>
                 </div>
