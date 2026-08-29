@@ -72,7 +72,7 @@ export async function POST(req) {
       language:    data.language || 'Arabic',
       category:    data.category || 'General',
       description: data.description?.trim() || '',
-      volumes:     parseInt(data.volumes) || 1,
+      volumes:     data.volumes ? parseInt(data.volumes) : null,
       binding:     data.binding || '',
       pages:       parseInt(data.pages) || 0,
       mrp:         parseFloat(data.mrp) || 0,

@@ -8,6 +8,25 @@ import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import PageBackground from '@/components/PageBackground';
 
+// Minimal markdown support for book descriptions — paragraphs (blank-line or
+// single-line-separated), **bold**, and *italic*. No library needed for
+// this small a feature set.
+function renderDescription(text) {
+  const trimmed = text.trim();
+  const blocks = trimmed.split(/\n\s*\n/).filter(Boolean);
+  const paras = blocks.length > 1 ? blocks : trimmed.split(/\n/).filter(Boolean);
+  return paras.map((para, i) => (
+    <p key={i} style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:18,color:'#6b6460',lineHeight:1.8,margin:i===paras.length-1?0:'0 0 16px'}}>
+      {para.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((chunk, j) => {
+        if (chunk.startsWith('**') && chunk.endsWith('**')) return <strong key={j} style={{fontStyle:'normal',fontWeight:600,color:'#1a1712'}}>{chunk.slice(2,-2)}</strong>;
+        if (chunk.startsWith('*') && chunk.endsWith('*')) return <em key={j}>{chunk.slice(1,-1)}</em>;
+        return chunk;
+      })}
+    </p>
+  ));
+}
+
+
 const CAT_AR = {
   'Aqeedah':'عقيدة','Fiqh':'فقه','Hadith':'حديث','Tafsir':'تفسير',
   'Seerah':'سيرة','Manners & Character':'أخلاق','History':'تاريخ',
@@ -235,9 +254,9 @@ export default function BookPage() {
           })()}
 
           {book.description && (
-            <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:18,color:'#6b6460',lineHeight:1.8,marginBottom:36,paddingBottom:36,borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
-              {book.description}
-            </p>
+            <div style={{marginBottom:36,paddingBottom:36,borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
+              {renderDescription(book.description)}
+            </div>
           )}
 
           {specs.length > 0 && (

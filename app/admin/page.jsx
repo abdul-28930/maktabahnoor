@@ -7,7 +7,7 @@ import PageBackground from '@/components/PageBackground';
 
 const EMPTY_BOOK = {
   title:'',author:'',translator:'',publisher:'',sku:'',language:'Arabic',category:'Aqeedah',
-  description:'',volumes:1,binding:'Hardcover',pages:'',
+  description:'',volumes:'',binding:'Hardcover',pages:'',
   mrp:'',price:'',offerType:'',stockCount:'',
   inStock:true,visible:true,tags:[],coverUrl:'',gallery:[],
 };
@@ -326,7 +326,7 @@ export default function AdminPage() {
           title:d.book.title||'',author:d.book.author||'',translator:d.book.translator||'',publisher:d.book.publisher||'',
           sku:d.book.sku||'',language:d.book.language||'Arabic',
           category:d.book.category||'Aqeedah',description:d.book.description||'',
-          volumes:d.book.volumes||1,binding:d.book.binding||'Hardcover',pages:d.book.pages||'',
+          volumes:d.book.volumes??'',binding:d.book.binding||'Hardcover',pages:d.book.pages||'',
           mrp:d.book.mrp||'',price:d.book.price||'',offerType:d.book.offerType||'',
           stockCount:d.book.stockCount??'',inStock:d.book.inStock!==false,visible:d.book.visible!==false,
           tags:d.book.tags||[],coverUrl:d.book.coverUrl||'',gallery:d.book.gallery||[],
@@ -740,7 +740,7 @@ export default function AdminPage() {
         {/* Details */}
         <Card title="Book Details">
           <div style={{marginBottom:16}}>
-            <Label>Short Description</Label>
+            <Label hint="Optional · separate paragraphs with a blank line · **bold** and *italic* supported">Short Description</Label>
             <textarea value={form.description} onChange={e=>f('description',e.target.value)} placeholder="2–3 lines about what this book covers…" rows={3}
               style={{width:'100%',padding:'12px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',resize:'vertical',lineHeight:1.65,transition:'border-color .2s'}}
               onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
