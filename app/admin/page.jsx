@@ -671,7 +671,7 @@ export default function AdminPage() {
             <FInput value={form.title} onChange={e=>f('title',e.target.value)} placeholder="e.g. Sahih Al-Bukhari"/>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
-            <div><Label>Author *</Label><FInput value={form.author} onChange={e=>f('author',e.target.value)} placeholder="e.g. Imam Al-Bukhari"/></div>
+            <div><Label hint="Optional · separate multiple authors with commas">Author(s)</Label><FInput value={form.author} onChange={e=>f('author',e.target.value)} placeholder="e.g. Imam Al-Bukhari, Ibn Hajar"/></div>
             <div><Label hint="Optional">Translator</Label><FInput value={form.translator} onChange={e=>f('translator',e.target.value)} placeholder="e.g. Dr. Muhammad Muhsin Khan"/></div>
             <div><Label hint="Optional">Publisher</Label><FInput value={form.publisher} onChange={e=>f('publisher',e.target.value)} placeholder="e.g. Darussalam"/></div>
           </div>

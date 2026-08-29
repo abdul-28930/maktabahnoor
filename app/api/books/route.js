@@ -1,7 +1,7 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { slugify, nameSlug, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
+import { slugify, nameSlug, splitAuthors, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
 
 const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
 
@@ -33,7 +33,7 @@ export async function GET(req) {
     if (category) list = list.filter(b => b.category === category);
     if (language)  list = list.filter(b => b.language === language);
     if (tag)       list = list.filter(b => b.tags?.includes(tag));
-    if (author)    list = list.filter(b => nameSlug(b.author) === nameSlug(author));
+    if (author)    list = list.filter(b => splitAuthors(b.author).some(a => nameSlug(a) === nameSlug(author)));
     if (publisher) list = list.filter(b => nameSlug(b.publisher) === nameSlug(publisher));
     if (translator) list = list.filter(b => nameSlug(b.translator) === nameSlug(translator));
     // Out-of-stock books sink to the bottom by default; newest-first within

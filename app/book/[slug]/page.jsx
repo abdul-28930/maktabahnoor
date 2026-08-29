@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { EMAIL, nameSlug } from '@/lib/constants';
+import { EMAIL, nameSlug, splitAuthors } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import PageBackground from '@/components/PageBackground';
@@ -179,17 +179,24 @@ export default function BookPage() {
           <h1 style={{margin:'0 0 10px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(32px,4.5vw,52px)',color:'#1b4332',lineHeight:1.12}}>
             {book.title}
           </h1>
-          <div style={{fontSize:15,color:'#6b6460',marginBottom:8,fontWeight:300}}>
-            <span style={{fontWeight:500,color:'#4a453f'}}>Author:</span>{' '}
-            <Link href={`/author/${nameSlug(book.author)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{book.author}</Link>
-          </div>
+          {book.author && (
+            <div style={{fontSize:15,color:'#6b6460',marginBottom:8,fontWeight:300}}>
+              <span style={{fontWeight:500,color:'#4a453f'}}>{splitAuthors(book.author).length > 1 ? 'Authors:' : 'Author:'}</span>{' '}
+              {splitAuthors(book.author).map((a, i, arr) => (
+                <span key={a}>
+                  <Link href={`/author/${nameSlug(a)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{a}</Link>
+                  {i < arr.length - 1 && ', '}
+                </span>
+              ))}
+            </div>
+          )}
           {book.publisher && (
             <div style={{fontSize:15,color:'#6b6460',marginBottom:28,fontWeight:300}}>
               <span style={{fontWeight:500,color:'#4a453f'}}>Publisher:</span>{' '}
               <Link href={`/publisher/${nameSlug(book.publisher)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{book.publisher}</Link>
             </div>
           )}
-          {!book.publisher && <div style={{marginBottom:20}}/>}
+          {!book.author && !book.publisher && <div style={{marginBottom:20}}/>}
 
           <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:28}}>
             <span style={{flex:1,height:1,background:'linear-gradient(90deg,rgba(27,67,50,0.2),transparent)'}}/>
