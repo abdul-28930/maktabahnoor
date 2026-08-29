@@ -219,8 +219,8 @@ export default function AdminPage() {
     setAccImgMode('url'); setView('accEditor');
   }
   function handleAccImg(e) {
-    const file=e.target.files?.[0]; if(!file) return;
-    new Promise((res,rej)=>{const r=new FileReader();r.onload=ev=>res(ev.target.result);r.onerror=rej;r.readAsDataURL(file);}).then(d=>af('coverUrl',d));
+    const file=e.target.files?.[0];
+    readImgFile(file, d=>af('coverUrl',d));
   }
 
   function showToast(msg,type='') {
@@ -533,13 +533,25 @@ export default function AdminPage() {
     } catch { showToast('Failed to reorder.','error'); }
   }
 
+  const MAX_IMG_MB = 1.5;
+  function readImgFile(file, onDone) {
+    if (!file) return;
+    if (file.size > MAX_IMG_MB * 1024 * 1024) {
+      showToast(`Image too large (max ${MAX_IMG_MB}MB). Please compress or resize it first.`,'error');
+      return;
+    }
+    const r = new FileReader();
+    r.onload = ev => onDone(ev.target.result);
+    r.onerror = () => showToast('Failed to read image.','error');
+    r.readAsDataURL(file);
+  }
   function handleImg(e) {
-    const file=e.target.files?.[0]; if(!file) return;
-    new Promise((res,rej)=>{const r=new FileReader();r.onload=ev=>res(ev.target.result);r.onerror=rej;r.readAsDataURL(file);}).then(d=>f('coverUrl',d));
+    const file=e.target.files?.[0];
+    readImgFile(file, d=>f('coverUrl',d));
   }
   function handleSlideImg(e) {
-    const file=e.target.files?.[0]; if(!file) return;
-    new Promise((res,rej)=>{const r=new FileReader();r.onload=ev=>res(ev.target.result);r.onerror=rej;r.readAsDataURL(file);}).then(d=>sf('imageUrl',d));
+    const file=e.target.files?.[0];
+    readImgFile(file, d=>sf('imageUrl',d));
   }
 
   function exportBooksCsv() {
