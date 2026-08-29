@@ -460,7 +460,7 @@ function BooksContent() {
       )}
 
       {/* MAIN LAYOUT */}
-      <div style={{position:'relative',zIndex:1,maxWidth:1280,margin:'0 auto',padding:'32px clamp(20px,5vw,72px) 80px',display:'grid',gridTemplateColumns:'220px 1fr',gap:40,alignItems:'start'}}>
+      <div className="books-layout-grid" style={{position:'relative',zIndex:1,maxWidth:1280,margin:'0 auto',padding:'32px clamp(20px,5vw,72px) 80px',display:'grid',gridTemplateColumns:'220px 1fr',gap:40,alignItems:'start'}}>
 
         {/* SIDEBAR */}
         <aside style={{position:'sticky',top:88,background:'#fff',border:'1px solid rgba(27,67,50,0.08)',borderRadius:18,padding:'24px 20px',boxShadow:'0 4px 16px rgba(27,67,50,0.05)'}}>
@@ -513,6 +513,7 @@ function BooksContent() {
         @media (max-width:768px) {
           #mob-filter-btn { display: flex !important; }
           .books-sidebar   { display: none !important; }
+          .books-layout-grid { grid-template-columns:1fr!important; }
         }
       `}</style>
     </div>

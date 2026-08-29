@@ -141,10 +141,10 @@ export default function BookPage() {
       </div>
 
       {/* MAIN */}
-      <div style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'56px clamp(20px,5vw,72px) 100px',display:'grid',gridTemplateColumns:'300px 1fr',gap:64,alignItems:'start'}}>
+      <div className="detail-main-grid" style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'56px clamp(20px,5vw,72px) 100px',display:'grid',gridTemplateColumns:'300px 1fr',gap:64,alignItems:'start'}}>
 
         {/* COVER */}
-        <div style={{position:'sticky',top:92}}>
+        <div className="detail-cover-sticky" style={{position:'sticky',top:92}}>
           <div style={{borderRadius:18,overflow:'hidden',boxShadow:'0 20px 60px rgba(27,67,50,0.2)',animation:'floatBook 6s ease-in-out infinite',aspectRatio:'3/4'}}>
             {book.coverUrl ? (
               <img src={book.coverUrl} alt={book.title} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
@@ -352,6 +352,12 @@ export default function BookPage() {
         <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:22,color:'#b8965a'}}>مكتبة النور</div>
         <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',letterSpacing:1}}>© 2026 · Books That Illuminate The Heart</div>
       </footer>
+      <style jsx global>{`
+        @media (max-width:760px) {
+          .detail-main-grid { grid-template-columns:1fr!important; }
+          .detail-cover-sticky { position:static!important; max-width:280px; margin:0 auto; }
+        }
+      `}</style>
     </div>
   );
 }

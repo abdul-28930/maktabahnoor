@@ -96,10 +96,10 @@ export default function BundlePage() {
         </div>
       </div>
 
-      <div style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'56px clamp(20px,5vw,72px) 100px',display:'grid',gridTemplateColumns:'320px 1fr',gap:64,alignItems:'start'}}>
+      <div className="detail-main-grid" style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'56px clamp(20px,5vw,72px) 100px',display:'grid',gridTemplateColumns:'320px 1fr',gap:64,alignItems:'start'}}>
 
         {/* Stacked covers */}
-        <div style={{position:'sticky',top:92}}>
+        <div className="detail-cover-sticky" style={{position:'sticky',top:92}}>
           <div style={{borderRadius:18,overflow:'hidden',boxShadow:'0 20px 60px rgba(27,67,50,0.2)',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',aspectRatio:'3/4',display:'flex',alignItems:'center',justifyContent:'center',flexWrap:'wrap',gap:6,padding:24}}>
             {books.length > 0 ? books.slice(0, 6).map(b => (
               <div key={b.slug} style={{width:80,height:112,borderRadius:6,overflow:'hidden',boxShadow:'0 6px 18px rgba(0,0,0,0.3)',border:'2px solid rgba(255,255,255,0.15)'}}>
@@ -198,6 +198,12 @@ export default function BundlePage() {
         <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:22,color:'#b8965a'}}>مكتبة النور</div>
         <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',letterSpacing:1}}>© 2026 · Books That Illuminate The Heart</div>
       </footer>
+      <style jsx global>{`
+        @media (max-width:760px) {
+          .detail-main-grid { grid-template-columns:1fr!important; }
+          .detail-cover-sticky { position:static!important; max-width:280px; margin:0 auto; }
+        }
+      `}</style>
     </div>
   );
 }
