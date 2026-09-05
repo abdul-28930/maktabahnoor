@@ -362,7 +362,6 @@ function BooksContent() {
       <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>
       <FilterSection title="Language"     options={languages}  value={selLang}  onSet={setSelLang}  counts={langCounts}/>
       <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>
-      <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>
       <FilterSection title="Availability" options={['In Stock','Out of Stock']} value={selStock==='in'?'In Stock':selStock==='out'?'Out of Stock':''}
         onSet={v => setSelStock(v==='In Stock'?'in':v==='Out of Stock'?'out':'')}/>
     </div>
