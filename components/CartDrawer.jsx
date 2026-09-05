@@ -193,9 +193,14 @@ export default function CartDrawer() {
                           <button
                             className="cart-qty-btn"
                             onClick={() => updateQty(item.slug, item.qty + 1)}
+                            disabled={item.stockCount > 0 && item.qty >= item.stockCount}
+                            title={item.stockCount > 0 && item.qty >= item.stockCount ? `Only ${item.stockCount} in stock` : undefined}
                             aria-label="Increase quantity"
                           >+</button>
                         </div>
+                        {item.stockCount > 0 && item.qty >= item.stockCount && (
+                          <div style={{fontSize:10,color:'#b8965a',marginTop:2}}>Max {item.stockCount} available</div>
+                        )}
                         <button
                           className="cart-remove"
                           onClick={() => removeFromCart(item.slug)}

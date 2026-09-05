@@ -25,10 +25,11 @@ export function CartProvider({ children }) {
 
   /* ── Actions ── */
   const addToCart = useCallback((book, qty = 1) => {
+    const cap = book.stockCount > 0 ? book.stockCount : Infinity;
     setItems(prev => {
       const exists = prev.find(i => i.slug === book.slug);
       if (exists) {
-        return prev.map(i => i.slug === book.slug ? { ...i, qty: i.qty + qty } : i);
+        return prev.map(i => i.slug === book.slug ? { ...i, qty: Math.min(cap, i.qty + qty) } : i);
       }
       return [...prev, {
         type:     'book',
@@ -39,7 +40,8 @@ export function CartProvider({ children }) {
         coverUrl: book.coverUrl || '',
         price:    book.price    || null,
         mrp:      book.mrp      || null,
-        qty,
+        stockCount: book.stockCount ?? null,
+        qty: Math.min(cap, qty),
       }];
     });
     setIsOpen(true);
@@ -48,10 +50,11 @@ export function CartProvider({ children }) {
   /* ── Add a bundle deal to cart ── */
   const addBundleToCart = useCallback((bundle) => {
     const slug = `bundle:${bundle.id}`;
+    const cap = bundle.stockCount > 0 ? bundle.stockCount : Infinity;
     setItems(prev => {
       const exists = prev.find(i => i.slug === slug);
       if (exists) {
-        return prev.map(i => i.slug === slug ? { ...i, qty: i.qty + 1 } : i);
+        return prev.map(i => i.slug === slug ? { ...i, qty: Math.min(cap, i.qty + 1) } : i);
       }
       return [...prev, {
         type:      'bundle',
@@ -63,6 +66,7 @@ export function CartProvider({ children }) {
         coverUrl:  bundle.books?.find(b => b.coverUrl)?.coverUrl || '',
         price:     bundle.bundlePrice || null,
         mrp:       bundle.totalMrp     || null,
+        stockCount: bundle.stockCount ?? null,
         qty:       1,
       }];
     });
@@ -72,12 +76,15 @@ export function CartProvider({ children }) {
   /* ── Add an accessory to cart ── */
   const addAccessoryToCart = useCallback((item, variant) => {
     const slug = `accessory:${item.id}${variant ? ':' + variant.id : ''}`;
+    const effectiveStock = variant ? variant.stockCount : item.stockCount;
+    const cap = effectiveStock > 0 ? effectiveStock : Infinity;
     setItems(prev => {
       const exists = prev.find(i => i.slug === slug);
-      if (exists) return prev.map(i => i.slug === slug ? { ...i, qty: i.qty + 1 } : i);
+      if (exists) return prev.map(i => i.slug === slug ? { ...i, qty: Math.min(cap, i.qty + 1) } : i);
       return [...prev, {
         type: 'accessory', slug, accessoryId: item.id,
         title: item.name + (variant ? ` (${variant.label})` : ''), author: '', category: 'Accessory',
+        stockCount: effectiveStock ?? null,
         coverUrl: item.coverUrl || '', price: item.price || null, mrp: item.mrp || null, qty: 1,
       }];
     });
@@ -90,7 +97,11 @@ export function CartProvider({ children }) {
 
   const updateQty = useCallback((slug, qty) => {
     if (qty < 1) return;
-    setItems(prev => prev.map(i => i.slug === slug ? { ...i, qty } : i));
+    setItems(prev => prev.map(i => {
+      if (i.slug !== slug) return i;
+      const cap = i.stockCount > 0 ? i.stockCount : Infinity;
+      return { ...i, qty: Math.min(cap, qty) };
+    }));
   }, []);
 
   const clearCart = useCallback(() => setItems([]), []);
