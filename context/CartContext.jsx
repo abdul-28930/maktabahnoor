@@ -24,11 +24,11 @@ export function CartProvider({ children }) {
   }, [items, hydrated]);
 
   /* ── Actions ── */
-  const addToCart = useCallback((book) => {
+  const addToCart = useCallback((book, qty = 1) => {
     setItems(prev => {
       const exists = prev.find(i => i.slug === book.slug);
       if (exists) {
-        return prev.map(i => i.slug === book.slug ? { ...i, qty: i.qty + 1 } : i);
+        return prev.map(i => i.slug === book.slug ? { ...i, qty: i.qty + qty } : i);
       }
       return [...prev, {
         type:     'book',
@@ -39,7 +39,7 @@ export function CartProvider({ children }) {
         coverUrl: book.coverUrl || '',
         price:    book.price    || null,
         mrp:      book.mrp      || null,
-        qty:      1,
+        qty,
       }];
     });
     setIsOpen(true);

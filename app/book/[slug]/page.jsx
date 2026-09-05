@@ -37,6 +37,7 @@ const COVER_BG = 'linear-gradient(155deg,#2d6a4f 0%,#1b4332 100%)';
 export default function BookPage() {
   const { slug } = useParams();
   const [book, setBook]       = useState(null);
+  const [qty, setQty]         = useState(1);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [related, setRelated] = useState([]);
@@ -281,12 +282,22 @@ export default function BookPage() {
             </div>
           )}
 
-          <div style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:24}}>
+          <div style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:24,alignItems:'center'}}>
+            {/* Quantity stepper */}
+            {book.inStock !== false && !isInCart(book.slug) && (
+              <div style={{display:'flex',alignItems:'center',border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:40,overflow:'hidden'}}>
+                <button onClick={()=>setQty(q=>Math.max(1,q-1))} aria-label="Decrease quantity"
+                  style={{width:40,height:48,border:'none',background:'transparent',color:'#1b4332',fontSize:18,cursor:'pointer'}}>−</button>
+                <span style={{minWidth:32,textAlign:'center',fontSize:15,color:'#1a1712'}}>{qty}</span>
+                <button onClick={()=>setQty(q=>book.stockCount>0?Math.min(book.stockCount,q+1):q+1)} aria-label="Increase quantity"
+                  style={{width:40,height:48,border:'none',background:'transparent',color:'#1b4332',fontSize:18,cursor:'pointer'}}>+</button>
+              </div>
+            )}
             {/* Add to Cart */}
             {book.inStock !== false && (
               <button
                 className={`book-add-to-cart book-add-to-cart--lg${isInCart(book.slug)?' book-add-to-cart--in':''}`}
-                onClick={() => addToCart(book)}
+                onClick={() => { addToCart(book, qty); setQty(1); }}
               >
                 {isInCart(book.slug) ? (
                   <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added to Cart</>
