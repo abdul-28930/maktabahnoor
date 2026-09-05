@@ -47,6 +47,7 @@ export default function BundlePage() {
         <Link href="/books"   style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Collection</Link>
         <Link href="/bundles" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Bundles</Link>
         <Link href="/accessories" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Accessories</Link>
+          <Link href="/clothing" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Clothing</Link>
         <Link href="/wishlist" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>♡ Wishlist</Link>
       </div>
     </nav>

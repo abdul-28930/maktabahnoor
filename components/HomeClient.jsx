@@ -237,6 +237,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           ))}
           <BooksNavDropdown className="hp-nlink" style={{fontSize:14,color:'#6b6460'}}/>
           <Link href="/accessories" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>Accessories</Link>
+          <Link href="/clothing" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>Clothing</Link>
           <Link href="/wishlist" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>♡ Wishlist</Link>
         </div>
         <button
@@ -264,6 +265,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           ))}
           <Link href="/books" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Books</Link>
           <Link href="/accessories" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Accessories</Link>
+          <Link href="/clothing" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Clothing</Link>
           <Link href="/wishlist" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>♡ Wishlist</Link>
         </div>
       )}

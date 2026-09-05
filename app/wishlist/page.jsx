@@ -30,6 +30,7 @@ export default function WishlistPage() {
           <BooksNavDropdown/>
           <Link href="/bundles" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3}}>Bundles</Link>
           <Link href="/accessories" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3}}>Accessories</Link>
+          <Link href="/clothing" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Clothing</Link>
         </div>
       </nav>
 

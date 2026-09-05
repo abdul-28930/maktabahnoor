@@ -6,12 +6,12 @@ import Image from 'next/image';
 import PageBackground from '@/components/PageBackground';
 import { useCart } from '@/context/CartContext';
 
-function AccessoryCard({ item }) {
-  const { addAccessoryToCart, isInCart } = useCart();
+function ClothingCard({ item }) {
+  const { addClothingToCart, isInCart } = useCart();
   const hasVariants = item.variants?.length > 0;
   const [selected, setSelected] = useState(hasVariants ? item.variants[0] : null);
   const effectiveStock = hasVariants ? (selected?.stockCount ?? 0) : item.stockCount;
-  const slug = `accessory:${item.id}${selected ? ':' + selected.id : ''}`;
+  const slug = `clothing:${item.id}${selected ? ':' + selected.id : ''}`;
   const inCart = isInCart(slug);
   const soldOut = effectiveStock <= 0;
 
@@ -32,22 +32,31 @@ function AccessoryCard({ item }) {
         </div>
         {hasVariants && (
           <div style={{marginBottom:12}}>
-            <div style={{fontSize:11,color:'#a09890',marginBottom:6}}>Color: <span style={{color:'#1a1712'}}>{selected?.label}</span></div>
+            <div style={{fontSize:11,color:'#a09890',marginBottom:6}}>
+              {selected?.size && selected?.color ? 'Size / Color: ' : selected?.size ? 'Size: ' : 'Color: '}
+              <span style={{color:'#1a1712'}}>{selected?.label}</span>
+            </div>
             <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
               {item.variants.map(v => (
                 <button key={v.id} onClick={()=>setSelected(v)} title={`${v.label}${v.stockCount<=0?' (out of stock)':''}`}
-                  style={{width:26,height:26,borderRadius:'50%',background:v.color,cursor:'pointer',
+                  style={v.color ? {
+                    width:26,height:26,borderRadius:'50%',background:v.color,cursor:'pointer',
                     border:selected?.id===v.id?'2px solid #1b4332':'2px solid rgba(0,0,0,0.1)',
                     boxShadow:selected?.id===v.id?'0 0 0 2px #fff, 0 0 0 3px #1b4332':'none',
-                    opacity:v.stockCount<=0?0.35:1,position:'relative'}}>
-                  {v.stockCount<=0 && <span style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:'#fff',textShadow:'0 0 2px #000'}}>✕</span>}
+                    opacity:v.stockCount<=0?0.35:1,position:'relative'
+                  } : {
+                    padding:'5px 12px',borderRadius:8,cursor:'pointer',fontSize:12,background:selected?.id===v.id?'#1b4332':'#fff',
+                    color:selected?.id===v.id?'#fff':'#1a1712',border:`1.5px solid ${selected?.id===v.id?'#1b4332':'rgba(27,67,50,0.15)'}`,
+                    opacity:v.stockCount<=0?0.4:1
+                  }}>
+                  {v.color ? (v.stockCount<=0 && <span style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:'#fff',textShadow:'0 0 2px #000'}}>✕</span>) : (v.label + (v.stockCount<=0?' ✕':''))}
                 </button>
               ))}
             </div>
           </div>
         )}
         {!soldOut && (
-          <button onClick={()=>addAccessoryToCart(item, selected)} className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`}>
+          <button onClick={()=>addClothingToCart(item, selected)} className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`}>
             {inCart ? 'Added' : 'Add to Cart'}
           </button>
         )}
@@ -56,12 +65,12 @@ function AccessoryCard({ item }) {
   );
 }
 
-export default function AccessoriesPage() {
+export default function ClothingPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/accessories').then(r=>r.json()).then(d=>{setItems(d.accessories||[]);setLoading(false);}).catch(()=>setLoading(false));
+    fetch('/api/clothing').then(r=>r.json()).then(d=>{setItems(d.clothing||[]);setLoading(false);}).catch(()=>setLoading(false));
   }, []);
 
   return (
@@ -76,8 +85,8 @@ export default function AccessoriesPage() {
           <Link href="/" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>Home</Link>
           <BooksNavDropdown/>
           <Link href="/bundles" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>Bundles</Link>
-          <Link href="/accessories" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#1b4332',fontWeight:500,background:'rgba(27,67,50,0.07)'}}>Accessories</Link>
-          <Link href="/clothing" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>Clothing</Link>
+          <Link href="/accessories" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>Accessories</Link>
+          <Link href="/clothing" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#1b4332',fontWeight:500,background:'rgba(27,67,50,0.07)'}}>Clothing</Link>
           <Link href="/wishlist" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>♡ Wishlist</Link>
         </div>
       </nav>
@@ -85,8 +94,8 @@ export default function AccessoriesPage() {
       <div style={{position:'relative',zIndex:1,padding:'52px clamp(20px,5vw,72px) 40px',borderBottom:'1px solid rgba(27,67,50,0.07)'}}>
         <div style={{maxWidth:1280,margin:'0 auto'}}>
           <div style={{fontSize:10,letterSpacing:'2.5px',textTransform:'uppercase',color:'#b8965a',marginBottom:14}}>✦ Essentials</div>
-          <h1 style={{margin:'0 0 10px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(32px,5vw,50px)',color:'#1b4332'}}>Accessories</h1>
-          <p style={{maxWidth:520,fontSize:15,color:'#6b6460',lineHeight:1.7,fontWeight:300}}>Watches and other everyday essentials, alongside our book collection.</p>
+          <h1 style={{margin:'0 0 10px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(32px,5vw,50px)',color:'#1b4332'}}>Clothing</h1>
+          <p style={{maxWidth:520,fontSize:15,color:'#6b6460',lineHeight:1.7,fontWeight:300}}>Modest wear and everyday essentials, alongside our book collection.</p>
         </div>
       </div>
 
@@ -97,12 +106,12 @@ export default function AccessoriesPage() {
           </div>
         ) : items.length === 0 ? (
           <div style={{textAlign:'center',padding:'80px 24px'}}>
-            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,color:'#1b4332',margin:'0 0 10px'}}>No accessories available right now</h2>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,color:'#1b4332',margin:'0 0 10px'}}>No clothing available right now</h2>
             <Link href="/books" style={{textDecoration:'none',display:'inline-flex',color:'#1b4332'}}>Browse Books →</Link>
           </div>
         ) : (
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:24}}>
-            {items.map(i => <AccessoryCard key={i.id} item={i}/>)}
+            {items.map(i => <ClothingCard key={i.id} item={i}/>)}
           </div>
         )}
       </div>

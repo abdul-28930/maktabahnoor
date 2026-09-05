@@ -382,6 +382,7 @@ function BooksContent() {
           <BooksNavDropdown active/>
           <Link href="/bundles" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3,transition:'color .15s,background .15s'}} onMouseEnter={e=>{e.currentTarget.style.color='#1b4332';e.currentTarget.style.background='rgba(27,67,50,0.05)';}} onMouseLeave={e=>{e.currentTarget.style.color='#6b6460';e.currentTarget.style.background='transparent';}}>Bundles</Link>
           <Link href="/accessories" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3,transition:'color .15s,background .15s'}} onMouseEnter={e=>{e.currentTarget.style.color='#1b4332';e.currentTarget.style.background='rgba(27,67,50,0.05)';}} onMouseLeave={e=>{e.currentTarget.style.color='#6b6460';e.currentTarget.style.background='transparent';}}>Accessories</Link>
+          <Link href="/clothing" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>Clothing</Link>
           <Link href="/wishlist" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460',letterSpacing:.3,transition:'color .15s,background .15s'}} onMouseEnter={e=>{e.currentTarget.style.color='#1b4332';e.currentTarget.style.background='rgba(27,67,50,0.05)';}} onMouseLeave={e=>{e.currentTarget.style.color='#6b6460';e.currentTarget.style.background='transparent';}}>♡ Wishlist</Link>
         </div>
       </nav>

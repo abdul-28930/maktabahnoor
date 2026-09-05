@@ -26,6 +26,7 @@ const EMPTY_SLIDE = {
 };
 
 const EMPTY_ACCESSORY = { name:'',description:'',price:'',mrp:'',stockCount:'',coverUrl:'',variants:[],visible:true };
+const EMPTY_CLOTHING = { name:'',description:'',price:'',mrp:'',stockCount:'',coverUrl:'',variants:[],visible:true };
 const EMPTY_COUPON = { code:'',type:'percent',value:'',minOrder:'',expiresAt:'',active:true };
 
 const OFFER_COLORS = {
@@ -133,6 +134,10 @@ export default function AdminPage() {
   const [editAccId, setEditAccId] = useState(null);
   const [accForm, setAccForm]     = useState(EMPTY_ACCESSORY);
   const [accImgMode, setAccImgMode] = useState('url');
+  const [clothing, setClothing] = useState([]);
+  const [editClothId, setEditClothId] = useState(null);
+  const [clothForm, setClothForm] = useState(EMPTY_CLOTHING);
+  const [clothImgMode, setClothImgMode] = useState('url');
   const [taxonomy, setTaxonomy]   = useState({ categories: DEFAULT_CATEGORIES, languages: DEFAULT_LANGUAGES, offerTypes: DEFAULT_OFFER_TYPES });
   const [loading, setLoading]     = useState(false);
   const [editSlug, setEditSlug]   = useState(null);
@@ -224,6 +229,46 @@ export default function AdminPage() {
     readImgFile(file, d=>af('coverUrl',d));
   }
 
+  async function loadClothing(s=session) {
+    try { const r=await fetch(`/api/clothing?password=${encodeURIComponent(s)}`); const d=await r.json(); setClothing(d.clothing||[]); } catch {}
+  }
+  async function saveCloth() {
+    if (!clothForm.name.trim()) { showToast('Name is required.','error'); return; }
+    if (clothForm.price==='') { showToast('Price is required.','error'); return; }
+    if (clothForm.stockCount==='') { showToast('Stock count is required.','error'); return; }
+    setLoading(true);
+    try {
+      const r = editClothId
+        ? await fetch(`/api/clothing/${editClothId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...clothForm})})
+        : await fetch('/api/clothing',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...clothForm})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed');
+      showToast(editClothId?'✓ Clothing item updated!':'✓ Clothing item added!','success');
+      await loadClothing(); setView('dashboard'); setTab('clothing');
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setLoading(false); }
+  }
+  async function delCloth(id) {
+    if (!confirm('Delete this item?')) return;
+    try { await fetch(`/api/clothing/${id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session})}); showToast('Deleted.'); await loadClothing(); } catch { showToast('Failed.','error'); }
+  }
+  async function toggleClothVisible(id, visible) {
+    try { await fetch(`/api/clothing/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,visible})}); await loadClothing(); showToast(visible?'Shown on site.':'Hidden from site.','success'); } catch { showToast('Failed.','error'); }
+  }
+  function openEditCloth(a) {
+    setEditClothId(a.id);
+    setClothForm({ name:a.name||'',description:a.description||'',price:a.price??'',mrp:a.mrp??'',stockCount:a.stockCount??'',coverUrl:a.coverUrl||'',variants:a.variants||[],visible:a.visible!==false });
+    setClothImgMode('url'); setView('clothEditor');
+  }
+  function handleClothImg(e) {
+    const file=e.target.files?.[0];
+    readImgFile(file, d=>clf('coverUrl',d));
+  }
+  function clf(k,v) { setClothForm(p=>({...p,[k]:v})); }
+  function addClothVariant() { setClothForm(p=>({...p,variants:[...p.variants,{id:Date.now().toString(36),label:'',size:'',color:'',stockCount:0}]})); }
+  function updClothVariant(id,k,v) { setClothForm(p=>({...p,variants:p.variants.map(x=>x.id===id?{...x,[k]:v}:x)})); }
+  function rmClothVariant(id) { setClothForm(p=>({...p,variants:p.variants.filter(x=>x.id!==id)})); }
+
   function showToast(msg,type='') {
     setToast({msg,type,show:true});
     clearTimeout(timer.current);
@@ -238,7 +283,7 @@ export default function AdminPage() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
       setSession(pw); setView('dashboard'); setPw('');
-      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadCoupons(pw); loadIgPosts();
+      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts();
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -1121,6 +1166,72 @@ export default function AdminPage() {
     </div>
   );
 
+  if (view==='clothEditor') return (
+    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
+      <PageBackground subtle/>
+      <header style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,48px)',background:'rgba(250,249,245,0.92)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332'}}>{editClothId?'Edit Clothing Item':'Add Clothing Item'}</div>
+        <div style={{display:'flex',gap:10}}>
+          <Btn variant="ghost" onClick={()=>setView('dashboard')}>← Dashboard</Btn>
+          <Btn onClick={saveCloth} disabled={loading}>{loading?'Saving…':'Save'}</Btn>
+        </div>
+      </header>
+      <div style={{position:'relative',zIndex:1,maxWidth:700,margin:'0 auto',padding:'40px clamp(20px,5vw,48px) 80px',display:'flex',flexDirection:'column',gap:20}}>
+        <Card title="Details">
+          <div style={{marginBottom:16}}><Label>Name *</Label><FInput value={clothForm.name} onChange={e=>clf('name',e.target.value)} placeholder="e.g. Men's Thobe"/></div>
+          <div style={{marginBottom:16}}><Label hint="Optional">Description</Label><FInput value={clothForm.description} onChange={e=>clf('description',e.target.value)}/></div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
+            <div><Label hint="Optional · original">MRP (₹)</Label><FInput type="number" value={clothForm.mrp} onChange={e=>clf('mrp',e.target.value)}/></div>
+            <div><Label>Price (₹) *</Label><FInput type="number" value={clothForm.price} onChange={e=>clf('price',e.target.value)}/></div>
+            <div><Label>Stock Count *</Label><FInput type="number" value={clothForm.stockCount} onChange={e=>clf('stockCount',e.target.value)}/></div>
+          </div>
+        </Card>
+        <Card title="Image">
+          <div style={{display:'flex',gap:8,marginBottom:14}}>
+            {['url','upload'].map(m=>(
+              <button key={m} onClick={()=>setClothImgMode(m)} style={{padding:'7px 18px',borderRadius:20,border:`1.5px solid ${clothImgMode===m?'#1b4332':'rgba(27,67,50,0.15)'}`,background:clothImgMode===m?'rgba(27,67,50,0.07)':'transparent',color:clothImgMode===m?'#1b4332':'#6b6460',fontSize:12,cursor:'pointer'}}>{m==='url'?'Paste URL':'Upload'}</button>
+            ))}
+          </div>
+          {clothImgMode==='url'
+            ? <FInput value={clothForm.coverUrl.startsWith('data:')?'':clothForm.coverUrl} onChange={e=>clf('coverUrl',e.target.value)} placeholder="https://…"/>
+            : (
+              <div onClick={()=>document.getElementById('cloth-img-input')?.click()} style={{border:'2px dashed rgba(27,67,50,0.15)',borderRadius:12,padding:clothForm.coverUrl?0:32,textAlign:'center',cursor:'pointer',overflow:'hidden'}}>
+                {clothForm.coverUrl?<img src={clothForm.coverUrl} alt="" style={{width:'100%',maxHeight:200,objectFit:'contain'}} loading="lazy"/>:<div style={{fontSize:13,color:'#6b6460'}}>Click to upload</div>}
+                <input id="cloth-img-input" type="file" accept="image/*" style={{display:'none'}} onChange={handleClothImg}/>
+              </div>
+            )}
+        </Card>
+        <Card title="Sizes / Colors (optional)">
+          <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px'}}>Add size and/or color options, each with its own stock count. Leave a field blank if it doesn't apply (e.g. size-only, no color). Leave the whole section empty for a single-variant product.</p>
+          {clothForm.variants.map(v => (
+            <div key={v.id} style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+              <input type="color" value={v.color||'#1b4332'} onChange={e=>updClothVariant(v.id,'color',e.target.value)} style={{width:36,height:36,padding:0,border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:8,cursor:'pointer',flexShrink:0}}/>
+              <div style={{width:90}}><FInput value={v.size} onChange={e=>updClothVariant(v.id,'size',e.target.value)} placeholder="Size (S/M/L)"/></div>
+              <div style={{flex:1}}><FInput value={v.label} onChange={e=>updClothVariant(v.id,'label',e.target.value)} placeholder="Label e.g. Medium - Black"/></div>
+              <div style={{width:90}}><FInput type="number" min="0" value={v.stockCount} onChange={e=>updClothVariant(v.id,'stockCount',e.target.value)} placeholder="Stock"/></div>
+              <button onClick={()=>rmClothVariant(v.id)} style={{width:36,height:36,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',cursor:'pointer',flexShrink:0}}>✕</button>
+            </div>
+          ))}
+          <button onClick={addClothVariant} style={{marginTop:4,padding:'8px 16px',borderRadius:20,border:'1.5px dashed rgba(27,67,50,0.25)',background:'transparent',color:'#1b4332',fontSize:12,cursor:'pointer'}}>+ Add Variant</button>
+        </Card>
+        <Card title="Visibility">
+          <label onClick={()=>clf('visible',!clothForm.visible)} style={{display:'flex',alignItems:'center',gap:12,cursor:'pointer',width:'fit-content'}}>
+            <div style={{width:44,height:26,borderRadius:13,background:clothForm.visible?'#1b4332':'rgba(27,67,50,0.15)',position:'relative'}}>
+              <div style={{position:'absolute',top:3,left:clothForm.visible?20:3,width:20,height:20,borderRadius:'50%',background:'#fff'}}/>
+            </div>
+            <span style={{fontSize:14,color:clothForm.visible?'#1b4332':'#6b6460'}}>{clothForm.visible?'Visible (shown on site)':'Hidden'}</span>
+          </label>
+        </Card>
+        <div style={{display:'flex',gap:10}}>
+          <Btn variant="ghost" onClick={()=>setView('dashboard')}>Cancel</Btn>
+          <Btn onClick={saveCloth} disabled={loading}>{loading?'Saving…':'Save'}</Btn>
+        </div>
+      </div>
+      <Toast t={toast}/>
+    </div>
+  );
+
+
   /* ── REORDER BOOKS ── */
   if (view==='reorderBooks') return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
@@ -1201,7 +1312,9 @@ export default function AdminPage() {
                 ? <Btn onClick={()=>{setEditSlideId(null);setSlideForm(EMPTY_SLIDE);setSlideImgMode('url');setView('slideEditor');}}>+ Add Slide</Btn>
                 : tab==='accessories'
                   ? <Btn onClick={()=>{setEditAccId(null);setAccForm(EMPTY_ACCESSORY);setAccImgMode('url');setView('accEditor');}}>+ Add Accessory</Btn>
-                  : null
+                  : tab==='clothing'
+                    ? <Btn onClick={()=>{setEditClothId(null);setClothForm(EMPTY_CLOTHING);setClothImgMode('url');setView('clothEditor');}}>+ Add Clothing</Btn>
+                    : null
           }
           <Btn variant="ghost" onClick={()=>{setSession('');setView('login');}}>Log Out</Btn>
         </div>
@@ -1223,7 +1336,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif'"}}>
               {t.label}
             </button>
@@ -1489,6 +1602,31 @@ export default function AdminPage() {
                 <button onClick={()=>toggleAccVisible(a.id,a.visible===false)} style={{padding:'5px 12px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#6b6460',fontSize:10,cursor:'pointer'}}>{a.visible!==false?'Visible':'Hidden'}</button>
                 <button onClick={()=>openEditAcc(a)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',cursor:'pointer'}}>✎</button>
                 <button onClick={()=>delAcc(a.id)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',cursor:'pointer'}}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* CLOTHING LIST */}
+        {tab==='clothing' && (
+          <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',overflow:'hidden'}}>
+            {clothing.length===0 ? (
+              <div style={{textAlign:'center',padding:'60px 24px'}}>
+                <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:'0 0 20px'}}>No clothing yet.</p>
+                <Btn onClick={()=>{setEditClothId(null);setClothForm(EMPTY_CLOTHING);setClothImgMode('url');setView('clothEditor');}}>+ Add First Item</Btn>
+              </div>
+            ) : clothing.map((a,i)=>(
+              <div key={a.id} style={{display:'flex',alignItems:'center',gap:16,padding:'16px 24px',borderBottom:i<clothing.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
+                <div style={{width:44,height:44,borderRadius:6,overflow:'hidden',flexShrink:0,background:'linear-gradient(155deg,#2d6a4f,#1b4332)'}}>
+                  {a.coverUrl && <img src={a.coverUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:15,color:'#1a1712'}}>{a.name} {a.visible===false && <span style={{fontSize:9,color:'#a09890',background:'rgba(0,0,0,0.06)',padding:'2px 8px',borderRadius:8,marginLeft:6}}>HIDDEN</span>}</div>
+                  <div style={{fontSize:12,color:'#a09890'}}>₹{a.price} · Stock: {a.stockCount}</div>
+                </div>
+                <button onClick={()=>toggleClothVisible(a.id,a.visible===false)} style={{padding:'5px 12px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#6b6460',fontSize:10,cursor:'pointer'}}>{a.visible!==false?'Visible':'Hidden'}</button>
+                <button onClick={()=>openEditCloth(a)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',cursor:'pointer'}}>✎</button>
+                <button onClick={()=>delCloth(a.id)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',cursor:'pointer'}}>✕</button>
               </div>
             ))}
           </div>

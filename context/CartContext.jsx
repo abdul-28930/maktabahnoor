@@ -91,6 +91,23 @@ export function CartProvider({ children }) {
     setIsOpen(true);
   }, []);
 
+  const addClothingToCart = useCallback((item, variant) => {
+    const slug = `clothing:${item.id}${variant ? ':' + variant.id : ''}`;
+    const effectiveStock = variant ? variant.stockCount : item.stockCount;
+    const cap = effectiveStock > 0 ? effectiveStock : Infinity;
+    setItems(prev => {
+      const exists = prev.find(i => i.slug === slug);
+      if (exists) return prev.map(i => i.slug === slug ? { ...i, qty: Math.min(cap, i.qty + 1) } : i);
+      return [...prev, {
+        type: 'clothing', slug, clothingId: item.id,
+        title: item.name + (variant ? ` (${variant.label})` : ''), author: '', category: 'Clothing',
+        stockCount: effectiveStock ?? null,
+        coverUrl: item.coverUrl || '', price: item.price || null, mrp: item.mrp || null, qty: 1,
+      }];
+    });
+    setIsOpen(true);
+  }, []);
+
   const removeFromCart = useCallback((slug) => {
     setItems(prev => prev.filter(i => i.slug !== slug));
   }, []);
@@ -116,7 +133,7 @@ export function CartProvider({ children }) {
   return (
     <CartContext.Provider value={{
       items, cartCount, isOpen,
-      addToCart, addBundleToCart, addAccessoryToCart, removeFromCart, updateQty, clearCart,
+      addToCart, addBundleToCart, addAccessoryToCart, addClothingToCart, removeFromCart, updateQty, clearCart,
       isInCart, openCart, closeCart,
     }}>
       {children}
