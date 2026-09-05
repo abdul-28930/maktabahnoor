@@ -142,6 +142,11 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
   const rootRef = useRef(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [igTiles, setIgTiles] = useState([]);
+  const [liveCats, setLiveCats] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/taxonomy').then(r=>r.json()).then(d=>setLiveCats(d.taxonomy?.categories||null)).catch(()=>{});
+  }, []);
 
   useEffect(() => {
     fetch('/api/ig-posts').then(r=>r.json()).then(d=>setIgTiles(d.posts||[])).catch(()=>{});
@@ -372,7 +377,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           <h2 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(40px,5vw,60px)',color:'#fff'}}>What are you looking for?</h2>
         </div>
         <div className="hp-four-grid" style={{position:'relative',maxWidth:1180,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:22}}>
-          {DISPLAY_CATS.map((cat,i)=>(
+          {(liveCats ? liveCats.slice(0,8).map(c=>({name:c,ar:CAT_AR[c]||'',slug:c})) : DISPLAY_CATS).map((cat,i)=>(
             <Link key={cat.name} href={`/books?category=${encodeURIComponent(cat.slug)}`} className="hp-cat-card hp-reveal" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(184,150,90,0.32)',borderRadius:14,padding:'32px 20px',textAlign:'center',cursor:'pointer',textDecoration:'none',display:'block'}} data-reveal data-reveal-delay={i*0.07}>
               <div className="hp-cat-ic" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:42,color:'#d4ab70',lineHeight:1,marginBottom:14}}>{cat.ar}</div>
               <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:21,color:'#fff'}}>{cat.name}</div>
@@ -523,7 +528,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           <div>
             <div style={{fontSize:9,letterSpacing:'2.5px',textTransform:'uppercase',color:'#d4ab70',marginBottom:20,display:'flex',alignItems:'center',gap:8}}><span style={{width:12,height:1,background:'#d4ab70',display:'inline-block'}}/>Navigate</div>
             <div style={{display:'flex',flexDirection:'column',gap:13}}>
-              {[['#collection','Featured Books'],['#categories','Browse Categories'],['#new-arrivals','New Arrivals'],['#about','Our Mission'],['/books','Full Collection']].map(([href,label])=>(
+              {[['#collection','Featured Books'],['/books?tag=New+Arrival','New Arrivals'],['#about','Our Mission'],['/books','Full Collection']].map(([href,label])=>(
                 <a key={label} href={href} style={{textDecoration:'none',color:'rgba(255,255,255,0.65)',fontSize:14,fontWeight:300,transition:'color .15s,paddingLeft .15s',display:'flex',alignItems:'center',gap:8}}
                   onMouseEnter={e=>{e.currentTarget.style.color='#d4ab70';e.currentTarget.style.paddingLeft='4px';}}
                   onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.65)';e.currentTarget.style.paddingLeft='0';}}>{label}</a>
@@ -535,7 +540,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           <div>
             <div style={{fontSize:9,letterSpacing:'2.5px',textTransform:'uppercase',color:'#d4ab70',marginBottom:20,display:'flex',alignItems:'center',gap:8}}><span style={{width:12,height:1,background:'#d4ab70',display:'inline-block'}}/>Collection</div>
             <div style={{display:'flex',flexDirection:'column',gap:13}}>
-              {['Aqeedah','Hadith','Tafsir','Fiqh','Seerah','Manners & Character','History'].map(cat=>(
+              {(liveCats || ['Aqeedah','Hadith','Fiqh','Seerah']).slice(0,7).map(cat=>(
                 <Link key={cat} href={'/books?category='+encodeURIComponent(cat)} style={{textDecoration:'none',color:'rgba(255,255,255,0.65)',fontSize:14,fontWeight:300,transition:'color .15s,paddingLeft .15s',display:'flex',alignItems:'center',gap:8}}
                   onMouseEnter={e=>{e.currentTarget.style.color='#d4ab70';e.currentTarget.style.paddingLeft='4px';}}
                   onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.65)';e.currentTarget.style.paddingLeft='0';}}>{cat}</Link>
