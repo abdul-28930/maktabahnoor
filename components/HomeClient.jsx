@@ -90,7 +90,7 @@ function FeaturedSlider({ slides = [] }) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       style={{position:'relative',zIndex:1,background:'linear-gradient(180deg,#faf9f5,#f3f1ea)',borderTop:'1px solid rgba(27,67,50,0.08)',borderBottom:'1px solid rgba(27,67,50,0.08)',overflow:'hidden'}}>
-      <div style={{maxWidth:1280,margin:'0 auto',padding:'clamp(48px,7vw,84px) clamp(20px,5vw,72px)',display:'grid',gridTemplateColumns:'1.2fr 1fr',gap:48,alignItems:'center'}}>
+      <div className="hp-slider-grid" style={{maxWidth:1280,margin:'0 auto',padding:'clamp(48px,7vw,84px) clamp(20px,5vw,72px)',display:'grid',gridTemplateColumns:'1.2fr 1fr',gap:48,alignItems:'center'}}>
         <div key={s.id}>
           {s.eyebrow && (
             <div style={{display:'inline-flex',alignItems:'center',gap:10,marginBottom:16,color:'#b8965a',fontSize:11,letterSpacing:'2.5px',textTransform:'uppercase'}}>
@@ -513,7 +513,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
         </svg>
 
         {/* Main footer content */}
-        <div style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'72px clamp(20px,5vw,72px) 0',display:'grid',gridTemplateColumns:'1.6fr 1fr 1fr 1.2fr',gap:48}}>
+        <div className="hp-footer-grid" style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'72px clamp(20px,5vw,72px) 0',display:'grid',gridTemplateColumns:'1.6fr 1fr 1fr 1.2fr',gap:48}}>
 
           {/* Brand column */}
           <div>

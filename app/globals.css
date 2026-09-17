@@ -403,6 +403,12 @@ img{max-width:100%;display:block}
   .hp-hero-grid { grid-template-columns:1fr!important; }
   .hp-four-grid { grid-template-columns:1fr 1fr!important; }
   .hp-about-grid { grid-template-columns:1fr!important; }
+  .hp-slider-grid { grid-template-columns:1fr!important; text-align:center; }
+  .hp-footer-grid { grid-template-columns:1fr 1fr!important; }
+}
+@media(max-width:480px) {
+  .hp-four-grid { grid-template-columns:1fr!important; }
+  .hp-footer-grid { grid-template-columns:1fr!important; }
 }
 .nav-links-scroll{-ms-overflow-style:none;}
 .nav-links-scroll::-webkit-scrollbar{display:none;}
