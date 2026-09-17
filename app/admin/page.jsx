@@ -601,9 +601,11 @@ export default function AdminPage() {
 
   function compressImage(file) {
     return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Image processing timed out.')), 8000);
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
+        clearTimeout(timer);
         URL.revokeObjectURL(url);
         let { width, height } = img;
         if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
@@ -616,24 +618,38 @@ export default function AdminPage() {
         ctx.drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY));
       };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read image.')); };
+      img.onerror = () => { clearTimeout(timer); URL.revokeObjectURL(url); reject(new Error('Could not read image.')); };
       img.src = url;
+    });
+  }
+
+  function readFileRaw(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = ev => resolve(ev.target.result);
+      r.onerror = () => reject(new Error('Could not read file.'));
+      r.readAsDataURL(file);
     });
   }
 
   async function readImgFile(file, onDone) {
     if (!file) return;
+    let result;
     try {
-      const compressed = await compressImage(file);
-      const approxBytes = compressed.length * 0.75; // base64 → raw byte estimate
-      if (approxBytes > MAX_IMG_MB * 1024 * 1024) {
-        showToast(`Image still too large after compression (max ${MAX_IMG_MB}MB). Try a smaller photo.`,'error');
-        return;
-      }
-      onDone(compressed);
+      result = await compressImage(file);
     } catch {
-      showToast('Failed to process image.','error');
+      // Compression can fail on formats the browser can't decode into an
+      // <img>/canvas (e.g. HEIC straight off an iPhone camera). Rather than
+      // block the upload entirely, fall back to storing it as-is.
+      try { result = await readFileRaw(file); }
+      catch { showToast('Failed to read this image. Try a different file (JPG or PNG).','error'); return; }
     }
+    const approxBytes = result.length * 0.75; // base64 → raw byte estimate
+    if (approxBytes > MAX_IMG_MB * 1024 * 1024) {
+      showToast(`Image too large (max ${MAX_IMG_MB}MB). Try a smaller photo, or one in JPG/PNG format.`,'error');
+      return;
+    }
+    onDone(result);
   }
   function handleImg(e) {
     const file=e.target.files?.[0];
