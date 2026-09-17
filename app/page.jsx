@@ -33,7 +33,7 @@ async function getHeroSlides() {
   }
 }
 
-export default async function HomePage() {
+async function getFeaturedAndNewArrivals() {
   let featuredBooks = [], newArrivals = [];
   try {
     const meta = await redis.get('mn_books_meta') || [];
@@ -64,6 +64,15 @@ export default async function HomePage() {
   } catch (e) {
     console.error('Homepage data fetch error:', e);
   }
-  const heroSlides = await getHeroSlides();
+  return { featuredBooks, newArrivals };
+}
+
+export default async function HomePage() {
+  // These two are fully independent — run them together instead of one
+  // waiting for the other to finish first.
+  const [{ featuredBooks, newArrivals }, heroSlides] = await Promise.all([
+    getFeaturedAndNewArrivals(),
+    getHeroSlides(),
+  ]);
   return <HomeClient featuredBooks={featuredBooks} newArrivals={newArrivals} heroSlides={heroSlides} />;
 }

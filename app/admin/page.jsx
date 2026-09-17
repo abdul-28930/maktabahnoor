@@ -589,17 +589,51 @@ export default function AdminPage() {
     } catch { showToast('Failed to reorder.','error'); }
   }
 
-  const MAX_IMG_MB = 1.5;
-  function readImgFile(file, onDone) {
+  // Uploaded images get resized + re-compressed in the browser before we ever
+  // store them. This matters a lot here: every book's cover is duplicated into
+  // one shared list that's fetched in full on every page that shows books
+  // (home, /books, category/author pages, filtering...). A handful of
+  // multi-MB uploads in that one shared value would slow the whole site down,
+  // not just the book they belong to — so we keep what we store small.
+  const MAX_DIMENSION = 900;   // px, longest side
+  const JPEG_QUALITY   = 0.8;
+  const MAX_IMG_MB      = 1.5; // hard safety cap after compression
+
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let { width, height } = img;
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          if (width > height) { height = Math.round(height * (MAX_DIMENSION / width)); width = MAX_DIMENSION; }
+          else { width = Math.round(width * (MAX_DIMENSION / height)); height = MAX_DIMENSION; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read image.')); };
+      img.src = url;
+    });
+  }
+
+  async function readImgFile(file, onDone) {
     if (!file) return;
-    if (file.size > MAX_IMG_MB * 1024 * 1024) {
-      showToast(`Image too large (max ${MAX_IMG_MB}MB). Please compress or resize it first.`,'error');
-      return;
+    try {
+      const compressed = await compressImage(file);
+      const approxBytes = compressed.length * 0.75; // base64 → raw byte estimate
+      if (approxBytes > MAX_IMG_MB * 1024 * 1024) {
+        showToast(`Image still too large after compression (max ${MAX_IMG_MB}MB). Try a smaller photo.`,'error');
+        return;
+      }
+      onDone(compressed);
+    } catch {
+      showToast('Failed to process image.','error');
     }
-    const r = new FileReader();
-    r.onload = ev => onDone(ev.target.result);
-    r.onerror = () => showToast('Failed to read image.','error');
-    r.readAsDataURL(file);
   }
   function handleImg(e) {
     const file=e.target.files?.[0];
