@@ -116,6 +116,15 @@ export default function AdminPage() {
   const [pw, setPw]               = useState('');
   const [pwErr, setPwErr]         = useState('');
   const [session, setSession]     = useState('');
+
+  useEffect(() => {
+    let stored;
+    try { stored = localStorage.getItem('mn_admin_session'); } catch {}
+    if (!stored) return;
+    setSession(stored); setView('dashboard');
+    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts();
+  }, []);
+
   const [books, setBooks]         = useState([]);
   const [bundles, setBundles]     = useState([]);
   const [orders, setOrders]       = useState([]);
@@ -283,6 +292,7 @@ export default function AdminPage() {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
       setSession(pw); setView('dashboard'); setPw('');
+      try { localStorage.setItem('mn_admin_session', pw); } catch {}
       loadBooks(pw); loadBundles(pw); loadOrders(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts();
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
@@ -1316,7 +1326,7 @@ export default function AdminPage() {
                     ? <Btn onClick={()=>{setEditClothId(null);setClothForm(EMPTY_CLOTHING);setClothImgMode('url');setView('clothEditor');}}>+ Add Clothing</Btn>
                     : null
           }
-          <Btn variant="ghost" onClick={()=>{setSession('');setView('login');}}>Log Out</Btn>
+          <Btn variant="ghost" onClick={()=>{setSession('');setView('login');try{localStorage.removeItem('mn_admin_session');}catch{}}}>Log Out</Btn>
         </div>
       </header>
 

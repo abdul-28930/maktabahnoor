@@ -56,7 +56,7 @@ function GridCard({ book, idx }) {
       onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='0 4px 16px rgba(27,67,50,0.05)';}}>
       <div style={{position:'relative',aspectRatio:'3/4',overflow:'hidden',flexShrink:0}}>
         {book.coverUrl
-          ? <img src={book.coverUrl} alt={book.title} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover',transition:'transform .4s'}}
+          ? <img src={book.coverUrl} alt={book.title} loading="lazy" style={{width:'100%',height:'100%',objectFit:'contain',background:'#f3f1ea',transition:'transform .4s'}}
               onMouseEnter={e=>e.target.style.transform='scale(1.04)'}
               onMouseLeave={e=>e.target.style.transform='scale(1)'}/>
           : <div style={{width:'100%',height:'100%',background:bg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:20}}>
@@ -117,7 +117,7 @@ function ListCard({ book }) {
       onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(27,67,50,0.07)';e.currentTarget.style.boxShadow='0 2px 10px rgba(27,67,50,0.04)';}}>
       <div style={{width:56,height:74,borderRadius:8,overflow:'hidden',flexShrink:0}}>
         {book.coverUrl
-          ? <img src={book.coverUrl} alt={book.title} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+          ? <img src={book.coverUrl} alt={book.title} loading="lazy" style={{width:'100%',height:'100%',objectFit:'contain',background:'#f3f1ea'}}/>
           : <div style={{width:'100%',height:'100%',background:bg,display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:18,color:'#d4ab70'}}>{ar}</span></div>
         }
       </div>
