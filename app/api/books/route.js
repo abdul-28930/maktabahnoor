@@ -1,7 +1,7 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { slugify, nameSlug, splitAuthors, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
+import { slugify, nameSlug, splitAuthors, metaSafeCoverUrl, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
 
 const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
 
@@ -95,7 +95,7 @@ export async function POST(req) {
                 category: book.category, language: book.language, binding: book.binding,
                 volumes: book.volumes, pages: book.pages, mrp: book.mrp, price: book.price,
                 offerType: book.offerType, stockCount, inStock: book.inStock, visible: book.visible, order: book.order,
-                tags: book.tags, coverUrl: book.coverUrl, createdAt: now };
+                tags: book.tags, coverUrl: metaSafeCoverUrl(book.coverUrl), createdAt: now };
     const idx = meta.findIndex(b => b.slug === slug);
     if (idx >= 0) meta[idx] = m; else meta.unshift(m);
     await redis.set('mn_books_meta', meta);

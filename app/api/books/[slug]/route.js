@@ -1,7 +1,7 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { MANDATORY_BOOK_FIELDS } from '@/lib/constants';
+import { MANDATORY_BOOK_FIELDS, metaSafeCoverUrl } from '@/lib/constants';
 
 const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
 
@@ -51,7 +51,7 @@ export async function PUT(req, { params }) {
         author: updated.author, category: updated.category, language: updated.language,
         binding: updated.binding, volumes: updated.volumes, pages: updated.pages,
         mrp: updated.mrp, price: updated.price, offerType: updated.offerType,
-        stockCount, inStock: updated.inStock, visible: updated.visible !== false, tags: updated.tags, coverUrl: updated.coverUrl,
+        stockCount, inStock: updated.inStock, visible: updated.visible !== false, tags: updated.tags, coverUrl: metaSafeCoverUrl(updated.coverUrl),
         gallery: updated.gallery };
       await redis.set('mn_books_meta', meta);
       revalidatePath('/');

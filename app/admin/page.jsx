@@ -663,6 +663,19 @@ export default function AdminPage() {
     readImgFile(file, d=>sf('imageUrl',d));
   }
 
+  async function cleanupMeta() {
+    if (!confirm('Run a one-time cleanup to fix oversized book cover images that may be causing save failures?')) return;
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/cleanup-meta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed');
+      showToast(d.trimmed > 0 ? `✓ Fixed ${d.trimmed} oversized cover${d.trimmed===1?'':'s'} out of ${d.total} books.` : '✓ No oversized covers found — nothing to fix.','success');
+      await loadBooks();
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setLoading(false); }
+  }
+
   function exportBooksCsv() {
     const cols = ['slug','sku','title','author','translator','publisher','category','language','binding','volumes','pages','mrp','price','offerType','stockCount','inStock','tags','coverUrl','createdAt'];
     const esc = (v) => `"${String(v ?? '').replace(/"/g,'""')}"`;
@@ -1394,6 +1407,7 @@ export default function AdminPage() {
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <Link href="/" style={{textDecoration:'none',padding:'9px 18px',border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:20,fontSize:11,color:'#6b6460',letterSpacing:.5,textTransform:'uppercase',transition:'all .2s'}}>View Site</Link>
           {tab==='books' && <Btn variant="ghost" onClick={exportBooksCsv}>Export CSV</Btn>}
+          {tab==='books' && <Btn variant="ghost" onClick={cleanupMeta}>⚠ Fix Save Errors</Btn>}
           {tab==='books' && <Btn variant="ghost" onClick={openReorder}>⠿ Reorder</Btn>}
           {tab==='books'
             ? <Btn onClick={()=>{setEditSlug(null);setForm(EMPTY_BOOK);setImgMode('url');setView('bookEditor');}}>+ Add Book</Btn>
