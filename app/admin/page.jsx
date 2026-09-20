@@ -598,9 +598,9 @@ export default function AdminPage() {
   // (home, /books, category/author pages, filtering...). A handful of
   // multi-MB uploads in that one shared value would slow the whole site down,
   // not just the book they belong to — so we keep what we store small.
-  const MAX_DIMENSION = 900;   // px, longest side
-  const JPEG_QUALITY   = 0.8;
-  const MAX_IMG_MB      = 0.6; // hard safety cap — a compressed 900px JPEG is normally well under this; kept tight because this image gets duplicated into one shared record read on every page
+  const MAX_DIMENSION = 640;   // px, longest side — still sharp at the sizes this shows (max ~320px on the detail page)
+  const JPEG_QUALITY   = 0.72;
+  const MAX_IMG_MB      = 0.6; // hard safety cap — a compressed 640px JPEG is normally well under this; kept tight because this image gets duplicated into one shared record read on every page
 
   function compressImage(file) {
     return new Promise((resolve, reject) => {
