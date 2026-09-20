@@ -159,6 +159,8 @@ export default function AdminPage() {
   const [editSlideId, setEditSlideId] = useState(null);
   const [form, setForm]           = useState(EMPTY_BOOK);
   const [bundleForm, setBundleForm] = useState(EMPTY_BUNDLE);
+  const [bundleBookSearch, setBundleBookSearch] = useState('');
+  const [bundleBookPage, setBundleBookPage] = useState(1);
   const [slideForm, setSlideForm] = useState(EMPTY_SLIDE);
   const [slideImgMode, setSlideImgMode] = useState('url');
   const [imgMode, setImgMode]     = useState('url');
@@ -459,6 +461,7 @@ export default function AdminPage() {
           bundlePrice:d.bundle.bundlePrice||'',offerType:d.bundle.offerType||'Limited Deal',
           stockCount:d.bundle.stockCount||'',active:d.bundle.active!==false,
         });
+        setBundleBookSearch(''); setBundleBookPage(1);
         setView('bundleEditor');
       }
     } catch { showToast('Failed to load.','error'); }
@@ -967,31 +970,59 @@ export default function AdminPage() {
           <p style={{fontSize:12,color:'#6b6460',marginBottom:16,fontWeight:300}}>Select 2 or more books to include in this bundle. Total MRP will be auto-calculated.</p>
           {books.length === 0 ? (
             <div style={{textAlign:'center',padding:'24px 0',color:'#a09890',fontSize:13}}>No books found. Add books first.</div>
-          ) : (
-            <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:400,overflowY:'auto',paddingRight:4}}>
-              {books.map(b => {
-                const sel = bundleForm.bookSlugs.includes(b.slug);
-                return (
-                  <div key={b.slug} onClick={()=>toggleBookInBundle(b.slug)}
-                    style={{display:'flex',alignItems:'center',gap:14,padding:'12px 16px',borderRadius:10,border:`1.5px solid ${sel?'#1b4332':'rgba(27,67,50,0.1)'}`,background:sel?'rgba(27,67,50,0.05)':'#fff',cursor:'pointer',transition:'all .15s'}}>
-                    <span style={{width:20,height:20,borderRadius:5,border:`1.5px solid ${sel?'#1b4332':'rgba(27,67,50,0.22)'}`,background:sel?'#1b4332':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}}>
-                      {sel && <svg width="9" height="9" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </span>
-                    {b.coverUrl && <img src={b.coverUrl} alt="" style={{width:36,height:48,objectFit:'cover',borderRadius:5,flexShrink:0}} loading="lazy"/>}
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</div>
-                      <div style={{fontSize:11,color:'#a09890'}}>{b.author} · {b.category}</div>
-                    </div>
-                    <div style={{textAlign:'right',flexShrink:0}}>
-                      {b.mrp && <div style={{fontSize:11,color:'#a09890',textDecoration:'line-through'}}>₹{Number(b.mrp).toLocaleString('en-IN')}</div>}
-                      {(b.price||b.mrp) && <div style={{fontSize:14,color:'#1b4332',fontWeight:500}}>₹{Number(b.price||b.mrp).toLocaleString('en-IN')}</div>}
-                      {!b.price && !b.mrp && <div style={{fontSize:12,color:'#a09890'}}>No price set</div>}
-                    </div>
+          ) : (() => {
+            const q = bundleBookSearch.trim().toLowerCase();
+            const filtered = q
+              ? books.filter(b => b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q) || b.category?.toLowerCase().includes(q))
+              : books;
+            const PAGE_SIZE = 20;
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+            const page = Math.min(bundleBookPage, totalPages);
+            const paged = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
+            return (
+              <>
+                <div style={{marginBottom:12}}>
+                  <FInput value={bundleBookSearch} onChange={e=>{setBundleBookSearch(e.target.value); setBundleBookPage(1);}} placeholder="Search by title, author, or category…"/>
+                </div>
+                {filtered.length === 0 ? (
+                  <div style={{textAlign:'center',padding:'24px 0',color:'#a09890',fontSize:13}}>No books match "{bundleBookSearch}".</div>
+                ) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:400,overflowY:'auto',paddingRight:4}}>
+                    {paged.map(b => {
+                      const sel = bundleForm.bookSlugs.includes(b.slug);
+                      return (
+                        <div key={b.slug} onClick={()=>toggleBookInBundle(b.slug)}
+                          style={{display:'flex',alignItems:'center',gap:14,padding:'12px 16px',borderRadius:10,border:`1.5px solid ${sel?'#1b4332':'rgba(27,67,50,0.1)'}`,background:sel?'rgba(27,67,50,0.05)':'#fff',cursor:'pointer',transition:'all .15s'}}>
+                          <span style={{width:20,height:20,borderRadius:5,border:`1.5px solid ${sel?'#1b4332':'rgba(27,67,50,0.22)'}`,background:sel?'#1b4332':'transparent',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .15s'}}>
+                            {sel && <svg width="9" height="9" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                          </span>
+                          {b.coverUrl && <img src={b.coverUrl} alt="" style={{width:36,height:48,objectFit:'cover',borderRadius:5,flexShrink:0}} loading="lazy"/>}
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</div>
+                            <div style={{fontSize:11,color:'#a09890'}}>{b.author} · {b.category}</div>
+                          </div>
+                          <div style={{textAlign:'right',flexShrink:0}}>
+                            {b.mrp && <div style={{fontSize:11,color:'#a09890',textDecoration:'line-through'}}>₹{Number(b.mrp).toLocaleString('en-IN')}</div>}
+                            {(b.price||b.mrp) && <div style={{fontSize:14,color:'#1b4332',fontWeight:500}}>₹{Number(b.price||b.mrp).toLocaleString('en-IN')}</div>}
+                            {!b.price && !b.mrp && <div style={{fontSize:12,color:'#a09890'}}>No price set</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          )}
+                )}
+                {totalPages > 1 && (
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:14,marginTop:14}}>
+                    <button onClick={()=>setBundleBookPage(p=>Math.max(1,p-1))} disabled={page===1}
+                      style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:page===1?'#c8c2ba':'#1b4332',fontSize:12,cursor:page===1?'default':'pointer'}}>← Prev</button>
+                    <span style={{fontSize:12,color:'#6b6460'}}>Page {page} of {totalPages} · {filtered.length} books</span>
+                    <button onClick={()=>setBundleBookPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages}
+                      style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:page===totalPages?'#c8c2ba':'#1b4332',fontSize:12,cursor:page===totalPages?'default':'pointer'}}>Next →</button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </Card>
 
         {/* Bundle Pricing */}
@@ -1367,7 +1398,7 @@ export default function AdminPage() {
           {tab==='books'
             ? <Btn onClick={()=>{setEditSlug(null);setForm(EMPTY_BOOK);setImgMode('url');setView('bookEditor');}}>+ Add Book</Btn>
             : tab==='bundles'
-              ? <Btn onClick={()=>{setEditBundleId(null);setBundleForm(EMPTY_BUNDLE);setView('bundleEditor');}}>+ Create Bundle</Btn>
+              ? <Btn onClick={()=>{setEditBundleId(null);setBundleForm(EMPTY_BUNDLE);setBundleBookSearch('');setBundleBookPage(1);setView('bundleEditor');}}>+ Create Bundle</Btn>
               : tab==='slides'
                 ? <Btn onClick={()=>{setEditSlideId(null);setSlideForm(EMPTY_SLIDE);setSlideImgMode('url');setView('slideEditor');}}>+ Add Slide</Btn>
                 : tab==='accessories'
@@ -1502,7 +1533,7 @@ export default function AdminPage() {
               <div style={{textAlign:'center',padding:'60px 24px'}}>
                 <div style={{fontSize:48,marginBottom:12,opacity:.2}}>📦</div>
                 <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:'0 0 20px'}}>No bundles yet. Create your first bundle deal.</p>
-                <Btn onClick={()=>{setEditBundleId(null);setBundleForm(EMPTY_BUNDLE);setView('bundleEditor');}}>+ Create First Bundle</Btn>
+                <Btn onClick={()=>{setEditBundleId(null);setBundleForm(EMPTY_BUNDLE);setBundleBookSearch('');setBundleBookPage(1);setView('bundleEditor');}}>+ Create First Bundle</Btn>
               </div>
             ) : (
               <div>
