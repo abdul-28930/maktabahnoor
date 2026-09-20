@@ -57,7 +57,7 @@ export async function PUT(req, { params }) {
       revalidatePath('/');
     }
     return NextResponse.json({ success: true });
-  } catch { return NextResponse.json({ error: 'Failed.' }, { status: 500 }); }
+  } catch (e) { console.error('PUT /api/books/[slug]:', e); return NextResponse.json({ error: e?.message || 'Failed.' }, { status: 500 }); }
 }
 
 export async function DELETE(req, { params }) {
@@ -71,5 +71,5 @@ export async function DELETE(req, { params }) {
     await redis.set('mn_books_meta', meta.filter(b => b.slug !== params.slug));
     revalidatePath('/');
     return NextResponse.json({ success: true });
-  } catch { return NextResponse.json({ error: 'Failed.' }, { status: 500 }); }
+  } catch (e) { console.error('DELETE /api/books/[slug]:', e); return NextResponse.json({ error: e?.message || 'Failed.' }, { status: 500 }); }
 }

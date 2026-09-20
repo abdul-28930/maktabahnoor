@@ -103,6 +103,6 @@ export async function POST(req) {
     return NextResponse.json({ success: true, slug });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: 'Failed to save.' }, { status: 500 });
+    return NextResponse.json({ error: e?.message || 'Failed to save.' }, { status: 500 });
   }
 }

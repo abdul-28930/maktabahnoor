@@ -600,7 +600,7 @@ export default function AdminPage() {
   // not just the book they belong to — so we keep what we store small.
   const MAX_DIMENSION = 900;   // px, longest side
   const JPEG_QUALITY   = 0.8;
-  const MAX_IMG_MB      = 1.5; // hard safety cap after compression
+  const MAX_IMG_MB      = 0.6; // hard safety cap — a compressed 900px JPEG is normally well under this; kept tight because this image gets duplicated into one shared record read on every page
 
   function compressImage(file) {
     return new Promise((resolve, reject) => {
