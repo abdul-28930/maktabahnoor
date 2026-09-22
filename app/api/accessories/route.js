@@ -10,7 +10,14 @@ export async function GET(req) {
   try {
     const all = await redis.get(KEY) || [];
     const list = isAdmin ? all : all.filter(a => a.visible !== false);
-    return NextResponse.json({ accessories: list });
+    return NextResponse.json(
+      { accessories: list },
+      {
+        headers: {
+          'Cache-Control': isAdmin ? 'no-store' : 'public, s-maxage=30, stale-while-revalidate=60',
+        },
+      }
+    );
   } catch { return NextResponse.json({ accessories: [] }); }
 }
 

@@ -49,7 +49,20 @@ export async function GET(req) {
       if (aOut !== bOut) return aOut - bOut;
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
-    return NextResponse.json({ books: list });
+    // Normalize: ensure every book has a proper stockCount integer and inStock bool.
+    // Old records may have undefined stockCount — treat those as 0 (out of stock).
+    list = list.map(b => {
+      const sc = b.stockCount ?? (b.inStock ? 1 : 0);
+      return { ...b, stockCount: Number(sc), inStock: Number(sc) > 0 };
+    });
+    return NextResponse.json(
+      { books: list },
+      {
+        headers: {
+          'Cache-Control': isAdmin ? 'no-store' : 'public, s-maxage=30, stale-while-revalidate=60',
+        },
+      }
+    );
   } catch { return NextResponse.json({ books: [] }); }
 }
 

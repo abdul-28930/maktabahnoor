@@ -1,6 +1,7 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { logOrder } from '@/lib/orders';
+import { getUserFromSessionToken } from '@/lib/userAuth';
 
 // Atomically decrement a dedicated stock counter key. decrby is a single Redis
 // operation, so two simultaneous orders for the same item can't both read a
@@ -22,6 +23,10 @@ export async function POST(req) {
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'No items provided.' }, { status: 400 });
     }
+
+    // Check if user is logged in
+    const token = req.cookies.get('mn_user_token')?.value;
+    const user = token ? await getUserFromSessionToken(token) : null;
 
     const bookItems   = items.filter(i => i.type !== 'bundle' && i.slug);
     const bundleItems = items.filter(i => i.type === 'bundle');
@@ -68,7 +73,16 @@ export async function POST(req) {
     }
 
     if (orderRef) {
-      await logOrder({ orderRef, items, total, pincode }).catch(() => {});
+      await logOrder({
+        orderRef,
+        items,
+        total,
+        pincode,
+        userId: user?.id || null,
+        username: user?.username || null,
+        phone: user?.phone || null,
+        whatsapp: user?.whatsapp || null,
+      }).catch(() => {});
     }
 
     return NextResponse.json({ success: true });

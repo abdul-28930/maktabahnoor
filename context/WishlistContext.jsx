@@ -1,11 +1,14 @@
 'use client';
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from './AuthContext';
 
 const WishlistContext = createContext(null);
 
 export function WishlistProvider({ children }) {
   const [items, setItems] = useState([]); // [{ slug, title, author, category, coverUrl, price, mrp, inStock }]
   const [hydrated, setHydrated] = useState(false);
+  const { user } = useAuth();
+  const syncingRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -15,10 +18,46 @@ export function WishlistProvider({ children }) {
     setHydrated(true);
   }, []);
 
+  /* ── When user logs in, pull cloud wishlist and merge ── */
+  useEffect(() => {
+    if (!user) return;
+    syncingRef.current = true;
+    fetch('/api/user/sync')
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d.wishlist) && d.wishlist.length > 0) {
+          setItems(prev => {
+            const seen = new Set(prev.map(i => i.slug));
+            const merged = [...prev];
+            for (const item of d.wishlist) {
+              if (!seen.has(item.slug)) {
+                merged.push(item);
+                seen.add(item.slug);
+              }
+            }
+            try { localStorage.setItem('mn_wishlist', JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setTimeout(() => { syncingRef.current = false; }, 500);
+      });
+  }, [user]);
+
   useEffect(() => {
     if (!hydrated) return;
     try { localStorage.setItem('mn_wishlist', JSON.stringify(items)); } catch {}
-  }, [items, hydrated]);
+
+    if (user && !syncingRef.current) {
+      fetch('/api/user/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wishlist: items }),
+      }).catch(() => {});
+    }
+  }, [items, hydrated, user]);
 
   const addToWishlist = useCallback((book) => {
     setItems(prev => {

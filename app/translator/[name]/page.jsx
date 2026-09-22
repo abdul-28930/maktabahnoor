@@ -7,7 +7,7 @@ import Image from 'next/image';
 import PageBackground from '@/components/PageBackground';
 import { useCart } from '@/context/CartContext';
 import OfferBadge from '@/components/OfferBadge';
-import { splitTranslators, nameSlug } from '@/lib/constants';
+import { splitTranslators, nameSlug, getBookCategories } from '@/lib/constants';
 
 const CAT_AR = {
   Aqeedah:'عقيدة', Fiqh:'فقه', Hadith:'حديث', Tafsir:'تفسير',
@@ -18,6 +18,8 @@ const CAT_AR = {
 function BookTile({ book }) {
   const { addToCart, isInCart } = useCart();
   const inCart = isInCart(book.slug);
+  const cats = getBookCategories(book);
+  const primaryCat = cats[0] || book.category || 'General';
   function handleAdd(e) { e.preventDefault(); e.stopPropagation(); addToCart(book); }
 
   return (
@@ -25,7 +27,7 @@ function BookTile({ book }) {
       onMouseEnter={e=>e.currentTarget.style.transform='translateY(-3px)'} onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
       <div style={{aspectRatio:'3/4',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
         {book.coverUrl ? <img src={book.coverUrl} alt={book.title} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
-          : <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:26,color:'#d4ab70'}}>{CAT_AR[book.category]||'كتاب'}</span>}
+          : <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:26,color:'#d4ab70'}}>{CAT_AR[primaryCat]||'كتاب'}</span>}
         {!book.inStock && (
           <div style={{position:'absolute',inset:0,background:'rgba(26,23,18,0.5)',display:'flex',alignItems:'center',justifyContent:'center'}}>
             <span style={{color:'#fff',fontSize:10,fontWeight:500,letterSpacing:1,textTransform:'uppercase',border:'1px solid rgba(255,255,255,0.4)',padding:'4px 10px',borderRadius:16}}>Out of Stock</span>
@@ -33,7 +35,7 @@ function BookTile({ book }) {
         )}
       </div>
       <div style={{padding:'12px 14px'}}>
-        <div style={{fontSize:9,color:'#a09890',letterSpacing:.6,textTransform:'uppercase',marginBottom:4}}>{book.category}</div>
+        <div style={{fontSize:9,color:'#a09890',letterSpacing:.6,textTransform:'uppercase',marginBottom:4}}>{cats.join(' · ') || primaryCat}</div>
         <div style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',marginBottom:8}}>{book.title}</div>
         <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:10,flexWrap:'wrap'}}>
           {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{Number(book.price).toLocaleString('en-IN')}</span>}

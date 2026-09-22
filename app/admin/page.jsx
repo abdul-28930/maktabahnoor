@@ -331,12 +331,14 @@ export default function AdminPage() {
     try { stored = localStorage.getItem('mn_admin_session'); } catch {}
     if (!stored) return;
     setSession(stored); setView('dashboard');
-    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts();
+    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadUsers(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts();
   }, []);
 
   const [books, setBooks]         = useState([]);
   const [bundles, setBundles]     = useState([]);
   const [orders, setOrders]       = useState([]);
+  const [users, setUsers]         = useState([]);
+  const [categoryDemand, setCategoryDemand] = useState([]);
   const [views, setViews]         = useState({});
   const [slides, setSlides]       = useState([]);
   const [picks, setPicks]         = useState({ featured: [], newArrivals: [] });
@@ -507,7 +509,7 @@ export default function AdminPage() {
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
       setSession(pw); setView('dashboard'); setPw('');
       try { localStorage.setItem('mn_admin_session', pw); } catch {}
-      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts();
+      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadUsers(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts();
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -520,6 +522,14 @@ export default function AdminPage() {
   }
   async function loadOrders(s=session) {
     try { const r=await fetch(`/api/orders?password=${encodeURIComponent(s)}`); const d=await r.json(); setOrders(d.orders||[]); } catch {}
+  }
+  async function loadUsers(s=session) {
+    try {
+      const r = await fetch(`/api/admin/users?password=${encodeURIComponent(s)}`);
+      const d = await r.json();
+      setUsers(d.users || []);
+      setCategoryDemand(d.categoryDemand || []);
+    } catch {}
   }
   async function loadViews(s=session) {
     try { const r=await fetch(`/api/analytics?password=${encodeURIComponent(s)}`); const d=await r.json(); setViews(d.views||{}); } catch {}
@@ -672,21 +682,31 @@ export default function AdminPage() {
   }
 
   const RENAME_ENDPOINTS = { author:'/api/authors/rename', translator:'/api/translators/rename', publisher:'/api/publishers/rename' };
-  async function renameField(field) {
-    const newName = renameInputs[field].trim();
-    const oldName = origNames[field];
+  async function renameField(field, oldNameVal, newNameVal) {
+    const oldName = oldNameVal || origNames[field];
+    const newName = (newNameVal !== undefined ? newNameVal : renameInputs[field])?.trim();
     if (!newName || newName === oldName) return;
-    setRenameSaving(p=>({...p,[field]:true}));
+    const saveKey = `${field}-${oldName}`;
+    setRenameSaving(p=>({...p,[saveKey]:true,[field]:true}));
     try {
       const r = await fetch(RENAME_ENDPOINTS[field],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,oldName,newName})});
       const d = await r.json();
       if (!r.ok) throw new Error(d.error||'Failed to rename.');
       showToast(`✓ Renamed across ${d.count} book${d.count===1?'':'s'}!`,'success');
-      setOrigNames(p=>({...p,[field]:newName}));
-      f(field, newName);
+      // Update form value
+      const curVal = form[field] || '';
+      const parts = curVal.split(',').map(s=>s.trim()).filter(Boolean);
+      const nextVal = parts.length ? parts.map(p => p.toLowerCase() === oldName.toLowerCase() ? newName : p).join(', ') : newName;
+      f(field, nextVal);
+      setOrigNames(p => {
+        const pVal = p[field] || '';
+        const pParts = pVal.split(',').map(s=>s.trim()).filter(Boolean);
+        const pNext = pParts.length ? pParts.map(x => x.toLowerCase() === oldName.toLowerCase() ? newName : x).join(', ') : newName;
+        return { ...p, [field]: pNext };
+      });
       await loadBooks();
     } catch(e) { showToast(e.message,'error'); }
-    finally { setRenameSaving(p=>({...p,[field]:false})); }
+    finally { setRenameSaving(p=>({...p,[saveKey]:false,[field]:false})); }
   }
 
   async function openEditBundle(id) {
@@ -1074,24 +1094,49 @@ export default function AdminPage() {
         {editSlug && (
           <Card title="Rename Author / Translator / Publisher">
             <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
-              These names aren't unique to this book — renaming one updates it across <b>every book</b> that shares it (and their /author, /translator, /publisher pages). Use this to fix a typo or spelling consistently, not to change just this one book (edit the field above for that).
+              These names aren't unique to this book — renaming one updates it across <b>every book</b> that shares it (and their /author, /translator, /publisher pages). Use this to fix a typo or spelling consistently.
             </p>
-            {[
-              {field:'author', label:'Author'},
-              {field:'translator', label:'Translator'},
-              {field:'publisher', label:'Publisher'},
-            ].filter(({field})=>origNames[field]).map(({field,label})=>(
-              <div key={field} style={{display:'flex',gap:8,alignItems:'center',marginBottom:10}}>
-                <span style={{fontSize:11,color:'#a09890',width:70,flexShrink:0}}>{label}</span>
-                <div style={{flex:1}}><FInput value={renameInputs[field]} onChange={e=>setRenameInputs(p=>({...p,[field]:e.target.value}))} placeholder={label}/></div>
-                <Btn variant="ghost" onClick={()=>renameField(field)} disabled={renameSaving[field] || !renameInputs[field].trim() || renameInputs[field]===origNames[field]}>
-                  {renameSaving[field]?'…':'Rename'}
-                </Btn>
-              </div>
-            ))}
-            {!origNames.author && !origNames.translator && !origNames.publisher && (
-              <p style={{fontSize:12,color:'#a09890',margin:0}}>Fill in Author/Translator/Publisher above and save the book first.</p>
-            )}
+            {(() => {
+              const renameItems = [];
+              if (origNames.author) {
+                const authors = origNames.author.split(',').map(s => s.trim()).filter(Boolean);
+                authors.forEach((a, idx) => {
+                  renameItems.push({ field:'author', oldVal: a, label: authors.length > 1 ? `Author (${idx+1})` : 'Author', key: `author-${a}` });
+                });
+              }
+              if (origNames.translator) {
+                const trans = origNames.translator.split(',').map(s => s.trim()).filter(Boolean);
+                trans.forEach((t, idx) => {
+                  renameItems.push({ field:'translator', oldVal: t, label: trans.length > 1 ? `Translator (${idx+1})` : 'Translator', key: `translator-${t}` });
+                });
+              }
+              if (origNames.publisher) {
+                renameItems.push({ field:'publisher', oldVal: origNames.publisher, label:'Publisher', key:'publisher' });
+              }
+
+              if (renameItems.length === 0) {
+                return <p style={{fontSize:12,color:'#a09890',margin:0}}>Fill in Author/Translator/Publisher above and save the book first.</p>;
+              }
+
+              return renameItems.map(({field, oldVal, label, key}) => (
+                <div key={key} style={{display:'flex',gap:8,alignItems:'center',marginBottom:10}}>
+                  <span style={{fontSize:11,color:'#a09890',width:90,flexShrink:0}}>{label}:</span>
+                  <div style={{flex:1}}>
+                    <FInput
+                      value={renameInputs[key] ?? oldVal}
+                      onChange={e=>setRenameInputs(p=>({...p,[key]:e.target.value}))}
+                      placeholder={oldVal}
+                    />
+                  </div>
+                  <Btn
+                    variant="ghost"
+                    onClick={() => renameField(field, oldVal, renameInputs[key]?.trim())}
+                    disabled={renameSaving[key] || !renameInputs[key]?.trim() || renameInputs[key]?.trim() === oldVal}>
+                    {renameSaving[key] ? '…' : 'Rename'}
+                  </Btn>
+                </div>
+              ));
+            })()}
           </Card>
         )}
         <Card title="Pricing">
@@ -1699,7 +1744,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content',flexWrap:'wrap'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length})`},{id:'users',label:`Customers & Interests (${users.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif'"}}>
               {t.label}
             </button>
@@ -1716,6 +1761,15 @@ export default function AdminPage() {
                 <input type="text" placeholder="Search books…" value={search} onChange={e=>{setSearch(e.target.value);setBookPage(1);}}
                   style={{width:'100%',padding:'8px 14px 8px 36px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.1)',borderRadius:30,fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'#1a1712',outline:'none'}}/>
               </div>
+              <button
+                onClick={async()=>{
+                  const r=await fetch('/api/admin/sync-stock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password})});
+                  const d=await r.json();
+                  alert(d.success?`✅ Synced ${d.synced} of ${d.total} book counters.`:`Error: ${d.error}`);
+                  loadBooks();
+                }}
+                style={{padding:'8px 16px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.2)',background:'transparent',color:'#1b4332',fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}}
+              >Sync Stock</button>
             </div>
             {selected.size > 0 && (
               <div style={{padding:'12px 24px',background:'rgba(27,67,50,0.05)',borderBottom:'1px solid rgba(27,67,50,0.07)',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
@@ -2058,8 +2112,11 @@ export default function AdminPage() {
                 {orders.map((o,i)=>(
                   <div key={o.orderRef} style={{padding:'16px 24px',borderBottom:i<orders.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:8,flexWrap:'wrap'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                         <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:600,color:'#1b4332'}}>{o.orderRef}</span>
+                        {o.username && <span style={{fontSize:11,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>👤 {o.username}</span>}
+                        {o.phone && <span style={{fontSize:11,color:'#6b6460',background:'#f3f1ea',padding:'2px 8px',borderRadius:8}}>📞 {o.phone}</span>}
+                        {o.whatsapp && o.whatsapp !== o.phone && <span style={{fontSize:11,color:'#1b4332',background:'rgba(27,67,50,0.06)',padding:'2px 8px',borderRadius:8}}>💬 {o.whatsapp}</span>}
                         {o.pincode && <span style={{fontSize:10,color:'#1b4332',background:'rgba(27,67,50,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>📍 {o.pincode}</span>}
                         <span style={{fontSize:11,color:'#a09890'}}>{new Date(o.createdAt).toLocaleString('en-IN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
                       </div>
@@ -2149,6 +2206,92 @@ export default function AdminPage() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* CUSTOMERS & INTERESTS */}
+        {tab === 'users' && (
+          <div style={{display:'flex',flexDirection:'column',gap:24}}>
+            {/* Category Demand Card */}
+            <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',padding:28}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap',gap:12}}>
+                <div>
+                  <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'#1b4332',margin:0}}>Book Category Demand &amp; Interests</h2>
+                  <p style={{fontSize:12,color:'#a09890',margin:'4px 0 0'}}>Real-time count of registered readers interested in each book category.</p>
+                </div>
+                <button onClick={()=>loadUsers()} style={{padding:'7px 16px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#1b4332',fontSize:11,cursor:'pointer',letterSpacing:.5,textTransform:'uppercase'}}>Refresh</button>
+              </div>
+
+              {categoryDemand.length === 0 ? (
+                <div style={{textAlign:'center',padding:'24px 0',color:'#a09890',fontSize:13}}>No category interests selected by users yet.</div>
+              ) : (
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))',gap:12}}>
+                  {categoryDemand.map(({ category, count }) => (
+                    <div key={category} style={{background:'#faf9f5',borderRadius:12,border:'1px solid rgba(27,67,50,0.08)',padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <span style={{fontSize:14,fontWeight:500,color:'#1a1712'}}>{category}</span>
+                      <span style={{fontSize:12,fontWeight:600,color:'#2d6a4f',background:'rgba(45,106,79,0.1)',padding:'3px 10px',borderRadius:12}}>
+                        {count} reader{count !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Registered Users List */}
+            <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
+              <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div>
+                  <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:'#1b4332',margin:0}}>Registered Customers ({users.length})</h2>
+                  <p style={{fontSize:12,color:'#a09890',margin:'2px 0 0'}}>User profiles, phone numbers, and categories they follow.</p>
+                </div>
+              </div>
+
+              {users.length === 0 ? (
+                <div style={{textAlign:'center',padding:'60px 24px'}}>
+                  <div style={{fontSize:44,marginBottom:12,opacity:.2}}>👤</div>
+                  <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:0}}>No registered users yet.</p>
+                  <p style={{fontSize:12,color:'#a09890',marginTop:8}}>Customers who create an account will appear here.</p>
+                </div>
+              ) : (
+                <div>
+                  {users.map((u, i) => {
+                    const userOrders = orders.filter(o => o.userId === u.id || (o.username && o.username.toLowerCase() === u.username.toLowerCase()));
+                    return (
+                      <div key={u.id} style={{padding:'18px 24px',borderBottom:i<users.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
+                        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:16,flexWrap:'wrap',marginBottom:8}}>
+                          <div>
+                            <div style={{display:'flex',alignItems:'center',gap:10}}>
+                              <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>@{u.username}</span>
+                              <span style={{fontSize:11,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>
+                                {userOrders.length} order{userOrders.length !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            <div style={{display:'flex',gap:14,marginTop:6,fontSize:12,color:'#6b6460',flexWrap:'wrap'}}>
+                              {u.phone && <span>📞 Phone: <b>{u.phone}</b></span>}
+                              {u.whatsapp && <span>💬 WhatsApp: <b>{u.whatsapp}</b></span>}
+                              <span>Registered: {new Date(u.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Interested categories tags */}
+                        {u.interestedCategories?.length > 0 && (
+                          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginTop:8}}>
+                            <span style={{fontSize:11,color:'#a09890'}}>Interests:</span>
+                            {u.interestedCategories.map(cat => (
+                              <span key={cat} style={{fontSize:11,color:'#1b4332',background:'rgba(27,67,50,0.06)',padding:'2px 8px',borderRadius:6}}>
+                                {cat}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}

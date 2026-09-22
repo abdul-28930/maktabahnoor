@@ -5,8 +5,18 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 
 export async function GET() {
   try {
-    const bundles = await redis.get('mn_bundles_meta') || [];
-    return NextResponse.json({ bundles });
+    const [bundles, meta] = await Promise.all([
+      redis.get('mn_bundles_meta') || [],
+      redis.get('mn_books_meta') || []
+    ]);
+    const bookMap = new Map((meta || []).map(b => [b.slug, b]));
+    const populated = (bundles || []).map(bundle => ({
+      ...bundle,
+      books: (bundle.bookSlugs || []).map(slug => bookMap.get(slug)).filter(Boolean)
+    }));
+    return NextResponse.json({ bundles: populated }, {
+      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' }
+    });
   } catch { return NextResponse.json({ bundles: [] }); }
 }
 

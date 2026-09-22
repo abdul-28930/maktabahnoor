@@ -1,5 +1,6 @@
 'use client';
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from './AuthContext';
 
 const CartContext = createContext(null);
 
@@ -7,6 +8,8 @@ export function CartProvider({ children }) {
   const [items, setItems]     = useState([]);   // [{ slug, title, author, category, coverUrl, price, mrp, qty }]
   const [isOpen, setIsOpen]   = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const { user } = useAuth();
+  const syncingRef = useRef(false);
 
   /* ── Load from localStorage once on mount ── */
   useEffect(() => {
@@ -17,11 +20,51 @@ export function CartProvider({ children }) {
     setHydrated(true);
   }, []);
 
-  /* ── Persist to localStorage on every change ── */
+  /* ── When user logs in, pull cloud cart and merge ── */
+  useEffect(() => {
+    if (!user) return;
+    syncingRef.current = true;
+    fetch('/api/user/sync')
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d.cart) && d.cart.length > 0) {
+          setItems(prev => {
+            // Merge cloud cart with local items, preserving higher qty
+            const map = new Map();
+            for (const item of d.cart) map.set(item.slug, item);
+            for (const item of prev) {
+              if (map.has(item.slug)) {
+                const existing = map.get(item.slug);
+                map.set(item.slug, { ...existing, qty: Math.max(existing.qty || 1, item.qty || 1) });
+              } else {
+                map.set(item.slug, item);
+              }
+            }
+            const merged = Array.from(map.values());
+            try { localStorage.setItem('mn_cart', JSON.stringify(merged)); } catch {}
+            return merged;
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setTimeout(() => { syncingRef.current = false; }, 500);
+      });
+  }, [user]);
+
+  /* ── Persist to localStorage and cloud on change ── */
   useEffect(() => {
     if (!hydrated) return;
     try { localStorage.setItem('mn_cart', JSON.stringify(items)); } catch {}
-  }, [items, hydrated]);
+
+    if (user && !syncingRef.current) {
+      fetch('/api/user/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart: items }),
+      }).catch(() => {});
+    }
+  }, [items, hydrated, user]);
 
   /* ── Actions ── */
   const addToCart = useCallback((book, qty = 1) => {

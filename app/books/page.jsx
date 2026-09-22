@@ -74,7 +74,7 @@ function GridCard({ book, idx }) {
         {tag==='New Arrival' && (
           <div style={{position:'absolute',top:16,right:-34,width:130,transform:'rotate(45deg)',background:'#b8965a',color:'#fff',fontSize:9,fontWeight:600,letterSpacing:1.2,textTransform:'uppercase',textAlign:'center',padding:'4px 0',boxShadow:'0 2px 6px rgba(0,0,0,0.2)',zIndex:2}}>New Arrival</div>
         )}
-        {!book.inStock && <div style={{position:'absolute',inset:0,background:'rgba(250,249,245,0.65)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{padding:'6px 14px',background:'#1a1712',color:'#fff',fontSize:9,letterSpacing:1.5,textTransform:'uppercase',borderRadius:20}}>Out of Stock</span></div>}
+        {(book.stockCount ?? (book.inStock ? 1 : 0)) <= 0 && <div style={{position:'absolute',inset:0,background:'rgba(250,249,245,0.65)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{padding:'6px 14px',background:'#1a1712',color:'#fff',fontSize:9,letterSpacing:1.5,textTransform:'uppercase',borderRadius:20}}>Out of Stock</span></div>}
       </div>
 
       <div style={{padding:'18px 20px 20px',display:'flex',flexDirection:'column',flex:1}}>
@@ -92,11 +92,13 @@ function GridCard({ book, idx }) {
           <OfferBadge type={book.offerType}/>
         </div>
         <div style={{marginTop:'auto',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <span style={{fontSize:11,color:book.inStock?'#2d6a4f':'#b44',fontWeight:500,display:'flex',alignItems:'center',gap:5}}>
-            <span style={{width:6,height:6,borderRadius:'50%',background:book.inStock?'#2d6a4f':'#b44',display:'inline-block'}}/>
-            {book.inStock?'In Stock':'Out of Stock'}
-          </span>
-          {book.inStock !== false && (
+          {(() => { const inS = (book.stockCount ?? (book.inStock ? 1 : 0)) > 0; return (
+            <span style={{fontSize:11,color:inS?'#2d6a4f':'#b44',fontWeight:500,display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap'}}>
+              <span style={{width:6,height:6,borderRadius:'50%',background:inS?'#2d6a4f':'#b44',display:'inline-block',flexShrink:0}}/>
+              {inS?'In Stock':'Out of Stock'}
+            </span>
+          ); })()}
+          {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
             <button
               className={`book-add-to-cart${inCart ? ' book-add-to-cart--in' : ''}`}
               onClick={handleAddToCart}
@@ -161,13 +163,15 @@ function ListCard({ book }) {
           )}
           <OfferBadge type={book.offerType}/>
         </div>
-        <span style={{padding:'4px 12px',borderRadius:20,fontSize:9,fontWeight:500,letterSpacing:.8,textTransform:'uppercase',background:book.inStock?'rgba(45,106,79,0.08)':'rgba(180,60,60,0.07)',color:book.inStock?'#2d6a4f':'#b44',border:`1px solid ${book.inStock?'rgba(45,106,79,0.2)':'rgba(180,60,60,0.15)'}`}}>
-          {book.inStock ? 'In Stock' : 'Out of Stock'}
-        </span>
-        {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
+        {(() => { const inS = (book.stockCount ?? (book.inStock ? 1 : 0)) > 0; return (
+          <span style={{padding:'4px 12px',borderRadius:20,fontSize:9,fontWeight:500,letterSpacing:.8,textTransform:'uppercase',background:inS?'rgba(45,106,79,0.08)':'rgba(180,60,60,0.07)',color:inS?'#2d6a4f':'#b44',border:`1px solid ${inS?'rgba(45,106,79,0.2)':'rgba(180,60,60,0.15)'}`}}>
+            {inS ? 'In Stock' : 'Out of Stock'}
+          </span>
+        ); })()}
+        {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && book.stockCount < 5 && (
           <span style={{fontSize:12,fontWeight:700,color:'#c0392b'}}>Only {book.stockCount} left</span>
         )}
-        {book.inStock !== false && (
+        {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
           <AddToCartListBtn book={book}/>
         )}
       </div>
@@ -241,22 +245,15 @@ function BooksContent() {
   const backdropRef = useRef(null);
 
   useEffect(() => {
-    fetch('/api/books?all=1')
-      .then(r => r.json())
-      .then(d => { setAllBooks(d.books || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  // Category/Language lists are admin-extensible (see /api/taxonomy), so
-  // fetch the live list rather than relying only on the hardcoded defaults.
-  useEffect(() => {
-    fetch('/api/taxonomy')
-      .then(r => r.json())
-      .then(d => {
-        if (d.taxonomy?.categories) setCategories(d.taxonomy.categories);
-        if (d.taxonomy?.languages)  setLanguages(d.taxonomy.languages);
-      })
-      .catch(() => {});
+    Promise.all([
+      fetch('/api/books?all=1').then(r => r.json()).catch(() => ({ books: [] })),
+      fetch('/api/taxonomy').then(r => r.json()).catch(() => ({})),
+    ]).then(([booksData, taxData]) => {
+      setAllBooks(booksData.books || []);
+      if (taxData.taxonomy?.categories) setCategories(taxData.taxonomy.categories);
+      if (taxData.taxonomy?.languages)  setLanguages(taxData.taxonomy.languages);
+      setLoading(false);
+    });
   }, []);
 
   // Sync URL when filters change

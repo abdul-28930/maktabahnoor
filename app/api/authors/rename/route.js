@@ -14,14 +14,31 @@ export async function POST(req) {
     if (clean === oldName) return NextResponse.json({ success: true, count: 0 });
 
     const meta = await redis.get('mn_books_meta') || [];
-    const affected = meta.filter(b => b[FIELD] === oldName);
+    function replaceAuthor(current = '', target, replacement) {
+      const parts = String(current || '').split(',').map(s => s.trim()).filter(Boolean);
+      return parts.map(p => p.toLowerCase() === target.toLowerCase() ? replacement : p).join(', ');
+    }
+
+    const affected = meta.filter(b => {
+      const parts = String(b[FIELD] || '').split(',').map(s => s.trim().toLowerCase());
+      return parts.includes(oldName.toLowerCase()) || b[FIELD] === oldName;
+    });
     if (!affected.length) return NextResponse.json({ error: `No books found with this ${FIELD}.` }, { status: 404 });
 
     for (const b of affected) {
       const full = await redis.get(`mn_book:${b.slug}`);
-      if (full) await redis.set(`mn_book:${b.slug}`, { ...full, [FIELD]: clean });
+      if (full) {
+        const nextVal = replaceAuthor(full[FIELD], oldName, clean);
+        await redis.set(`mn_book:${b.slug}`, { ...full, [FIELD]: nextVal });
+      }
     }
-    await redis.set('mn_books_meta', meta.map(b => b[FIELD] === oldName ? { ...b, [FIELD]: clean } : b));
+    await redis.set('mn_books_meta', meta.map(b => {
+      const parts = String(b[FIELD] || '').split(',').map(s => s.trim().toLowerCase());
+      if (parts.includes(oldName.toLowerCase()) || b[FIELD] === oldName) {
+        return { ...b, [FIELD]: replaceAuthor(b[FIELD], oldName, clean) };
+      }
+      return b;
+    }));
 
     revalidatePath('/');
     return NextResponse.json({ success: true, count: affected.length });

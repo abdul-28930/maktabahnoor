@@ -97,17 +97,9 @@ export default function BundlesPage() {
   useEffect(() => {
     fetch('/api/bundles')
       .then(r => r.json())
-      .then(async d => {
+      .then(d => {
         const active = (d.bundles || []).filter(b => b.active !== false);
-        // Fetch full details (with book covers) for each bundle
-        const detailed = await Promise.all(active.map(async b => {
-          try {
-            const r = await fetch(`/api/bundles/${b.id}`);
-            const dd = await r.json();
-            return dd.bundle || b;
-          } catch { return b; }
-        }));
-        setBundles(detailed);
+        setBundles(active);
         setLoading(false);
       })
       .catch(() => setLoading(false));

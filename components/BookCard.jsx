@@ -44,7 +44,7 @@ export default function BookCard({ book }) {
             <span>مكتبة النور</span>
           </div>
         )}
-        {!book.inStock && (
+        {(book.stockCount ?? (book.inStock ? 1 : 0)) <= 0 && (
           <div className="out-of-stock-overlay">
             <span className="out-of-stock-label">Out of Stock</span>
           </div>
@@ -81,7 +81,7 @@ export default function BookCard({ book }) {
         )}
 
         {/* Add to Cart button */}
-        {book.inStock !== false && (
+        {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
           <button
             className={`book-add-to-cart${inCart ? ' book-add-to-cart--in' : ''}`}
             onClick={handleAddToCart}

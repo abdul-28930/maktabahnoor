@@ -38,7 +38,14 @@ export async function GET() {
   try {
     const stored = await redis.get(TAXONOMY_KEY);
     const taxonomy = mergeWithDefaults(stored);
-    return NextResponse.json({ taxonomy });
+    return NextResponse.json(
+      { taxonomy },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch {
     return NextResponse.json({ taxonomy: seedTaxonomy() });
   }

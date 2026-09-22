@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { WA_NUMBER } from '@/lib/constants';
 
@@ -73,6 +74,7 @@ export default function CartDrawer() {
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
+  const router = useRouter();
   const [pincode, setPincode] = useState('');
   const [pincodeError, setPincodeError] = useState('');
 
@@ -101,7 +103,7 @@ export default function CartDrawer() {
       body: JSON.stringify({
         orderRef,
         pincode: cleanPin,
-        items: items.map(i => ({ slug: i.slug, type: i.type, bundleId: i.bundleId, title: i.title, price: i.price, mrp: i.mrp, qty: i.qty })),
+        items: items.map(i => ({ slug: i.slug, type: i.type, bundleId: i.bundleId, coverUrl: i.coverUrl, author: i.author, title: i.title, price: i.price, mrp: i.mrp, qty: i.qty })),
       }),
     }).catch(() => {});
 
@@ -109,6 +111,7 @@ export default function CartDrawer() {
     closeCart();
     removeCoupon();
     setPincode('');
+    router.push(`/order/${orderRef}`);
   };
 
   return (
