@@ -7,7 +7,7 @@ import Image from 'next/image';
 import PageBackground from '@/components/PageBackground';
 import { useCart } from '@/context/CartContext';
 import OfferBadge from '@/components/OfferBadge';
-import { getBookCategories } from '@/lib/constants';
+import { getBookCategories, splitAuthors, nameSlug } from '@/lib/constants';
 
 const CAT_AR = {
   Aqeedah:'عقيدة', Fiqh:'فقه', Hadith:'حديث', Tafsir:'تفسير',
@@ -73,7 +73,14 @@ export default function AuthorPage() {
       .then(r => r.json())
       .then(d => {
         const list = [...(d.books || [])].sort((a, b) => (a.inStock===false?1:0) - (b.inStock===false?1:0));
-        if (list[0]?.author) setAuthorName(list[0].author);
+        // Match specific author from splitAuthors if book has multiple authors
+        let matched = '';
+        for (const b of list) {
+          const found = splitAuthors(b.author).find(a => nameSlug(a) === nameSlug(slugParam));
+          if (found) { matched = found; break; }
+        }
+        if (matched) setAuthorName(matched);
+        else if (list[0]?.author) setAuthorName(list[0].author);
         setBooks(list); setLoading(false);
       })
       .catch(() => setLoading(false));

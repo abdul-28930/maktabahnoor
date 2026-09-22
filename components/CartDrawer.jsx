@@ -15,7 +15,7 @@ function buildOrderRef() {
   return `MN-${Date.now().toString(36).slice(-5).toUpperCase()}`;
 }
 
-function buildWhatsAppMessage(items, orderRef, coupon) {
+function buildWhatsAppMessage(items, orderRef, coupon, pincode) {
   const lines = items.map((item, i) =>
     `${i + 1}. ${item.type === 'bundle' ? '📦 ' : ''}${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}`
   ).join('\n');
@@ -28,9 +28,11 @@ function buildWhatsAppMessage(items, orderRef, coupon) {
     `I would like to order the following from *Maktabah An Noor*:\n\n` +
     `${lines}\n\n` +
     (subtotal > 0 ? `Subtotal: ₹${subtotal.toLocaleString('en-IN')}\n` : '') +
-    (coupon ? `Coupon *${coupon.code}* applied: -₹${coupon.discount.toLocaleString('en-IN')}\nEstimated total: ₹${total.toLocaleString('en-IN')}\n` : '') +
+    (coupon ? `Coupon *${coupon.code}* applied: -₹${coupon.discount.toLocaleString('en-IN')}\nEstimated items total: ₹${total.toLocaleString('en-IN')}\n` : '') +
+    `Delivery Pincode: *${pincode}*\n` +
     `Order ref: *${orderRef}*\n\n` +
-    `Please confirm availability and share the total. JazakAllahu Khairan! 📚`
+    `_Note: Shipping charges are applicable and will be calculated & confirmed via WhatsApp before payment._\n\n` +
+    `Please confirm availability, shipping charges, and total amount to pay. JazakAllahu Khairan! 📚`
   );
 }
 
@@ -71,9 +73,23 @@ export default function CartDrawer() {
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
+  const [pincode, setPincode] = useState('');
+  const [pincodeError, setPincodeError] = useState('');
+
   const handleWhatsApp = () => {
+    const cleanPin = pincode.trim();
+    if (!cleanPin) {
+      setPincodeError('Pincode is required to proceed with order.');
+      return;
+    }
+    if (!/^\d{6}$/.test(cleanPin)) {
+      setPincodeError('Please enter a valid 6-digit pincode.');
+      return;
+    }
+    setPincodeError('');
+
     const orderRef = buildOrderRef();
-    const msg = buildWhatsAppMessage(items, orderRef, coupon);
+    const msg = buildWhatsAppMessage(items, orderRef, coupon, cleanPin);
     const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank', 'noreferrer');
 
@@ -84,6 +100,7 @@ export default function CartDrawer() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         orderRef,
+        pincode: cleanPin,
         items: items.map(i => ({ slug: i.slug, type: i.type, bundleId: i.bundleId, title: i.title, price: i.price, mrp: i.mrp, qty: i.qty })),
       }),
     }).catch(() => {});
@@ -91,6 +108,7 @@ export default function CartDrawer() {
     clearCart();
     closeCart();
     removeCoupon();
+    setPincode('');
   };
 
   return (
@@ -261,6 +279,59 @@ export default function CartDrawer() {
                   </div>
                 </div>
               )}
+
+              {/* Mandatory Delivery Pincode */}
+              <div style={{marginBottom:14}}>
+                <label style={{display:'block',fontSize:12,fontWeight:500,color:'#1b4332',marginBottom:6}}>
+                  Delivery Pincode <span style={{color:'#dc2626'}}>*</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={pincode}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setPincode(val);
+                    if (pincodeError) setPincodeError('');
+                  }}
+                  placeholder="Enter 6-digit Pincode (e.g. 600001)"
+                  style={{
+                    width:'100%',
+                    padding:'10px 14px',
+                    border:`1.5px solid ${pincodeError ? '#dc2626' : 'rgba(27,67,50,0.18)'}`,
+                    borderRadius:10,
+                    fontSize:14,
+                    fontFamily:"'DM Sans',sans-serif",
+                    outline:'none',
+                    background:'#fff',
+                    boxSizing:'border-box',
+                    transition:'border-color .2s'
+                  }}
+                />
+                {pincodeError && (
+                  <div style={{fontSize:11,color:'#dc2626',marginTop:4,fontWeight:500}}>{pincodeError}</div>
+                )}
+              </div>
+
+              {/* Shipping note */}
+              <div style={{
+                display:'flex',
+                alignItems:'flex-start',
+                gap:8,
+                padding:'10px 12px',
+                background:'rgba(184,150,90,0.1)',
+                border:'1px solid rgba(184,150,90,0.25)',
+                borderRadius:10,
+                fontSize:12,
+                color:'#6b6460',
+                lineHeight:1.45,
+                marginBottom:14
+              }}>
+                <span style={{fontSize:15,flexShrink:0,marginTop:-1}}>🚚</span>
+                <span>
+                  <strong style={{color:'#1b4332'}}>Shipping charges applicable:</strong> Exact delivery charge depends on weight &amp; pincode, and will be shared via WhatsApp for your approval before making payment.
+                </span>
+              </div>
 
               {/* Summary note */}
               <div className="cart-summary-note">

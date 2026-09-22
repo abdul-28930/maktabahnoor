@@ -217,6 +217,108 @@ const TaxonomyMultiSelect = ({ selected = [], onChange, options = [], onAddOptio
   );
 };
 
+const MultiTagInput = ({ value = '', onChange, placeholder = 'Add and press Enter…' }) => {
+  const [draft, setDraft] = useState('');
+  const tags = String(value || '').split(',').map(s => s.trim()).filter(Boolean);
+
+  const addTag = (text) => {
+    const clean = text.trim();
+    if (!clean) return;
+    const parts = clean.split(',').map(s => s.trim()).filter(Boolean);
+    const updated = [...tags];
+    for (const p of parts) {
+      if (!updated.includes(p)) updated.push(p);
+    }
+    onChange(updated.join(', '));
+    setDraft('');
+  };
+
+  const removeTag = (indexToRemove) => {
+    const updated = tags.filter((_, idx) => idx !== indexToRemove);
+    onChange(updated.join(', '));
+  };
+
+  return (
+    <div style={{
+      background:'#faf9f5',
+      border:'1.5px solid rgba(27,67,50,0.12)',
+      borderRadius:10,
+      padding:'6px 8px',
+      minHeight:44,
+      display:'flex',
+      flexWrap:'wrap',
+      gap:6,
+      alignItems:'center',
+      transition:'border-color .2s'
+    }}
+    onFocus={e=>e.currentTarget.style.borderColor='#1b4332'}
+    onBlur={e=>e.currentTarget.style.borderColor='rgba(27,67,50,0.12)'}>
+      {tags.map((tag, idx) => (
+        <span key={idx} style={{
+          display:'inline-flex',
+          alignItems:'center',
+          gap:5,
+          padding:'4px 10px',
+          background:'rgba(27,67,50,0.08)',
+          color:'#1b4332',
+          borderRadius:16,
+          fontSize:12,
+          fontWeight:500
+        }}>
+          {tag}
+          <button
+            type="button"
+            onClick={() => removeTag(idx)}
+            style={{
+              background:'none',
+              border:'none',
+              color:'#1b4332',
+              cursor:'pointer',
+              padding:0,
+              fontSize:13,
+              lineHeight:1,
+              display:'flex',
+              alignItems:'center',
+              opacity:0.6
+            }}
+            onMouseEnter={e=>e.currentTarget.style.opacity='1'}
+            onMouseLeave={e=>e.currentTarget.style.opacity='0.6'}>
+            ✕
+          </button>
+        </span>
+      ))}
+      <input
+        type="text"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addTag(draft);
+          } else if (e.key === 'Backspace' && !draft && tags.length > 0) {
+            removeTag(tags.length - 1);
+          }
+        }}
+        onBlur={() => {
+          if (draft.trim()) addTag(draft);
+        }}
+        placeholder={tags.length === 0 ? placeholder : '+ add another'}
+        style={{
+          flex:1,
+          minWidth:120,
+          border:'none',
+          background:'transparent',
+          outline:'none',
+          fontSize:13,
+          color:'#1a1712',
+          fontFamily:"'DM Sans',sans-serif",
+          padding:'4px 6px'
+        }}
+      />
+    </div>
+  );
+};
+
 export default function AdminPage() {
   const [view, setView]           = useState('login');
   const [tab, setTab]             = useState('books');
@@ -262,6 +364,9 @@ export default function AdminPage() {
   const [origNames, setOrigNames] = useState({author:'',translator:'',publisher:''});
   const [renameInputs, setRenameInputs] = useState({author:'',translator:'',publisher:''});
   const [renameSaving, setRenameSaving] = useState({author:false,translator:false,publisher:false});
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryInput, setCategoryInput] = useState('');
+  const [categorySaving, setCategorySaving] = useState(false);
   const [editBundleId, setEditBundleId] = useState(null);
   const [editSlideId, setEditSlideId] = useState(null);
   const [form, setForm]           = useState(EMPTY_BOOK);
@@ -465,6 +570,33 @@ export default function AdminPage() {
       setTaxonomy(d.taxonomy);
       showToast(`✓ Added "${value}".`,'success');
     } catch(e) { showToast(e.message,'error'); }
+  }
+
+  async function renameCategory(oldName, newName) {
+    const clean = String(newName || '').trim();
+    if (!clean || clean === oldName) {
+      setEditingCategory(null);
+      return;
+    }
+    setCategorySaving(true);
+    try {
+      const r = await fetch('/api/categories/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: session, oldName, newName: clean }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to rename.');
+      if (d.taxonomy) setTaxonomy(d.taxonomy);
+      await loadBooks();
+      setEditingCategory(null);
+      setCategoryInput('');
+      showToast(`✓ Renamed "${oldName}" → "${clean}" (${d.count || 0} books updated)`, 'success');
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setCategorySaving(false);
+    }
   }
   async function toggleOrderFulfilled(orderRef, fulfilled) {
     try {
@@ -712,9 +844,9 @@ export default function AdminPage() {
   // (home, /books, category/author pages, filtering...). A handful of
   // multi-MB uploads in that one shared value would slow the whole site down,
   // not just the book they belong to — so we keep what we store small.
-  const MAX_DIMENSION = 640;   // px, longest side — still sharp at the sizes this shows (max ~320px on the detail page)
-  const JPEG_QUALITY   = 0.72;
-  const MAX_IMG_MB      = 0.6; // hard safety cap — a compressed 640px JPEG is normally well under this; kept tight because this image gets duplicated into one shared record read on every page
+  const MAX_DIMENSION = 500;   // px, longest side — sharp for book cards and covers
+  const JPEG_QUALITY   = 0.70;
+  const MAX_IMG_MB      = 0.6; // hard safety cap
 
   function compressImage(file) {
     return new Promise((resolve, reject) => {
@@ -906,8 +1038,8 @@ export default function AdminPage() {
             <FInput value={form.title} onChange={e=>f('title',e.target.value)} placeholder="e.g. Sahih Al-Bukhari"/>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
-            <div><Label hint="Optional · separate multiple authors with commas">Author(s)</Label><FInput value={form.author} onChange={e=>f('author',e.target.value)} placeholder="e.g. Imam Al-Bukhari, Ibn Hajar"/></div>
-            <div><Label hint="Optional">Translator</Label><FInput value={form.translator} onChange={e=>f('translator',e.target.value)} placeholder="e.g. Dr. Muhammad Muhsin Khan"/></div>
+            <div><Label hint="Type name and press Enter or comma">Author(s)</Label><MultiTagInput value={form.author} onChange={val=>f('author',val)} placeholder="e.g. Imam Al-Bukhari"/></div>
+            <div><Label hint="Type name and press Enter or comma">Translator(s)</Label><MultiTagInput value={form.translator} onChange={val=>f('translator',val)} placeholder="e.g. Muhsin Khan"/></div>
             <div><Label hint="Optional">Publisher</Label><FInput value={form.publisher} onChange={e=>f('publisher',e.target.value)} placeholder="e.g. Darussalam"/></div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
@@ -1364,6 +1496,7 @@ export default function AdminPage() {
                 <input id="acc-img-input" type="file" accept="image/*" style={{display:'none'}} onChange={handleAccImg}/>
               </div>
             )}
+          {accForm.coverUrl && <button onClick={()=>af('coverUrl','')} style={{marginTop:8,fontSize:11,color:'#a09890',background:'none',border:'none',cursor:'pointer',padding:0}}>✕ Remove image</button>}
         </Card>
         <Card title="Colors (optional)">
           <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px'}}>Add color options like on Amazon — each with its own stock count. Leave empty for a single-color product.</p>
@@ -1428,6 +1561,7 @@ export default function AdminPage() {
                 <input id="cloth-img-input" type="file" accept="image/*" style={{display:'none'}} onChange={handleClothImg}/>
               </div>
             )}
+          {clothForm.coverUrl && <button onClick={()=>clf('coverUrl','')} style={{marginTop:8,fontSize:11,color:'#a09890',background:'none',border:'none',cursor:'pointer',padding:0}}>✕ Remove image</button>}
         </Card>
         <Card title="Sizes / Colors (optional)">
           <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px'}}>Add size and/or color options, each with its own stock count. Leave a field blank if it doesn't apply (e.g. size-only, no color). Leave the whole section empty for a single-variant product.</p>
@@ -1564,8 +1698,8 @@ export default function AdminPage() {
         </div>
 
         {/* Tabs */}
-        <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
+        <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content',flexWrap:'wrap'}}>
+          {[{id:'books',label:`Books (${books.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif'"}}>
               {t.label}
             </button>
@@ -1677,11 +1811,13 @@ export default function AdminPage() {
               </div>
             ) : (
               <div>
-                {bundles.map((b,i)=>(
+                {bundles.map((b,i)=>{
+                  const firstCover = b.bookSlugs?.length ? books.find(bk => bk.slug === b.bookSlugs[0])?.coverUrl : null;
+                  return (
                   <div key={b.id} style={{display:'flex',alignItems:'center',gap:16,padding:'16px 24px',borderBottom:i<bundles.length-1?'1px solid rgba(27,67,50,0.05)':'none',transition:'background .15s'}}
                     onMouseEnter={e=>e.currentTarget.style.background='rgba(27,67,50,0.02)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                    <div style={{width:44,height:44,borderRadius:10,background:'linear-gradient(135deg,#2d6a4f,#b8965a)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                      <span style={{fontSize:18}}>📦</span>
+                    <div style={{width:44,height:44,borderRadius:10,background:'linear-gradient(135deg,#2d6a4f,#b8965a)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
+                      {firstCover ? <img src={firstCover} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/> : <span style={{fontSize:18}}>📦</span>}
                     </div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
@@ -1709,7 +1845,8 @@ export default function AdminPage() {
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1784,7 +1921,9 @@ export default function AdminPage() {
                       <button onClick={()=>moveSlide(s.id,1)} disabled={i===arr.length-1} style={{width:22,height:18,border:'1px solid rgba(27,67,50,0.15)',borderRadius:5,background:'transparent',color:i===arr.length-1?'#d8d3cb':'#6b6460',cursor:i===arr.length-1?'default':'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>▼</button>
                     </div>
                     <div style={{width:44,height:58,borderRadius:6,overflow:'hidden',flexShrink:0,background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                      {s.imageUrl?<img src={s.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>:<span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#d4ab70'}}>ك</span>}
+                      {(s.imageUrl || (s.mode === 'book' && books.find(b => b.slug === s.bookSlug)?.coverUrl))
+                        ? <img src={s.imageUrl || books.find(b => b.slug === s.bookSlug)?.coverUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
+                        : <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#d4ab70'}}>ك</span>}
                     </div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
@@ -1921,6 +2060,7 @@ export default function AdminPage() {
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:8,flexWrap:'wrap'}}>
                       <div style={{display:'flex',alignItems:'center',gap:10}}>
                         <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:600,color:'#1b4332'}}>{o.orderRef}</span>
+                        {o.pincode && <span style={{fontSize:10,color:'#1b4332',background:'rgba(27,67,50,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>📍 {o.pincode}</span>}
                         <span style={{fontSize:11,color:'#a09890'}}>{new Date(o.createdAt).toLocaleString('en-IN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -1943,6 +2083,73 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* CATEGORIES LIST & EDIT */}
+        {tab === 'categories' && (
+          <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden',padding:28}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:12}}>
+              <div>
+                <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'#1b4332',margin:0}}>Categories</h2>
+                <p style={{fontSize:12,color:'#a09890',margin:'4px 0 0'}}>Rename any category. It will automatically update across all books and storefront filters.</p>
+              </div>
+            </div>
+
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {taxonomy.categories.map(cat => {
+                const isEditing = editingCategory === cat;
+                const bookCount = books.filter(b => getBookCategories(b).includes(cat)).length;
+
+                if (isEditing) {
+                  return (
+                    <div key={cat} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',background:'rgba(27,67,50,0.04)',borderRadius:10,border:'1.5px solid #1b4332'}}>
+                      <input
+                        type="text"
+                        value={categoryInput}
+                        onChange={e => setCategoryInput(e.target.value)}
+                        placeholder="Category name"
+                        autoFocus
+                        style={{flex:1,padding:'8px 12px',background:'#fff',border:'1px solid rgba(27,67,50,0.2)',borderRadius:8,fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none'}}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') renameCategory(cat, categoryInput);
+                          if (e.key === 'Escape') setEditingCategory(null);
+                        }}
+                      />
+                      <Btn small disabled={categorySaving || !categoryInput.trim() || categoryInput.trim() === cat} onClick={() => renameCategory(cat, categoryInput)}>
+                        {categorySaving ? 'Saving…' : 'Save'}
+                      </Btn>
+                      <button
+                        type="button"
+                        onClick={() => setEditingCategory(null)}
+                        style={{padding:'8px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#6b6460',fontSize:11,cursor:'pointer'}}>
+                        Cancel
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={cat} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',background:'#faf9f5',borderRadius:12,border:'1px solid rgba(27,67,50,0.08)'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      <span style={{fontSize:14,fontWeight:500,color:'#1a1712'}}>{cat}</span>
+                      <span style={{fontSize:11,color:'#a09890',background:'rgba(27,67,50,0.06)',padding:'2px 8px',borderRadius:10}}>
+                        {bookCount} {bookCount === 1 ? 'book' : 'books'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingCategory(cat);
+                        setCategoryInput(cat);
+                      }}
+                      style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.18)',background:'transparent',color:'#1b4332',fontSize:11,cursor:'pointer',fontWeight:500}}>
+                      ✎ Edit Name
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

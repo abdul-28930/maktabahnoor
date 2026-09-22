@@ -7,6 +7,7 @@ import Image from 'next/image';
 import PageBackground from '@/components/PageBackground';
 import { useCart } from '@/context/CartContext';
 import OfferBadge from '@/components/OfferBadge';
+import { splitTranslators, nameSlug } from '@/lib/constants';
 
 const CAT_AR = {
   Aqeedah:'عقيدة', Fiqh:'فقه', Hadith:'حديث', Tafsir:'تفسير',
@@ -69,7 +70,13 @@ export default function TranslatorPage() {
       .then(r => r.json())
       .then(d => {
         const list = [...(d.books || [])].sort((a, b) => (a.inStock===false?1:0) - (b.inStock===false?1:0));
-        if (list[0]?.translator) setTranslatorName(list[0].translator);
+        let matched = '';
+        for (const b of list) {
+          const found = splitTranslators(b.translator).find(t => nameSlug(t) === nameSlug(slugParam));
+          if (found) { matched = found; break; }
+        }
+        if (matched) setTranslatorName(matched);
+        else if (list[0]?.translator) setTranslatorName(list[0].translator);
         setBooks(list); setLoading(false);
       })
       .catch(() => setLoading(false));

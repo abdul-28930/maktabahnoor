@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { EMAIL, nameSlug, splitAuthors, getBookCategories } from '@/lib/constants';
+import { EMAIL, nameSlug, splitAuthors, splitTranslators, getBookCategories } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import PageBackground from '@/components/PageBackground';
@@ -125,7 +125,7 @@ export default function BookPage() {
     book.pages > 0  && { label:'Pages',      val:book.pages },
     book.language   && { label:'Language',   val:book.language },
     cats.length > 0 && { label: cats.length > 1 ? 'Categories' : 'Category', val: cats.join(', ') },
-    book.translator && { label:'Translator', val:book.translator },
+    book.translator && { label: splitTranslators(book.translator).length > 1 ? 'Translators' : 'Translator', val: book.translator, isTranslator: true },
   ].filter(Boolean);
 
   return (
@@ -198,13 +198,24 @@ export default function BookPage() {
               ))}
             </div>
           )}
+          {book.translator && (
+            <div style={{fontSize:15,color:'#6b6460',marginBottom:8,fontWeight:300}}>
+              <span style={{fontWeight:500,color:'#4a453f'}}>{splitTranslators(book.translator).length > 1 ? 'Translators:' : 'Translator:'}</span>{' '}
+              {splitTranslators(book.translator).map((t, i, arr) => (
+                <span key={t}>
+                  <Link href={`/translator/${nameSlug(t)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{t}</Link>
+                  {i < arr.length - 1 && ', '}
+                </span>
+              ))}
+            </div>
+          )}
           {book.publisher && (
             <div style={{fontSize:15,color:'#6b6460',marginBottom:28,fontWeight:300}}>
               <span style={{fontWeight:500,color:'#4a453f'}}>Publisher:</span>{' '}
               <Link href={`/publisher/${nameSlug(book.publisher)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{book.publisher}</Link>
             </div>
           )}
-          {!book.author && !book.publisher && <div style={{marginBottom:20}}/>}
+          {!book.author && !book.translator && !book.publisher && <div style={{marginBottom:20}}/>}
 
           <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:28}}>
             <span style={{flex:1,height:1,background:'linear-gradient(90deg,rgba(27,67,50,0.2),transparent)'}}/>
@@ -280,8 +291,13 @@ export default function BookPage() {
                 <div key={s.label} style={{padding:'16px 20px',background:'#fff',borderRadius:12,border:'1px solid rgba(27,67,50,0.08)',boxShadow:'0 2px 8px rgba(27,67,50,0.04)'}}>
                   <div style={{fontSize:9,letterSpacing:'2px',textTransform:'uppercase',color:'#b8965a',marginBottom:5}}>{s.label}</div>
                   <div style={{fontSize:15,color:'#1a1712',fontWeight:400}}>
-                    {s.label === 'Translator'
-                      ? <Link href={`/translator/${nameSlug(s.val)}`} style={{color:'#1a1712',textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{s.val}</Link>
+                    {s.isTranslator
+                      ? splitTranslators(s.val).map((t, idx, arr) => (
+                          <span key={t}>
+                            <Link href={`/translator/${nameSlug(t)}`} style={{color:'#1a1712',textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{t}</Link>
+                            {idx < arr.length - 1 && ', '}
+                          </span>
+                        ))
                       : s.val}
                   </div>
                 </div>

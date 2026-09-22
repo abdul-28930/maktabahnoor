@@ -18,7 +18,7 @@ async function decrementStock(key, qty) {
 
 export async function POST(req) {
   try {
-    const { items, orderRef } = await req.json();
+    const { items, orderRef, pincode } = await req.json();
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'No items provided.' }, { status: 400 });
     }
@@ -68,7 +68,7 @@ export async function POST(req) {
     }
 
     if (orderRef) {
-      await logOrder({ orderRef, items, total }).catch(() => {});
+      await logOrder({ orderRef, items, total, pincode }).catch(() => {});
     }
 
     return NextResponse.json({ success: true });
