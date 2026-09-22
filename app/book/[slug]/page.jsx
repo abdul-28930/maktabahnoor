@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { EMAIL, nameSlug, splitAuthors } from '@/lib/constants';
+import { EMAIL, nameSlug, splitAuthors, getBookCategories } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import PageBackground from '@/components/PageBackground';
@@ -116,13 +116,15 @@ export default function BookPage() {
     </div>
   );
 
-  const ar = CAT_AR[book.category] || 'كتاب';
+  const cats = getBookCategories(book);
+  const primaryCat = cats[0] || book.category || 'General';
+  const ar = CAT_AR[primaryCat] || 'كتاب';
   const specs = [
     book.binding    && { label:'Binding',    val:book.binding },
     book.volumes    && { label:'Volumes',    val:book.volumes===1?'Single Volume':`${book.volumes} Volumes` },
     book.pages > 0  && { label:'Pages',      val:book.pages },
     book.language   && { label:'Language',   val:book.language },
-    book.category   && { label:'Category',   val:book.category },
+    cats.length > 0 && { label: cats.length > 1 ? 'Categories' : 'Category', val: cats.join(', ') },
     book.translator && { label:'Translator', val:book.translator },
   ].filter(Boolean);
 
@@ -173,8 +175,12 @@ export default function BookPage() {
 
         {/* DETAILS */}
         <div>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
-            <span style={{padding:'5px 14px',background:'rgba(27,67,50,0.07)',borderRadius:20,fontSize:10,fontWeight:500,letterSpacing:1,textTransform:'uppercase',color:'#1b4332'}}>{book.category}</span>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20,flexWrap:'wrap'}}>
+            {cats.map(c => (
+              <Link key={c} href={`/books?category=${encodeURIComponent(c)}`} style={{textDecoration:'none'}}>
+                <span style={{padding:'5px 14px',background:'rgba(27,67,50,0.07)',borderRadius:20,fontSize:10,fontWeight:500,letterSpacing:1,textTransform:'uppercase',color:'#1b4332'}}>{c}</span>
+              </Link>
+            ))}
             <span style={{padding:'5px 14px',background:'rgba(184,150,90,0.08)',borderRadius:20,fontSize:10,fontWeight:500,letterSpacing:1,textTransform:'uppercase',color:'#b8965a',border:'1px solid rgba(184,150,90,0.25)'}}>{book.language}</span>
           </div>
 
@@ -337,7 +343,7 @@ export default function BookPage() {
       {related.length > 0 && (
         <div style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'0 clamp(20px,5vw,72px) 80px'}}>
           <div style={{fontSize:11,letterSpacing:'2px',textTransform:'uppercase',color:'#b8965a',marginBottom:18,display:'flex',alignItems:'center',gap:8}}>
-            <span style={{width:16,height:1,background:'#b8965a',display:'inline-block'}}/>More in {book.category}
+            <span style={{width:16,height:1,background:'#b8965a',display:'inline-block'}}/>More in {primaryCat}
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:18}}>
             {related.map(rb => (

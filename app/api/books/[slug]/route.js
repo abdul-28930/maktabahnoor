@@ -1,12 +1,16 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { MANDATORY_BOOK_FIELDS, metaSafeCoverUrl } from '@/lib/constants';
+import { MANDATORY_BOOK_FIELDS, metaSafeCoverUrl, getBookCategories } from '@/lib/constants';
 
 const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
 
 function missingMandatoryFields(data) {
   return MANDATORY_BOOK_FIELDS.filter(k => {
+    if (k === 'category') {
+      const cats = getBookCategories(data);
+      return cats.length === 0;
+    }
     const v = data[k];
     return v === undefined || v === null || String(v).trim() === '';
   }).map(k => FIELD_LABELS[k] || k);
@@ -37,7 +41,11 @@ export async function PUT(req, { params }) {
     if (missing.length)
       return NextResponse.json({ error: `Required field${missing.length > 1 ? 's' : ''} missing: ${missing.join(', ')}.` }, { status: 400 });
     const stockCount = Math.max(0, parseInt(updates.stockCount ?? existing.stockCount) || 0);
+    const categories = getBookCategories(merged);
+    const primaryCategory = categories[0] || 'General';
     const updated = { ...existing, ...updates,
+      category: primaryCategory,
+      categories,
       stockCount, inStock: stockCount > 0,
       mrp: parseFloat(updates.mrp ?? existing.mrp) || 0,
       price: parseFloat(updates.price ?? existing.price) || 0,
@@ -48,7 +56,7 @@ export async function PUT(req, { params }) {
     const idx  = meta.findIndex(b => b.slug === params.slug);
     if (idx >= 0) {
       meta[idx] = { ...meta[idx], sku: updated.sku, title: updated.title, translator: updated.translator, publisher: updated.publisher,
-        author: updated.author, category: updated.category, language: updated.language,
+        author: updated.author, category: updated.category, categories: updated.categories, language: updated.language,
         binding: updated.binding, volumes: updated.volumes, pages: updated.pages,
         mrp: updated.mrp, price: updated.price, offerType: updated.offerType,
         stockCount, inStock: updated.inStock, visible: updated.visible !== false, tags: updated.tags, coverUrl: metaSafeCoverUrl(updated.coverUrl),

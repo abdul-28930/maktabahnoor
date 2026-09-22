@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import PageBackground from '@/components/PageBackground';
+import { getBookCategories } from '@/lib/constants';
 
 const OFFER_COLORS = {
   'Sale':                {bg:'rgba(220,38,38,0.1)',  border:'rgba(220,38,38,0.3)',  text:'#dc2626'},
@@ -163,7 +164,7 @@ export default function BundlePage() {
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</div>
-                    <div style={{fontSize:12,color:'#a09890'}}>{b.author} · {b.category}</div>
+                    <div style={{fontSize:12,color:'#a09890'}}>{b.author}{b.author ? ' · ' : ''}{getBookCategories(b).join(', ') || b.category}</div>
                   </div>
                   {(b.price || b.mrp) && (
                     <div style={{fontSize:13,color:'#a09890',flexShrink:0}}>₹{Number(b.price || b.mrp).toLocaleString('en-IN')}</div>

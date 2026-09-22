@@ -1,12 +1,16 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { slugify, nameSlug, splitAuthors, metaSafeCoverUrl, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
+import { slugify, nameSlug, splitAuthors, metaSafeCoverUrl, MANDATORY_BOOK_FIELDS, getBookCategories } from '@/lib/constants';
 
 const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
 
 function missingMandatoryFields(data) {
   return MANDATORY_BOOK_FIELDS.filter(k => {
+    if (k === 'category') {
+      const cats = getBookCategories(data);
+      return cats.length === 0;
+    }
     const v = data[k];
     return v === undefined || v === null || String(v).trim() === '';
   }).map(k => FIELD_LABELS[k] || k);
@@ -30,7 +34,7 @@ export async function GET(req) {
     const meta = await redis.get('mn_books_meta') || [];
     let list = isAdmin ? meta : meta.filter(b => b.visible !== false);
     if (!all) list = list.filter(b => (b.stockCount ?? (b.inStock ? 1 : 0)) > 0);
-    if (category) list = list.filter(b => b.category === category);
+    if (category) list = list.filter(b => getBookCategories(b).includes(category));
     if (language)  list = list.filter(b => b.language === language);
     if (tag)       list = list.filter(b => b.tags?.includes(tag));
     if (author)    list = list.filter(b => splitAuthors(b.author).some(a => nameSlug(a) === nameSlug(author)));
@@ -62,6 +66,8 @@ export async function POST(req) {
     const slug = slugify(data.title, data.author || '');
     const now  = new Date().toISOString();
     const stockCount = Math.max(0, parseInt(data.stockCount) || 0);
+    const categories = getBookCategories(data);
+    const primaryCategory = categories[0] || 'General';
     const book = {
       slug,
       sku:         data.sku?.trim() || '',
@@ -70,7 +76,8 @@ export async function POST(req) {
       translator:  data.translator?.trim() || '',
       publisher:   data.publisher?.trim() || '',
       language:    data.language || 'Arabic',
-      category:    data.category || 'General',
+      category:    primaryCategory,
+      categories,
       description: data.description?.trim() || '',
       volumes:     data.volumes ? parseInt(data.volumes) : null,
       binding:     data.binding || '',
@@ -92,7 +99,7 @@ export async function POST(req) {
     await redis.set(`mn_stock:book:${slug}`, stockCount);
     const meta = await redis.get('mn_books_meta') || [];
     const m = { slug, sku: book.sku, title: book.title, author: book.author, translator: book.translator, publisher: book.publisher,
-                category: book.category, language: book.language, binding: book.binding,
+                category: book.category, categories: book.categories, language: book.language, binding: book.binding,
                 volumes: book.volumes, pages: book.pages, mrp: book.mrp, price: book.price,
                 offerType: book.offerType, stockCount, inStock: book.inStock, visible: book.visible, order: book.order,
                 tags: book.tags, coverUrl: metaSafeCoverUrl(book.coverUrl), createdAt: now };

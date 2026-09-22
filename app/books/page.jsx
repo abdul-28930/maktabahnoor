@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import BooksNavDropdown from '@/components/BooksNavDropdown';
 import PageBackground from '@/components/PageBackground';
 import OfferBadge from '@/components/OfferBadge';
-import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, getBookCategories } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 
 /* ── constants ── */
@@ -37,8 +37,10 @@ const SORT_OPTIONS = [
 
 /* ── Book card — grid mode ── */
 function GridCard({ book, idx }) {
-  const bg  = COVER_BKGS[idx % COVER_BKGS.length];
-  const ar  = CAT_AR[book.category] || 'كتاب';
+  const bg   = COVER_BKGS[idx % COVER_BKGS.length];
+  const cats = getBookCategories(book);
+  const primaryCat = cats[0] || book.category || 'General';
+  const ar   = CAT_AR[primaryCat] || 'كتاب';
   const tag = book.tags?.includes('New Arrival') ? 'New Arrival'
             : book.tags?.includes('Bestseller')  ? 'Bestseller'  : null;
   const { addToCart, isInCart } = useCart();
@@ -65,7 +67,7 @@ function GridCard({ book, idx }) {
               <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:14,color:'rgba(255,255,255,0.85)',textAlign:'center',lineHeight:1.25}}>{book.title}</span>
             </div>
         }
-        <span style={{position:'absolute',top:10,left:10,background:'rgba(27,67,50,0.88)',backdropFilter:'blur(4px)',color:'#fff',fontSize:9,letterSpacing:1.2,textTransform:'uppercase',padding:'4px 10px',borderRadius:20}}>{book.category}</span>
+        <span style={{position:'absolute',top:10,left:10,background:'rgba(27,67,50,0.88)',backdropFilter:'blur(4px)',color:'#fff',fontSize:9,letterSpacing:1.2,textTransform:'uppercase',padding:'4px 10px',borderRadius:20,maxWidth:'80%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cats.join(' · ') || primaryCat}</span>
         {tag==='Bestseller' && (
           <div style={{position:'absolute',top:16,right:-34,width:130,transform:'rotate(45deg)',background:'#b8965a',color:'#fff',fontSize:9,fontWeight:600,letterSpacing:1.2,textTransform:'uppercase',textAlign:'center',padding:'4px 0',boxShadow:'0 2px 6px rgba(0,0,0,0.2)',zIndex:2}}>Bestseller</div>
         )}
@@ -74,34 +76,47 @@ function GridCard({ book, idx }) {
         )}
         {!book.inStock && <div style={{position:'absolute',inset:0,background:'rgba(250,249,245,0.65)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{padding:'6px 14px',background:'#1a1712',color:'#fff',fontSize:9,letterSpacing:1.5,textTransform:'uppercase',borderRadius:20}}>Out of Stock</span></div>}
       </div>
-      <div style={{padding:'14px 16px 18px',flex:1,display:'flex',flexDirection:'column',gap:6}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <span style={{fontSize:11,fontWeight:700,letterSpacing:1.2,textTransform:'uppercase',color:'#b8965a'}}>{book.language}</span>
-        </div>
-        <h3 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:17,color:'#1a1712',lineHeight:1.2}}>{book.title}</h3>
-        <div style={{fontSize:12,color:'#6b6460',fontWeight:300}}>{book.author}</div>
-        <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:2,flexWrap:'wrap'}}>
-          {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
+
+      <div style={{padding:'18px 20px 20px',display:'flex',flexDirection:'column',flex:1}}>
+        <div style={{fontSize:11,fontWeight:700,color:'#b8965a',letterSpacing:1.2,textTransform:'uppercase',marginBottom:6}}>{book.language}</div>
+        <h3 style={{margin:'0 0 6px',fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:18,color:'#1a1712',lineHeight:1.25,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',minHeight:45}}>{book.title}</h3>
+        <div style={{fontSize:12,color:'#6b6460',fontWeight:300,marginBottom:12,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{book.author}</div>
+        <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:14,flexWrap:'wrap'}}>
+          {book.price != null && <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
           {book.mrp > book.price && (
             <>
               <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
-              <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+              <span style={{fontSize:11,fontWeight:700,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 7px',borderRadius:8}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
             </>
           )}
           <OfferBadge type={book.offerType}/>
         </div>
-        {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
-          <div style={{fontSize:12,fontWeight:700,color:'#c0392b',letterSpacing:.3}}>Only {book.stockCount} left</div>
-        )}
-        <div style={{marginTop:'auto',paddingTop:4}}/>
-        {book.inStock !== false && (
-          <button className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`} onClick={handleAddToCart}>
-            {inCart
-              ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added</>
-              : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
-            }
-          </button>
-        )}
+        <div style={{marginTop:'auto',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <span style={{fontSize:11,color:book.inStock?'#2d6a4f':'#b44',fontWeight:500,display:'flex',alignItems:'center',gap:5}}>
+            <span style={{width:6,height:6,borderRadius:'50%',background:book.inStock?'#2d6a4f':'#b44',display:'inline-block'}}/>
+            {book.inStock?'In Stock':'Out of Stock'}
+          </span>
+          {book.inStock !== false && (
+            <button
+              className={`book-add-to-cart${inCart ? ' book-add-to-cart--in' : ''}`}
+              onClick={handleAddToCart}
+              style={{marginTop:0}}
+              aria-label={inCart ? 'Already in cart' : `Add ${book.title} to cart`}
+            >
+              {inCart ? (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Added
+                </>
+              ) : (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                  Add to Cart
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </Link>
   );
@@ -110,7 +125,9 @@ function GridCard({ book, idx }) {
 /* ── Book card — list mode ── */
 function ListCard({ book }) {
   const bg = COVER_BKGS[0];
-  const ar = CAT_AR[book.category] || 'كتاب';
+  const cats = getBookCategories(book);
+  const primaryCat = cats[0] || book.category || 'General';
+  const ar = CAT_AR[primaryCat] || 'كتاب';
   return (
     <Link href={`/book/${book.slug}`} style={{textDecoration:'none',color:'inherit',display:'flex',alignItems:'center',gap:20,background:'#fff',borderRadius:14,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 2px 10px rgba(27,67,50,0.04)',padding:'16px 20px',transition:'border-color .2s,box-shadow .2s'}}
       onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(27,67,50,0.2)';e.currentTarget.style.boxShadow='0 6px 20px rgba(27,67,50,0.1)';}}
@@ -122,8 +139,10 @@ function ListCard({ book }) {
         }
       </div>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
-          <span style={{padding:'2px 10px',background:'rgba(27,67,50,0.07)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#1b4332'}}>{book.category}</span>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5,flexWrap:'wrap'}}>
+          {cats.map(c => (
+            <span key={c} style={{padding:'2px 10px',background:'rgba(27,67,50,0.07)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#1b4332'}}>{c}</span>
+          ))}
           <span style={{fontSize:11,fontWeight:700,color:'#b8965a',letterSpacing:1,textTransform:'uppercase'}}>{book.language}</span>
           {book.tags?.includes('New Arrival') && <span style={{padding:'2px 10px',background:'rgba(45,106,79,0.1)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#2d6a4f'}}>New Arrival</span>}
           {book.tags?.includes('Bestseller') && <span style={{padding:'2px 10px',background:'rgba(184,150,90,0.1)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#b8965a'}}>Bestseller</span>}
@@ -262,7 +281,11 @@ function BooksContent() {
   // Category counts
   const catCounts = useMemo(() => {
     const counts = {};
-    allBooks.forEach(b => { counts[b.category] = (counts[b.category] || 0) + 1; });
+    allBooks.forEach(b => {
+      getBookCategories(b).forEach(cat => {
+        counts[cat] = (counts[cat] || 0) + 1;
+      });
+    });
     return counts;
   }, [allBooks]);
 
@@ -283,7 +306,7 @@ function BooksContent() {
     let list = allBooks.filter(b => {
       const q = search.toLowerCase();
       return (!q || b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q) || b.translator?.toLowerCase().includes(q))
-          && (!selCat  || b.category === selCat)
+          && (!selCat  || getBookCategories(b).includes(selCat))
           && (!selLang || b.language === selLang)
           && (!selStock|| (selStock === 'in' ? b.inStock : !b.inStock));
     });
@@ -309,7 +332,7 @@ function BooksContent() {
         case 'price-low':  return (Number(a.price||a.mrp||0)) - (Number(b.price||b.mrp||0));
         case 'price-high': return (Number(b.price||b.mrp||0)) - (Number(a.price||a.mrp||0));
         case 'language':   return (a.language==='English'?-1:b.language==='English'?1:0) || (a.language||'').localeCompare(b.language||'');
-        case 'category':   return (a.category||'').localeCompare(b.category||'');
+        case 'category':   return (getBookCategories(a)[0]||a.category||'').localeCompare(getBookCategories(b)[0]||b.category||'');
         default:           return 0;
       }
     });

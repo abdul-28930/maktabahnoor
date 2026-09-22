@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import OfferBadge from '@/components/OfferBadge';
+import { getBookCategories } from '@/lib/constants';
 
 const TAG_STYLES = {
   'New Arrival': 'badge-new',
@@ -60,7 +61,7 @@ export default function BookCard({ book }) {
 
       <div className="book-body">
         <div className="book-meta-top">
-          <span className="book-category">{book.category}</span>
+          <span className="book-category">{getBookCategories(book).join(' · ') || book.category}</span>
           <span className="book-lang">{book.language}</span>
         </div>
         <div className="book-title">{book.title}</div>

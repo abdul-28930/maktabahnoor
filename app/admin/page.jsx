@@ -2,11 +2,11 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS, getBookCategories } from '@/lib/constants';
 import PageBackground from '@/components/PageBackground';
 
 const EMPTY_BOOK = {
-  title:'',author:'',translator:'',publisher:'',sku:'',language:'Arabic',category:'Aqeedah',
+  title:'',author:'',translator:'',publisher:'',sku:'',language:'Arabic',category:'Aqeedah',categories:['Aqeedah'],
   description:'',volumes:'',binding:'Hardcover',pages:'',
   mrp:'',price:'',offerType:'',stockCount:'',
   inStock:true,visible:true,tags:[],coverUrl:'',gallery:[],
@@ -54,20 +54,61 @@ const Label = ({children,hint}) => (
     {hint && <div style={{fontSize:11,color:'#a09890',marginTop:2}}>{hint}</div>}
   </div>
 );
-const FInput = ({value,onChange,placeholder,type='text',dir,prefix,min,style={}}) => (
-  <div style={{position:'relative'}}>
-    {prefix && <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',fontSize:14,color:'#6b6460',pointerEvents:'none'}}>{prefix}</span>}
-    <input type={type} value={value} onChange={onChange} placeholder={placeholder} dir={dir} min={min}
-      style={{width:'100%',padding:`11px 14px 11px ${prefix?'28px':'14px'}`,background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',transition:'border-color .2s',...style}}
-      onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
+const FInput = ({ value, onChange, placeholder, type='text', prefix, suffix, min }) => (
+  <div style={{position:'relative',display:'flex',alignItems:'center'}}>
+    {prefix && <span style={{position:'absolute',left:13,fontSize:13,color:'#a09890',pointerEvents:'none'}}>{prefix}</span>}
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      min={min}
+      style={{
+        width:'100%',
+        padding:`11px 14px 11px ${prefix?'28px':'14px'}`,
+        paddingRight:suffix?'40px':'14px',
+        background:'#faf9f5',
+        border:'1.5px solid rgba(27,67,50,0.12)',
+        borderRadius:10,
+        color:'#1a1712',
+        fontSize:14,
+        fontFamily:"'DM Sans',sans-serif",
+        outline:'none',
+        transition:'border-color .2s',
+      }}
+      onFocus={e => e.target.style.borderColor='#1b4332'}
+      onBlur={e => e.target.style.borderColor='rgba(27,67,50,0.12)'}
+    />
+    {suffix && <span style={{position:'absolute',right:13,fontSize:12,color:'#a09890',pointerEvents:'none'}}>{suffix}</span>}
   </div>
 );
-const FSelect = ({value,onChange,options,placeholder}) => (
-  <select value={value} onChange={onChange}
-    style={{width:'100%',padding:'11px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',cursor:'pointer',appearance:'none',transition:'border-color .2s'}}
-    onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}>
+const FSelect = ({ value, onChange, options, placeholder }) => (
+  <select
+    value={value}
+    onChange={onChange}
+    style={{
+      width:'100%',
+      padding:'11px 14px',
+      background:'#faf9f5',
+      border:'1.5px solid rgba(27,67,50,0.12)',
+      borderRadius:10,
+      color:value?'#1a1712':'#a09890',
+      fontSize:14,
+      fontFamily:"'DM Sans',sans-serif",
+      outline:'none',
+      cursor:'pointer',
+      appearance:'none',
+      transition:'border-color .2s',
+    }}
+    onFocus={e => e.target.style.borderColor='#1b4332'}
+    onBlur={e => e.target.style.borderColor='rgba(27,67,50,0.12)'}
+  >
     {placeholder && <option value="">{placeholder}</option>}
-    {options.map(o=><option key={o} value={o}>{o}</option>)}
+    {options.map(o => (
+      <option key={typeof o === 'string' ? o : o.val} value={typeof o === 'string' ? o : o.val}>
+        {typeof o === 'string' ? o : o.label}
+      </option>
+    ))}
   </select>
 );
 
@@ -107,6 +148,72 @@ const TaxonomySelect = ({value,onChange,options,placeholder,onAddOption}) => {
       {options.map(o=><option key={o} value={o}>{o}</option>)}
       <option value={ADD_NEW}>+ Add new option…</option>
     </select>
+  );
+};
+
+const TaxonomyMultiSelect = ({ selected = [], onChange, options = [], onAddOption }) => {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft]   = useState('');
+
+  const toggle = (cat) => {
+    if (selected.includes(cat)) {
+      onChange(selected.filter(c => c !== cat));
+    } else {
+      onChange([...selected, cat]);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:8}}>
+        {options.map(o => {
+          const isSel = selected.includes(o);
+          return (
+            <button
+              key={o}
+              type="button"
+              onClick={() => toggle(o)}
+              style={{
+                padding:'5px 12px',
+                borderRadius:20,
+                border:`1.5px solid ${isSel ? '#1b4332' : 'rgba(27,67,50,0.15)'}`,
+                background: isSel ? '#1b4332' : '#faf9f5',
+                color: isSel ? '#fff' : '#1a1712',
+                fontSize:12,
+                cursor:'pointer',
+                fontFamily:"'DM Sans',sans-serif",
+                transition:'all .15s'
+              }}>
+              {isSel ? `✓ ${o}` : o}
+            </button>
+          );
+        })}
+      </div>
+      {adding ? (
+        <div style={{display:'flex',gap:6}}>
+          <div style={{flex:1}}>
+            <FInput value={draft} onChange={e=>setDraft(e.target.value)} placeholder="New category name" />
+          </div>
+          <button type="button" onClick={async ()=>{
+              const v = draft.trim();
+              if (!v) return;
+              await onAddOption(v);
+              if (!selected.includes(v)) onChange([...selected, v]);
+              setAdding(false); setDraft('');
+            }}
+            style={{padding:'0 16px',borderRadius:10,border:'none',background:'#1b4332',color:'#fff',fontSize:12,cursor:'pointer',flexShrink:0}}>Add</button>
+          <button type="button" onClick={()=>{setAdding(false);setDraft('');}}
+            style={{padding:'0 14px',borderRadius:10,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#6b6460',fontSize:12,cursor:'pointer',flexShrink:0}}>✕</button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          style={{background:'none',border:'none',color:'#2d6a4f',fontSize:12,cursor:'pointer',padding:0,textDecoration:'underline'}}>
+          + Add new category
+        </button>
+      )}
+    </div>
   );
 };
 
@@ -379,10 +486,11 @@ export default function AdminPage() {
       const r=await fetch(`/api/books/${slug}`); const d=await r.json();
       if (d.book) {
         setEditSlug(slug);
+        const cats = getBookCategories(d.book);
         setForm({
           title:d.book.title||'',author:d.book.author||'',translator:d.book.translator||'',publisher:d.book.publisher||'',
           sku:d.book.sku||'',language:d.book.language||'Arabic',
-          category:d.book.category||'Aqeedah',description:d.book.description||'',
+          category:cats[0]||'Aqeedah',categories:cats.length?cats:['Aqeedah'],description:d.book.description||'',
           volumes:d.book.volumes??'',binding:d.book.binding||'Hardcover',pages:d.book.pages||'',
           mrp:d.book.mrp||'',price:d.book.price||'',offerType:d.book.offerType||'',
           stockCount:d.book.stockCount??'',inStock:d.book.inStock!==false,visible:d.book.visible!==false,
@@ -480,7 +588,13 @@ export default function AdminPage() {
   }
 
   function missingBookFields() {
-    return MANDATORY_BOOK_FIELDS.filter(k => !String(form[k] ?? '').trim()).map(k => FIELD_LABELS[k] || k);
+    return MANDATORY_BOOK_FIELDS.filter(k => {
+      if (k === 'category') {
+        const cats = getBookCategories(form);
+        return cats.length === 0;
+      }
+      return !String(form[k] ?? '').trim();
+    }).map(k => FIELD_LABELS[k] || k);
   }
 
   async function saveBook() {
@@ -756,7 +870,7 @@ export default function AdminPage() {
   }
   const stats = useMemo(()=>({
     total:books.length,inStock:books.filter(b=>b.inStock).length,
-    out:books.filter(b=>!b.inStock).length,cats:[...new Set(books.map(b=>b.category))].length,
+    out:books.filter(b=>!b.inStock).length,cats:[...new Set(books.flatMap(b=>getBookCategories(b)))].length,
     bundles:bundles.length,pendingOrders:orders.filter(o=>!o.fulfilled).length,
   }),[books,bundles,orders]);
 
@@ -796,10 +910,20 @@ export default function AdminPage() {
             <div><Label hint="Optional">Translator</Label><FInput value={form.translator} onChange={e=>f('translator',e.target.value)} placeholder="e.g. Dr. Muhammad Muhsin Khan"/></div>
             <div><Label hint="Optional">Publisher</Label><FInput value={form.publisher} onChange={e=>f('publisher',e.target.value)} placeholder="e.g. Darussalam"/></div>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
             <div><Label hint="Optional · unique product code">SKU / Book Code</Label><FInput value={form.sku} onChange={e=>f('sku',e.target.value)} placeholder="e.g. HAD-001"/></div>
-            <div><Label>Category *</Label><TaxonomySelect value={form.category} onChange={e=>f('category',e.target.value)} options={taxonomy.categories} onAddOption={v=>addTaxonomyOption('categories',v)}/></div>
             <div><Label>Language *</Label><TaxonomySelect value={form.language} onChange={e=>f('language',e.target.value)} options={taxonomy.languages} onAddOption={v=>addTaxonomyOption('languages',v)}/></div>
+          </div>
+          <div>
+            <Label hint="Select one or more categories">Categories *</Label>
+            <TaxonomyMultiSelect
+              selected={form.categories || (form.category ? [form.category] : [])}
+              onChange={cats => {
+                setForm(p => ({ ...p, categories: cats, category: cats[0] || '' }));
+              }}
+              options={taxonomy.categories}
+              onAddOption={v => addTaxonomyOption('categories', v)}
+            />
           </div>
         </Card>
 
@@ -986,7 +1110,7 @@ export default function AdminPage() {
           ) : (() => {
             const q = bundleBookSearch.trim().toLowerCase();
             const filtered = q
-              ? books.filter(b => b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q) || b.category?.toLowerCase().includes(q))
+              ? books.filter(b => b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q) || getBookCategories(b).some(c => c.toLowerCase().includes(q)))
               : books;
             const PAGE_SIZE = 20;
             const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -1495,7 +1619,9 @@ export default function AdminPage() {
                         {b.visible === false && <span style={{fontSize:9,color:'#a09890',background:'rgba(0,0,0,0.06)',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase'}}>Hidden</span>}
                       </div>
                       <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-                        <span style={{padding:'2px 10px',background:'rgba(27,67,50,0.07)',borderRadius:10,fontSize:9,color:'#1b4332',fontWeight:500,letterSpacing:.8,textTransform:'uppercase'}}>{b.category}</span>
+                        {getBookCategories(b).map(c => (
+                          <span key={c} style={{padding:'2px 10px',background:'rgba(27,67,50,0.07)',borderRadius:10,fontSize:9,color:'#1b4332',fontWeight:500,letterSpacing:.8,textTransform:'uppercase'}}>{c}</span>
+                        ))}
                         <span style={{fontSize:11,color:'#a09890'}}>{b.language}</span>
                         {b.author && <span style={{fontSize:11,color:'#a09890'}}>{b.author}</span>}
                         {b.tags?.map(t=><span key={t} style={{padding:'1px 7px',background:'rgba(184,150,90,0.1)',borderRadius:10,fontSize:9,color:'#b8965a',textTransform:'uppercase',letterSpacing:.6}}>{t}</span>)}
