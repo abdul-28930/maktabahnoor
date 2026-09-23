@@ -91,30 +91,21 @@ function GridCard({ book, idx }) {
           )}
           <OfferBadge type={book.offerType}/>
         </div>
-        <div style={{marginTop:'auto',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          {(() => { const inS = (book.stockCount ?? (book.inStock ? 1 : 0)) > 0; return (
-            <span style={{fontSize:11,color:inS?'#2d6a4f':'#b44',fontWeight:500,display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap'}}>
-              <span style={{width:6,height:6,borderRadius:'50%',background:inS?'#2d6a4f':'#b44',display:'inline-block',flexShrink:0}}/>
-              {inS?'In Stock':'Out of Stock'}
-            </span>
-          ); })()}
+        <div style={{marginTop:'auto',display:'flex',flexDirection:'column',gap:6}}>
+          {(book.stockCount > 0 && book.stockCount <= 5) && (
+            <div style={{fontSize:11,fontWeight:600,color:'#c0392b',letterSpacing:.2}}>Only {book.stockCount} left</div>
+          )}
           {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
             <button
               className={`book-add-to-cart${inCart ? ' book-add-to-cart--in' : ''}`}
               onClick={handleAddToCart}
-              style={{marginTop:0}}
+              style={{marginTop:0,width:'100%',padding:'6px 10px',fontSize:11,height:32}}
               aria-label={inCart ? 'Already in cart' : `Add ${book.title} to cart`}
             >
               {inCart ? (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  Added
-                </>
+                <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added</>
               ) : (
-                <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                  Add to Cart
-                </>
+                <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
               )}
             </button>
           )}
@@ -163,13 +154,13 @@ function ListCard({ book }) {
           )}
           <OfferBadge type={book.offerType}/>
         </div>
-        {(() => { const inS = (book.stockCount ?? (book.inStock ? 1 : 0)) > 0; return (
-          <span style={{padding:'4px 12px',borderRadius:20,fontSize:9,fontWeight:500,letterSpacing:.8,textTransform:'uppercase',background:inS?'rgba(45,106,79,0.08)':'rgba(180,60,60,0.07)',color:inS?'#2d6a4f':'#b44',border:`1px solid ${inS?'rgba(45,106,79,0.2)':'rgba(180,60,60,0.15)'}`}}>
-            {inS ? 'In Stock' : 'Out of Stock'}
+        {(book.stockCount ?? (book.inStock ? 1 : 0)) <= 0 && (
+          <span style={{padding:'3px 10px',borderRadius:20,fontSize:9,fontWeight:500,letterSpacing:.8,textTransform:'uppercase',background:'rgba(180,60,60,0.07)',color:'#b44',border:'1px solid rgba(180,60,60,0.15)'}}>
+            Out of Stock
           </span>
-        ); })()}
-        {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && book.stockCount < 5 && (
-          <span style={{fontSize:12,fontWeight:700,color:'#c0392b'}}>Only {book.stockCount} left</span>
+        )}
+        {(book.stockCount > 0 && book.stockCount <= 5) && (
+          <span style={{fontSize:11,fontWeight:600,color:'#c0392b'}}>Only {book.stockCount} left</span>
         )}
         {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
           <AddToCartListBtn book={book}/>
@@ -184,10 +175,10 @@ function AddToCartListBtn({ book }) {
   const inCart = isInCart(book.slug);
   function handleAddToCart(e) { e.preventDefault(); e.stopPropagation(); addToCart(book); }
   return (
-    <button className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`} onClick={handleAddToCart} style={{marginTop:4}}>
+    <button className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`} onClick={handleAddToCart} style={{marginTop:4,padding:'6px 12px',fontSize:11,height:32,width:'auto'}}>
       {inCart
-        ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added</>
-        : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
+        ? <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added</>
+        : <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
       }
     </button>
   );

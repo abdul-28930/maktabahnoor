@@ -76,8 +76,8 @@ export default function BookCard({ book }) {
           )}
           <OfferBadge type={book.offerType}/>
         </div>
-        {book.inStock && book.stockCount > 0 && book.stockCount < 5 && (
-          <div style={{fontSize:12,fontWeight:700,color:'#c0392b',letterSpacing:.3,marginTop:2}}>Only {book.stockCount} left</div>
+        {book.stockCount > 0 && book.stockCount <= 5 && (
+          <div style={{fontSize:11,fontWeight:600,color:'#c0392b',letterSpacing:.2,marginTop:2}}>Only {book.stockCount} left</div>
         )}
 
         {/* Add to Cart button */}
@@ -85,18 +85,19 @@ export default function BookCard({ book }) {
           <button
             className={`book-add-to-cart${inCart ? ' book-add-to-cart--in' : ''}`}
             onClick={handleAddToCart}
+            style={{padding:'6px 10px',fontSize:11,height:32}}
             aria-label={inCart ? 'Already in cart' : `Add ${book.title} to cart`}
           >
             {inCart ? (
               <>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
                 Added
               </>
             ) : (
               <>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
                   <line x1="3" y1="6" x2="21" y2="6"/>
                   <path d="M16 10a4 4 0 01-8 0"/>
