@@ -413,9 +413,9 @@ img{max-width:100%;display:block}
 .nav-links-scroll{-ms-overflow-style:none;}
 .nav-links-scroll::-webkit-scrollbar{display:none;}
 .nav-links-scroll a,.nav-links-scroll>div{flex-shrink:0;}
-@media(max-width:520px){
-  .site-name-text{display:none;}
-  .nav-links-scroll{max-width:60vw!important;}
+@media(max-width:768px){
+  .site-name-text{display:none!important;}
+  .nav-links-scroll{max-width:calc(100vw - 80px)!important;}
 }
 @media(min-width:861px) {
   .hp-hamburger { display:none!important; }

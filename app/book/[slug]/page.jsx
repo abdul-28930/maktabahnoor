@@ -76,18 +76,18 @@ export default function BookPage() {
   }, [book?.category, book?.slug]);
 
   const Nav = () => (
-    <nav style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,72px)',backdropFilter:'blur(10px)',background:'rgba(250,249,245,0.85)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
-      <Link href="/" style={{display:'flex',alignItems:'center',gap:12,textDecoration:'none',color:'#1b4332'}}>
+    <nav style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(16px,4vw,72px)',gap:12,backdropFilter:'blur(10px)',background:'rgba(250,249,245,0.85)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
+      <Link href="/" style={{display:'flex',alignItems:'center',gap:10,textDecoration:'none',color:'#1b4332',flexShrink:0}}>
         <Image src="/logo.png" alt="Logo" width={36} height={36} style={{height:36,width:'auto'}}/>
-        <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,letterSpacing:.5}}>Maktabah An Noor</span>
+        <span className="site-name-text" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,letterSpacing:.5,whiteSpace:'nowrap'}}>Maktabah An Noor</span>
       </Link>
-      <div style={{display:'flex',alignItems:'center',gap:24}}>
-        <Link href="/"        style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Home</Link>
-        <Link href="/books"   style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Collection</Link>
-        <Link href="/bundles" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Bundles</Link>
-        <Link href="/accessories" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Accessories</Link>
-          <Link href="/clothing" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Clothing</Link>
-        <Link href="/wishlist" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>♡ Wishlist</Link>
+      <div className="nav-links-scroll" style={{display:'flex',alignItems:'center',gap:16,overflowX:'auto',scrollbarWidth:'none',maxWidth:'70vw',flexShrink:1}}>
+        <Link href="/"        style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>Home</Link>
+        <Link href="/books"   style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>Collection</Link>
+        <Link href="/bundles" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>Bundles</Link>
+        <Link href="/accessories" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>Accessories</Link>
+        <Link href="/clothing" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>Clothing</Link>
+        <Link href="/wishlist" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>♡ Wishlist</Link>
       </div>
     </nav>
   );
