@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS, getBookCategories } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS, getBookCategories, META_COVER_MAX_CHARS } from '@/lib/constants';
 import PageBackground from '@/components/PageBackground';
 
 const EMPTY_BOOK = {
@@ -864,9 +864,30 @@ export default function AdminPage() {
   // (home, /books, category/author pages, filtering...). A handful of
   // multi-MB uploads in that one shared value would slow the whole site down,
   // not just the book they belong to — so we keep what we store small.
-  const MAX_DIMENSION = 500;   // px, longest side — sharp for book cards and covers
+  //
+  // Crucially, the shared list (mn_books_meta) silently drops any cover whose
+  // base64 exceeds META_COVER_MAX_CHARS (see lib/constants) — the book's own
+  // page still shows it, but it disappears everywhere else (home, listing,
+  // category/author/translator pages, search, even the admin table). To
+  // guarantee an upload always shows up everywhere, we keep shrinking it
+  // until it's safely under that shared limit, with margin to spare.
+  const MAX_DIMENSION  = 500;   // px, longest side — sharp for book cards and covers
   const JPEG_QUALITY   = 0.70;
-  const MAX_IMG_MB      = 0.6; // hard safety cap
+  const MAX_IMG_MB     = 0.6;   // hard safety cap — reject rather than upload above this
+  const SAFE_META_CHARS = Math.round(META_COVER_MAX_CHARS * 0.8); // margin below the shared-list cap
+
+  function drawToDataUrl(img, dimension, quality) {
+    let { width, height } = img;
+    if (width > dimension || height > dimension) {
+      if (width > height) { height = Math.round(height * (dimension / width)); width = dimension; }
+      else { width = Math.round(width * (dimension / height)); height = dimension; }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', quality);
+  }
 
   function compressImage(file) {
     return new Promise((resolve, reject) => {
@@ -876,16 +897,19 @@ export default function AdminPage() {
       img.onload = () => {
         clearTimeout(timer);
         URL.revokeObjectURL(url);
-        let { width, height } = img;
-        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-          if (width > height) { height = Math.round(height * (MAX_DIMENSION / width)); width = MAX_DIMENSION; }
-          else { width = Math.round(width * (MAX_DIMENSION / height)); height = MAX_DIMENSION; }
+        // Step down quality first, then dimension, until the result fits
+        // safely under the shared-list cap so it's never silently dropped.
+        let result = drawToDataUrl(img, MAX_DIMENSION, JPEG_QUALITY);
+        const steps = [
+          [MAX_DIMENSION, 0.55], [MAX_DIMENSION, 0.4],
+          [400, 0.5], [400, 0.35],
+          [320, 0.45], [320, 0.3],
+        ];
+        for (let i = 0; i < steps.length && result.length > SAFE_META_CHARS; i++) {
+          const [dimension, quality] = steps[i];
+          result = drawToDataUrl(img, dimension, quality);
         }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY));
+        resolve(result);
       };
       img.onerror = () => { clearTimeout(timer); URL.revokeObjectURL(url); reject(new Error('Could not read image.')); };
       img.src = url;
