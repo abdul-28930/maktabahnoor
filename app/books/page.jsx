@@ -496,7 +496,7 @@ function BooksContent() {
               {filtered.map(b => <ListCard key={b.slug} book={b}/>)}
             </div>
           ) : (
-            <div style={{display:'grid',gridTemplateColumns:`repeat(${gridCols},1fr)`,gap:20}}>
+            <div className="books-grid-view" style={{display:'grid',gridTemplateColumns:`repeat(${gridCols},1fr)`,gap:20}}>
               {filtered.map((b, i) => <GridCard key={b.slug} book={b} idx={i}/>)}
             </div>
           )}
@@ -525,6 +525,7 @@ function BooksContent() {
           #mob-filter-btn { display: flex !important; }
           .books-sidebar   { display: none !important; }
           .books-layout-grid { grid-template-columns:1fr!important; }
+          .books-grid-view { grid-template-columns:repeat(2,1fr)!important; gap:14px!important; }
         }
       `}</style>
     </div>
