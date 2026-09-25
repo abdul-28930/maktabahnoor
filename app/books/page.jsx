@@ -93,7 +93,7 @@ function GridCard({ book, idx }) {
         </div>
         <div style={{marginTop:'auto',display:'flex',flexDirection:'column',gap:6}}>
           {(book.stockCount > 0 && book.stockCount <= 5) && (
-            <div style={{fontSize:11,fontWeight:600,color:'#c0392b',letterSpacing:.2}}>Only {book.stockCount} left</div>
+            <div style={{fontSize:11,fontWeight:700,color:'#c0392b',letterSpacing:.2}}>Only <strong>{book.stockCount}</strong> left</div>
           )}
           {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
             <button
@@ -160,7 +160,7 @@ function ListCard({ book }) {
           </span>
         )}
         {(book.stockCount > 0 && book.stockCount <= 5) && (
-          <span style={{fontSize:11,fontWeight:600,color:'#c0392b'}}>Only {book.stockCount} left</span>
+          <span style={{fontSize:11,fontWeight:700,color:'#c0392b'}}>Only <strong>{book.stockCount}</strong> left</span>
         )}
         {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
           <AddToCartListBtn book={book}/>
@@ -474,7 +474,7 @@ function BooksContent() {
       <div className="books-layout-grid" style={{position:'relative',zIndex:1,maxWidth:1280,margin:'0 auto',padding:'32px clamp(20px,5vw,72px) 80px',display:'grid',gridTemplateColumns:'220px 1fr',gap:40,alignItems:'start'}}>
 
         {/* SIDEBAR */}
-        <aside style={{position:'sticky',top:88,background:'#fff',border:'1px solid rgba(27,67,50,0.08)',borderRadius:18,padding:'24px 20px',boxShadow:'0 4px 16px rgba(27,67,50,0.05)'}}>
+        <aside className="books-sidebar" style={{position:'sticky',top:88,background:'#fff',border:'1px solid rgba(27,67,50,0.08)',borderRadius:18,padding:'24px 20px',boxShadow:'0 4px 16px rgba(27,67,50,0.05)'}}>
           <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:500,color:'#1b4332',marginBottom:20,paddingBottom:14,borderBottom:'1px solid rgba(27,67,50,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
             Filter Books
             {hasFilters && <span style={{fontSize:10,background:'#1b4332',color:'#fff',padding:'2px 8px',borderRadius:10,letterSpacing:.5}}>{activeFilters.length}</span>}
