@@ -198,24 +198,13 @@ export default function BookPage() {
               ))}
             </div>
           )}
-          {book.translator && (
-            <div style={{fontSize:15,color:'#6b6460',marginBottom:8,fontWeight:300}}>
-              <span style={{fontWeight:500,color:'#4a453f'}}>{splitTranslators(book.translator).length > 1 ? 'Translators:' : 'Translator:'}</span>{' '}
-              {splitTranslators(book.translator).map((t, i, arr) => (
-                <span key={t}>
-                  <Link href={`/translator/${nameSlug(t)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{t}</Link>
-                  {i < arr.length - 1 && ', '}
-                </span>
-              ))}
-            </div>
-          )}
           {book.publisher && (
             <div style={{fontSize:15,color:'#6b6460',marginBottom:28,fontWeight:300}}>
               <span style={{fontWeight:500,color:'#4a453f'}}>Publisher:</span>{' '}
               <Link href={`/publisher/${nameSlug(book.publisher)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{book.publisher}</Link>
             </div>
           )}
-          {!book.author && !book.translator && !book.publisher && <div style={{marginBottom:20}}/>}
+          {!book.author && !book.publisher && <div style={{marginBottom:20}}/>}
 
           <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:28}}>
             <span style={{flex:1,height:1,background:'linear-gradient(90deg,rgba(27,67,50,0.2),transparent)'}}/>

@@ -77,7 +77,7 @@ export default function BookCard({ book }) {
           <OfferBadge type={book.offerType}/>
         </div>
         {book.stockCount > 0 && book.stockCount <= 5 && (
-          <div style={{fontSize:11,fontWeight:600,color:'#c0392b',letterSpacing:.2,marginTop:2}}>Only {book.stockCount} left</div>
+          <div style={{fontSize:11,fontWeight:700,color:'#c0392b',letterSpacing:.2,marginTop:2}}>Only <strong>{book.stockCount}</strong> left</div>
         )}
 
         {/* Add to Cart button */}
