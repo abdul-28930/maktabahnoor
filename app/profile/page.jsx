@@ -26,6 +26,9 @@ export default function ProfilePage() {
   const [profileMsg, setProfileMsg] = useState({ text: '', type: '' });
   const [pwMsg, setPwMsg] = useState({ text: '', type: '' });
 
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+
   // Redirect if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
@@ -52,6 +55,17 @@ export default function ProfilePage() {
       })
       .catch(() => {});
   }, []);
+
+  // Fetch order history
+  useEffect(() => {
+    if (!user) return;
+    setOrdersLoading(true);
+    fetch('/api/user/orders')
+      .then(r => r.json())
+      .then(d => setOrders(Array.isArray(d.orders) ? d.orders : []))
+      .catch(() => {})
+      .finally(() => setOrdersLoading(false));
+  }, [user]);
 
   function toggleCategory(cat) {
     setSelectedCats(prev =>
@@ -417,6 +431,49 @@ export default function ProfilePage() {
                   {savingPw ? 'Updating…' : 'Update Password'}
                 </button>
               </form>
+            </div>
+
+            {/* Order History Card */}
+            <div style={{ background: '#fff', border: '1px solid rgba(27,67,50,0.08)', borderRadius: 20, padding: 28, boxShadow: '0 4px 16px rgba(27,67,50,0.04)' }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, fontWeight: 600, color: '#1b4332', margin: '0 0 18px' }}>
+                My Orders
+              </h2>
+
+              {ordersLoading ? (
+                <p style={{ fontSize: 13, color: '#a09890' }}>Loading orders…</p>
+              ) : orders.length === 0 ? (
+                <p style={{ fontSize: 13, color: '#a09890' }}>
+                  You haven't placed any orders yet.{' '}
+                  <Link href="/books" style={{ color: '#1b4332', fontWeight: 500 }}>Browse books →</Link>
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {orders.map(order => (
+                    <Link
+                      key={order.orderRef}
+                      href={`/order/${order.orderRef}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                        padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(27,67,50,0.1)',
+                        textDecoration: 'none', color: '#1a1712',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500 }}>#{order.orderRef}</div>
+                        <div style={{ fontSize: 12, color: '#a09890', marginTop: 2 }}>
+                          {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''} · {new Date(order.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#1b4332' }}>₹{Number(order.total || 0).toLocaleString('en-IN')}</div>
+                        <div style={{ fontSize: 11, color: order.fulfilled ? '#2d6a4f' : '#b8965a', marginTop: 2 }}>
+                          {order.fulfilled ? 'Fulfilled' : 'Pending'}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Quick Links Card */}
