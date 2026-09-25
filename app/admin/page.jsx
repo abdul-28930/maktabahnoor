@@ -2,14 +2,14 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS, getBookCategories, META_COVER_MAX_CHARS } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS, getBookCategories } from '@/lib/constants';
 import PageBackground from '@/components/PageBackground';
 
 const EMPTY_BOOK = {
   title:'',author:'',translator:'',publisher:'',sku:'',language:'Arabic',category:'Aqeedah',categories:['Aqeedah'],
   description:'',volumes:'',binding:'Hardcover',pages:'',
   mrp:'',price:'',offerType:'',stockCount:'',
-  inStock:true,visible:true,tags:[],coverUrl:'',gallery:[],
+  inStock:true,visible:true,tags:[],coverUrl:'',coverThumb:'',gallery:[],
 };
 
 // Labels shown next to the field + used to build the "please fill these in"
@@ -659,11 +659,17 @@ export default function AdminPage() {
           volumes:d.book.volumes??'',binding:d.book.binding||'Hardcover',pages:d.book.pages||'',
           mrp:d.book.mrp||'',price:d.book.price||'',offerType:d.book.offerType||'',
           stockCount:d.book.stockCount??'',inStock:d.book.inStock!==false,visible:d.book.visible!==false,
-          tags:d.book.tags||[],coverUrl:d.book.coverUrl||'',gallery:d.book.gallery||[],
+          tags:d.book.tags||[],coverUrl:d.book.coverUrl||'',coverThumb:d.book.coverThumb||'',gallery:d.book.gallery||[],
         });
         const orig = { author:d.book.author||'', translator:d.book.translator||'', publisher:d.book.publisher||'' };
         setOrigNames(orig); setRenameInputs(orig);
         setImgMode('url'); setSlugInput(slug); setView('bookEditor');
+        // Older books may have a data-URL cover but no thumbnail yet — backfill
+        // one quietly so the next save also shrinks this book's footprint in
+        // the shared list, instead of only new uploads benefiting.
+        if (d.book.coverUrl?.startsWith('data:') && !d.book.coverThumb) {
+          makeThumbFromDataUrl(d.book.coverUrl).then(thumb => f('coverThumb', thumb)).catch(() => {});
+        }
       }
     } catch { showToast('Failed to load.','error'); }
     finally { setLoading(false); }
@@ -882,22 +888,37 @@ export default function AdminPage() {
   }
 
   // Uploaded images get resized + re-compressed in the browser before we ever
-  // store them. This matters a lot here: every book's cover is duplicated into
-  // one shared list that's fetched in full on every page that shows books
-  // (home, /books, category/author pages, filtering...). A handful of
-  // multi-MB uploads in that one shared value would slow the whole site down,
-  // not just the book they belong to — so we keep what we store small.
+  // store them. The book's own record (mn_book:{slug}) can comfortably hold a
+  // full-quality cover — it's fetched one at a time. The shared list
+  // (mn_books_meta), on the other hand, is fetched in full on every page that
+  // shows books (home, /books, category/author pages, filtering...), so it
+  // duplicates every book's cover into ONE Redis value. Even with each cover
+  // capped at ~300KB, a growing catalog eventually pushes that single shared
+  // value past Redis's request-size limit and breaks saving for every book,
+  // not just the one being edited (this has already happened once — see
+  // cleanup-meta/route.js). Capping each item's byte size doesn't fix that:
+  // it only raises how many books it takes to hit the wall again.
   //
-  // Crucially, the shared list (mn_books_meta) silently drops any cover whose
-  // base64 exceeds META_COVER_MAX_CHARS (see lib/constants) — the book's own
-  // page still shows it, but it disappears everywhere else (home, listing,
-  // category/author/translator pages, search, even the admin table). To
-  // guarantee an upload always shows up everywhere, we keep shrinking it
-  // until it's safely under that shared limit, with margin to spare.
-  const MAX_DIMENSION  = 500;   // px, longest side — sharp for book cards and covers
+  // So instead of storing a scaled-down copy of the same cover in the shared
+  // list, we generate a genuinely tiny thumbnail (COVER_THUMB_*, a few KB
+  // regardless of how detailed the source photo is) just for that list, and
+  // keep the full-quality image only in the per-book record. That bounds the
+  // shared list's growth per book to a near-constant, small amount no matter
+  // how many books exist.
+  const MAX_DIMENSION  = 500;   // px, longest side — sharp for the book's own page
   const JPEG_QUALITY   = 0.70;
   const MAX_IMG_MB     = 0.6;   // hard safety cap — reject rather than upload above this
-  const SAFE_META_CHARS = Math.round(META_COVER_MAX_CHARS * 0.8); // margin below the shared-list cap
+  // The thumbnail starts reasonably sharp (good enough for a grid card) and,
+  // for the rare cover that doesn't compress well at that size, steps down
+  // until it's safely under THUMB_MAX_CHARS — a hard ceiling per book so the
+  // shared list's total size stays predictable no matter how detailed a
+  // cover photo is or how many books exist.
+  const THUMB_STEPS = [
+    [220, 0.6], [220, 0.45],
+    [180, 0.5], [180, 0.35],
+    [140, 0.4], [100, 0.35],
+  ];
+  const THUMB_MAX_CHARS = 40000; // ~30KB raw — worst case per book in the shared list
 
   function drawToDataUrl(img, dimension, quality) {
     let { width, height } = img;
@@ -912,6 +933,18 @@ export default function AdminPage() {
     return canvas.toDataURL('image/jpeg', quality);
   }
 
+  function drawThumb(img) {
+    let result = drawToDataUrl(img, THUMB_STEPS[0][0], THUMB_STEPS[0][1]);
+    for (let i = 1; i < THUMB_STEPS.length && result.length > THUMB_MAX_CHARS; i++) {
+      const [dimension, quality] = THUMB_STEPS[i];
+      result = drawToDataUrl(img, dimension, quality);
+    }
+    return result;
+  }
+
+  // Resolves { full, thumb }: `full` is a good-quality copy for the book's
+  // own page, `thumb` is a tiny, size-bounded copy safe to duplicate into
+  // the shared list.
   function compressImage(file) {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Image processing timed out.')), 8000);
@@ -920,22 +953,25 @@ export default function AdminPage() {
       img.onload = () => {
         clearTimeout(timer);
         URL.revokeObjectURL(url);
-        // Step down quality first, then dimension, until the result fits
-        // safely under the shared-list cap so it's never silently dropped.
-        let result = drawToDataUrl(img, MAX_DIMENSION, JPEG_QUALITY);
-        const steps = [
-          [MAX_DIMENSION, 0.55], [MAX_DIMENSION, 0.4],
-          [400, 0.5], [400, 0.35],
-          [320, 0.45], [320, 0.3],
-        ];
-        for (let i = 0; i < steps.length && result.length > SAFE_META_CHARS; i++) {
-          const [dimension, quality] = steps[i];
-          result = drawToDataUrl(img, dimension, quality);
-        }
-        resolve(result);
+        const full  = drawToDataUrl(img, MAX_DIMENSION, JPEG_QUALITY);
+        const thumb = drawThumb(img);
+        resolve({ full, thumb });
       };
       img.onerror = () => { clearTimeout(timer); URL.revokeObjectURL(url); reject(new Error('Could not read image.')); };
       img.src = url;
+    });
+  }
+
+  // For books saved before coverThumb existed (or whose thumb never made it
+  // into the shared list): backfills a thumbnail from the already-stored
+  // cover so re-saving the book also shrinks its footprint in mn_books_meta.
+  function makeThumbFromDataUrl(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('timeout')), 8000);
+      const img = new Image();
+      img.onload = () => { clearTimeout(timer); resolve(drawThumb(img)); };
+      img.onerror = () => { clearTimeout(timer); reject(new Error('Could not read image.')); };
+      img.src = dataUrl;
     });
   }
 
@@ -950,30 +986,32 @@ export default function AdminPage() {
 
   async function readImgFile(file, onDone) {
     if (!file) return;
-    let result;
+    let full, thumb;
     try {
-      result = await compressImage(file);
+      ({ full, thumb } = await compressImage(file));
     } catch {
       // Compression can fail on formats the browser can't decode into an
       // <img>/canvas (e.g. HEIC straight off an iPhone camera). Rather than
-      // block the upload entirely, fall back to storing it as-is.
-      try { result = await readFileRaw(file); }
+      // block the upload entirely, fall back to storing it as-is — but then
+      // we also can't derive a thumbnail from it, so the shared list won't
+      // get a copy of this one (the book's own page still shows it fine).
+      try { full = await readFileRaw(file); thumb = ''; }
       catch { showToast('Failed to read this image. Try a different file (JPG or PNG).','error'); return; }
     }
-    const approxBytes = result.length * 0.75; // base64 → raw byte estimate
+    const approxBytes = full.length * 0.75; // base64 → raw byte estimate
     if (approxBytes > MAX_IMG_MB * 1024 * 1024) {
       showToast(`Image too large (max ${MAX_IMG_MB}MB). Try a smaller photo, or one in JPG/PNG format.`,'error');
       return;
     }
-    onDone(result);
+    onDone(full, thumb);
   }
   function handleImg(e) {
     const file=e.target.files?.[0];
-    readImgFile(file, d=>f('coverUrl',d));
+    readImgFile(file, (full,thumb)=>{ f('coverUrl',full); f('coverThumb',thumb); });
   }
   function handleSlideImg(e) {
     const file=e.target.files?.[0];
-    readImgFile(file, d=>sf('imageUrl',d));
+    readImgFile(file, full=>sf('imageUrl',full));
   }
 
   async function cleanupMeta() {
@@ -1231,7 +1269,7 @@ export default function AdminPage() {
             ))}
           </div>
           {imgMode==='url'
-            ? <FInput value={form.coverUrl.startsWith('data:')?'':form.coverUrl} onChange={e=>f('coverUrl',e.target.value)} placeholder="https://… (image URL)"/>
+            ? <FInput value={form.coverUrl.startsWith('data:')?'':form.coverUrl} onChange={e=>{f('coverUrl',e.target.value); f('coverThumb','');}} placeholder="https://… (image URL)"/>
             : (
               <div onClick={()=>fileRef.current?.click()} style={{border:`2px dashed rgba(27,67,50,0.15)`,borderRadius:12,padding:form.coverUrl?0:32,textAlign:'center',cursor:'pointer',overflow:'hidden',background:'#faf9f5'}} onMouseEnter={e=>e.currentTarget.style.borderColor='#1b4332'} onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(27,67,50,0.15)'}>
                 {form.coverUrl?<img src={form.coverUrl} alt="Preview" style={{width:'100%',maxHeight:240,objectFit:'contain',borderRadius:10}} loading="lazy"/>:<><div style={{fontSize:13,color:'#6b6460',marginBottom:6}}>Click to upload cover image</div><div style={{fontSize:11,color:'#a09890'}}>JPG or PNG</div></>}
@@ -1239,7 +1277,7 @@ export default function AdminPage() {
               </div>
             )
           }
-          {form.coverUrl && <button onClick={()=>f('coverUrl','')} style={{marginTop:8,fontSize:11,color:'#a09890',background:'none',border:'none',cursor:'pointer',padding:0}}>✕ Remove image</button>}
+          {form.coverUrl && <button onClick={()=>{f('coverUrl',''); f('coverThumb','');}} style={{marginTop:8,fontSize:11,color:'#a09890',background:'none',border:'none',cursor:'pointer',padding:0}}>✕ Remove image</button>}
 
           <div style={{marginTop:24,paddingTop:20,borderTop:'1px solid rgba(27,67,50,0.07)'}}>
             <Label hint="Extra photos (back cover, sample pages) shown on the book detail page">Additional Images</Label>
