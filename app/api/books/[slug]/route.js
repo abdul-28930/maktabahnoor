@@ -59,7 +59,11 @@ export async function PUT(req, { params }) {
         author: updated.author, category: updated.category, categories: updated.categories, language: updated.language,
         binding: updated.binding, volumes: updated.volumes, pages: updated.pages,
         mrp: updated.mrp, price: updated.price, offerType: updated.offerType,
-        stockCount, inStock: updated.inStock, visible: updated.visible !== false, tags: updated.tags, coverUrl: metaSafeCoverUrl(updated.coverUrl),
+        stockCount, inStock: updated.inStock, visible: updated.visible !== false, tags: updated.tags,
+        // See POST /api/books — the shared list gets the tiny thumbnail, not
+        // a scaled-down copy of the full cover, so it stays small regardless
+        // of catalog size.
+        coverUrl: updated.coverThumb || metaSafeCoverUrl(updated.coverUrl),
         gallery: updated.gallery };
       await redis.set('mn_books_meta', meta);
       revalidatePath('/');

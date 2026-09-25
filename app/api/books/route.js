@@ -104,6 +104,7 @@ export async function POST(req) {
       order:       Date.now(),
       tags:        data.tags || [],
       coverUrl:    data.coverUrl || '',
+      coverThumb:  data.coverThumb || '',
       gallery:     Array.isArray(data.gallery) ? data.gallery.filter(Boolean) : [],
       createdAt:   now, updatedAt: now,
     };
@@ -111,11 +112,15 @@ export async function POST(req) {
     await redis.set(`mn_book:${slug}`, book);
     await redis.set(`mn_stock:book:${slug}`, stockCount);
     const meta = await redis.get('mn_books_meta') || [];
+    // The shared list gets the tiny thumbnail when we have one (see
+    // app/admin/page.jsx for why), falling back to the full cover only when
+    // it's small enough on its own (a pasted URL, or an old record with no
+    // thumbnail yet).
     const m = { slug, sku: book.sku, title: book.title, author: book.author, translator: book.translator, publisher: book.publisher,
                 category: book.category, categories: book.categories, language: book.language, binding: book.binding,
                 volumes: book.volumes, pages: book.pages, mrp: book.mrp, price: book.price,
                 offerType: book.offerType, stockCount, inStock: book.inStock, visible: book.visible, order: book.order,
-                tags: book.tags, coverUrl: metaSafeCoverUrl(book.coverUrl), createdAt: now };
+                tags: book.tags, coverUrl: book.coverThumb || metaSafeCoverUrl(book.coverUrl), createdAt: now };
     const idx = meta.findIndex(b => b.slug === slug);
     if (idx >= 0) meta[idx] = m; else meta.unshift(m);
     await redis.set('mn_books_meta', meta);
