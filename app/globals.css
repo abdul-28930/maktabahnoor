@@ -384,7 +384,7 @@ img{max-width:100%;display:block}
 .hp-book-overlay { transition:transform .42s ease,opacity .42s ease; }
 .hp-book-card:hover .hp-book-overlay { transform:translateY(0)!important;opacity:1!important; }
 
-.hp-cat-card { transition:transform .35s ease,box-shadow .35s ease,border-color .35s ease; }
+.hp-cat-card { transition:transform .35s ease,box-shadow .35s ease,border-color .35s ease;min-width:0; }
 .hp-cat-card:hover { transform:translateY(-5px);box-shadow:0 0 18px rgba(184,150,90,.42);border-color:var(--gold-2)!important; }
 .hp-cat-ic { transition:transform .4s ease; }
 .hp-cat-card:hover .hp-cat-ic { transform:rotate(8deg) scale(1.06); }
@@ -410,6 +410,11 @@ img{max-width:100%;display:block}
   .hp-four-grid { grid-template-columns:1fr!important; }
   .hp-footer-grid { grid-template-columns:1fr!important; }
 }
+/* Categories grid: self-adapting column count instead of the fixed
+   breakpoints above, so it always lands on evenly-sized columns with no
+   ragged rows or oversized gaps at in-between viewport widths. Placed after
+   the .hp-four-grid media rules so it wins the cascade at every width. */
+.hp-cats-grid { grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important; }
 .nav-links-scroll{-ms-overflow-style:none;}
 .nav-links-scroll::-webkit-scrollbar{display:none;}
 .nav-links-scroll a,.nav-links-scroll>div{flex-shrink:0;}

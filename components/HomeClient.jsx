@@ -378,7 +378,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           <div style={{color:'#d4ab70',fontSize:12,letterSpacing:'3.5px',textTransform:'uppercase',marginBottom:14}}>✦ Browse by Topic</div>
           <h2 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(40px,5vw,60px)',color:'#fff'}}>What are you looking for?</h2>
         </div>
-        <div className="hp-four-grid" style={{position:'relative',maxWidth:1180,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:22}}>
+        <div className="hp-four-grid hp-cats-grid" style={{position:'relative',maxWidth:1180,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:22}}>
           {(liveCats ? liveCats.slice(0,8).map(c=>({name:c,ar:CAT_AR[c]||'',slug:c})) : DISPLAY_CATS).map((cat,i)=>(
             <Link key={cat.name} href={`/books?category=${encodeURIComponent(cat.slug)}`} className="hp-cat-card hp-reveal" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(184,150,90,0.32)',borderRadius:14,padding:'32px 20px',textAlign:'center',cursor:'pointer',textDecoration:'none',display:'block'}} data-reveal data-reveal-delay={i*0.07}>
               <div className="hp-cat-ic" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:42,color:'#d4ab70',lineHeight:1,marginBottom:14}}>{cat.ar}</div>
