@@ -608,6 +608,29 @@ export default function AdminPage() {
       setCategorySaving(false);
     }
   }
+  async function deleteCategory(name, bookCount) {
+    const msg = bookCount > 0
+      ? `Delete "${name}"? It will be removed from ${bookCount} ${bookCount === 1 ? 'book' : 'books'} (reassigned to "General" if it was their only category). This cannot be undone.`
+      : `Delete "${name}"? This cannot be undone.`;
+    if (!confirm(msg)) return;
+    setCategorySaving(true);
+    try {
+      const r = await fetch('/api/categories/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: session, name }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to delete.');
+      if (d.taxonomy) setTaxonomy(d.taxonomy);
+      await loadBooks();
+      showToast(`✓ Deleted "${name}" (${d.count || 0} books updated)`, 'success');
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setCategorySaving(false);
+    }
+  }
   async function toggleOrderFulfilled(orderRef, fulfilled) {
     try {
       await fetch('/api/orders',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,orderRef,fulfilled})});
@@ -2218,15 +2241,25 @@ export default function AdminPage() {
                         {bookCount} {bookCount === 1 ? 'book' : 'books'}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingCategory(cat);
-                        setCategoryInput(cat);
-                      }}
-                      style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.18)',background:'transparent',color:'#1b4332',fontSize:11,cursor:'pointer',fontWeight:500}}>
-                      ✎ Edit Name
-                    </button>
+                    <div style={{display:'flex',gap:8}}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingCategory(cat);
+                          setCategoryInput(cat);
+                        }}
+                        style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.18)',background:'transparent',color:'#1b4332',fontSize:11,cursor:'pointer',fontWeight:500}}>
+                        ✎ Edit Name
+                      </button>
+                      <button
+                        type="button"
+                        disabled={categorySaving || taxonomy.categories.length <= 1}
+                        onClick={() => deleteCategory(cat, bookCount)}
+                        title={taxonomy.categories.length <= 1 ? 'At least one category must remain' : undefined}
+                        style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(178,34,34,0.25)',background:'transparent',color:taxonomy.categories.length <= 1 ? '#c9a0a0' : '#b22222',fontSize:11,cursor:taxonomy.categories.length <= 1 ? 'not-allowed' : 'pointer',fontWeight:500}}>
+                        🗑 Delete
+                      </button>
+                    </div>
                   </div>
                 );
               })}
