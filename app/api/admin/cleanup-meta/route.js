@@ -1,15 +1,14 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { metaSafeCoverUrl } from '@/lib/constants';
+import { ensureThumbnail } from '@/lib/thumbnails';
+import { META_COVER_MAX_CHARS } from '@/lib/constants';
 
 // One-time fix: mn_books_meta had oversized base64 cover images accumulated
-// from past saves, which could push the whole shared record past Redis's
-// request-size limit and make ALL book saves fail with a 500. This strips
-// any oversized cover from the shared list (each book's own record/page is
-// untouched — this only affects listing-page thumbnails for the affected
-// books, which will look normal again next time that book's cover is
-// re-uploaded, since uploads are now auto-compressed).
+// from past saves, which pushed the shared record to Redis's 10MB limit.
+// This compresses any oversized cover in the shared list down to a small
+// thumbnail (<40KB), keeping the images visible on listing pages while keeping
+// the total shared list well under 1-2 MB.
 export async function POST(req) {
   try {
     const { password } = await req.json();
@@ -18,11 +17,16 @@ export async function POST(req) {
 
     const meta = await redis.get('mn_books_meta') || [];
     let trimmed = 0;
-    const cleaned = meta.map(b => {
-      const safe = metaSafeCoverUrl(b.coverUrl);
-      if (safe !== b.coverUrl) trimmed++;
-      return { ...b, coverUrl: safe };
-    });
+    const cleaned = [];
+    for (const b of meta) {
+      if (b.coverUrl && b.coverUrl.startsWith('data:') && b.coverUrl.length > META_COVER_MAX_CHARS) {
+        trimmed++;
+        const thumb = await ensureThumbnail('', b.coverUrl);
+        cleaned.push({ ...b, coverUrl: thumb });
+      } else {
+        cleaned.push(b);
+      }
+    }
     await redis.set('mn_books_meta', cleaned);
     revalidatePath('/');
     return NextResponse.json({ success: true, trimmed, total: meta.length });

@@ -2,6 +2,7 @@ import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { MANDATORY_BOOK_FIELDS, metaSafeCoverUrl, getBookCategories } from '@/lib/constants';
+import { ensureThumbnail } from '@/lib/thumbnails';
 
 const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
 
@@ -43,10 +44,12 @@ export async function PUT(req, { params }) {
     const stockCount = Math.max(0, parseInt(updates.stockCount ?? existing.stockCount) || 0);
     const categories = getBookCategories(merged);
     const primaryCategory = categories[0] || 'General';
+    const thumb = await ensureThumbnail(updates.coverThumb ?? existing.coverThumb, updates.coverUrl ?? existing.coverUrl);
     const updated = { ...existing, ...updates,
       category: primaryCategory,
       categories,
       stockCount, inStock: stockCount > 0,
+      coverThumb: thumb,
       mrp: parseFloat(updates.mrp ?? existing.mrp) || 0,
       price: parseFloat(updates.price ?? existing.price) || 0,
       updatedAt: new Date().toISOString() };
@@ -60,10 +63,8 @@ export async function PUT(req, { params }) {
         binding: updated.binding, volumes: updated.volumes, pages: updated.pages,
         mrp: updated.mrp, price: updated.price, offerType: updated.offerType,
         stockCount, inStock: updated.inStock, visible: updated.visible !== false, tags: updated.tags,
-        // See POST /api/books — the shared list gets the tiny thumbnail, not
-        // a scaled-down copy of the full cover, so it stays small regardless
-        // of catalog size.
-        coverUrl: updated.coverThumb || metaSafeCoverUrl(updated.coverUrl),
+        // The shared list gets the small thumbnail so it stays small regardless of catalog size
+        coverUrl: thumb,
         gallery: updated.gallery };
       await redis.set('mn_books_meta', meta);
       revalidatePath('/');

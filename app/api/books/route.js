@@ -2,6 +2,7 @@ import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { slugify, nameSlug, splitAuthors, splitTranslators, metaSafeCoverUrl, MANDATORY_BOOK_FIELDS, getBookCategories } from '@/lib/constants';
+import { ensureThumbnail } from '@/lib/thumbnails';
 
 const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
 
@@ -104,7 +105,7 @@ export async function POST(req) {
       order:       Date.now(),
       tags:        data.tags || [],
       coverUrl:    data.coverUrl || '',
-      coverThumb:  data.coverThumb || '',
+      coverThumb:  await ensureThumbnail(data.coverThumb, data.coverUrl),
       gallery:     Array.isArray(data.gallery) ? data.gallery.filter(Boolean) : [],
       createdAt:   now, updatedAt: now,
     };
@@ -120,7 +121,7 @@ export async function POST(req) {
                 category: book.category, categories: book.categories, language: book.language, binding: book.binding,
                 volumes: book.volumes, pages: book.pages, mrp: book.mrp, price: book.price,
                 offerType: book.offerType, stockCount, inStock: book.inStock, visible: book.visible, order: book.order,
-                tags: book.tags, coverUrl: book.coverThumb || metaSafeCoverUrl(book.coverUrl), createdAt: now };
+                tags: book.tags, coverUrl: book.coverThumb, createdAt: now };
     const idx = meta.findIndex(b => b.slug === slug);
     if (idx >= 0) meta[idx] = m; else meta.unshift(m);
     await redis.set('mn_books_meta', meta);
