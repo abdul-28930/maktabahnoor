@@ -921,7 +921,9 @@ export default function AdminPage() {
   const THUMB_MAX_CHARS = 40000; // ~30KB raw — worst case per book in the shared list
 
   function drawToDataUrl(img, dimension, quality) {
-    let { width, height } = img;
+    let width = img.naturalWidth || img.width || 0;
+    let height = img.naturalHeight || img.height || 0;
+    if (!width || !height) return '';
     if (width > dimension || height > dimension) {
       if (width > height) { height = Math.round(height * (dimension / width)); width = dimension; }
       else { width = Math.round(width * (dimension / height)); height = dimension; }
@@ -953,9 +955,14 @@ export default function AdminPage() {
       img.onload = () => {
         clearTimeout(timer);
         URL.revokeObjectURL(url);
-        const full  = drawToDataUrl(img, MAX_DIMENSION, JPEG_QUALITY);
-        const thumb = drawThumb(img);
-        resolve({ full, thumb });
+        try {
+          const full  = drawToDataUrl(img, MAX_DIMENSION, JPEG_QUALITY);
+          const thumb = drawThumb(img);
+          if (!full) throw new Error('Could not draw image');
+          resolve({ full, thumb: thumb || '' });
+        } catch (err) {
+          reject(err);
+        }
       };
       img.onerror = () => { clearTimeout(timer); URL.revokeObjectURL(url); reject(new Error('Could not read image.')); };
       img.src = url;
@@ -969,7 +976,14 @@ export default function AdminPage() {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('timeout')), 8000);
       const img = new Image();
-      img.onload = () => { clearTimeout(timer); resolve(drawThumb(img)); };
+      img.onload = () => {
+        clearTimeout(timer);
+        try {
+          resolve(drawThumb(img));
+        } catch (err) {
+          reject(err);
+        }
+      };
       img.onerror = () => { clearTimeout(timer); reject(new Error('Could not read image.')); };
       img.src = dataUrl;
     });
@@ -1006,8 +1020,11 @@ export default function AdminPage() {
     onDone(full, thumb);
   }
   function handleImg(e) {
-    const file=e.target.files?.[0];
-    readImgFile(file, (full,thumb)=>{ f('coverUrl',full); f('coverThumb',thumb); });
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    readImgFile(file, (full, thumb) => {
+      setForm(p => ({ ...p, coverUrl: full, coverThumb: thumb }));
+    });
   }
   function handleSlideImg(e) {
     const file=e.target.files?.[0];
