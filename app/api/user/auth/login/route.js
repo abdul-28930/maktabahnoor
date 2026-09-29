@@ -2,9 +2,11 @@ import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { verifyPassword, sanitizeUser, createSession } from '@/lib/userAuth';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req) {
   try {
-    const { username, password } = await req.json();
+    const { username, password, rememberMe = true } = await req.json();
 
     const cleanUsername = String(username || '').trim().toLowerCase();
     const cleanPassword = String(password || '');
@@ -28,20 +30,45 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Invalid username or password.' }, { status: 401 });
     }
 
-    const sessionToken = await createSession(userId);
+    const shouldRemember = Boolean(rememberMe);
+    const sessionToken = await createSession(userId, shouldRemember);
 
     const res = NextResponse.json({
       success: true,
       user: sanitizeUser(user),
     });
 
-    res.cookies.set('mn_user_token', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 30 * 24 * 60 * 60,
-    });
+    // Remove any guest flag now that user is authenticated
+    res.cookies.delete('mn_guest');
+
+    if (shouldRemember) {
+      // 90 days persistent login
+      res.cookies.set('mn_user_token', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 90 * 24 * 60 * 60,
+      });
+
+      // Save username for pre-filling login form (accessible to client JS)
+      res.cookies.set('mn_remember_username', user.username || cleanUsername, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 90 * 24 * 60 * 60,
+      });
+    } else {
+      // Browser session only (cleared when browser is closed)
+      res.cookies.set('mn_user_token', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+      res.cookies.delete('mn_remember_username');
+    }
 
     return res;
   } catch (e) {

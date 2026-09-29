@@ -2,6 +2,8 @@ import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { getUserFromSessionToken } from '@/lib/userAuth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req) {
   try {
     const token = req.cookies.get('mn_user_token')?.value;

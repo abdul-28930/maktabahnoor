@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import PageBackground from '@/components/PageBackground';
+import Navbar from '@/components/Navbar';
 import { getBookCategories } from '@/lib/constants';
 
 const OFFER_COLORS = {
@@ -37,26 +38,10 @@ export default function BundlePage() {
       .catch(() => { setNotFound(true); setLoading(false); });
   }, [id]);
 
-  const Nav = () => (
-    <nav style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,72px)',backdropFilter:'blur(10px)',background:'rgba(250,249,245,0.85)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
-      <Link href="/" style={{display:'flex',alignItems:'center',gap:12,textDecoration:'none',color:'#1b4332'}}>
-        <Image src="/logo.png" alt="Logo" width={36} height={36} style={{height:36,width:'auto'}}/>
-        <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,letterSpacing:.5}}>Maktabah An Noor</span>
-      </Link>
-      <div style={{display:'flex',alignItems:'center',gap:24}}>
-        <Link href="/"        style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Home</Link>
-        <Link href="/books"   style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Collection</Link>
-        <Link href="/bundles" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Bundles</Link>
-        <Link href="/accessories" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Accessories</Link>
-          <Link href="/clothing" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>Clothing</Link>
-        <Link href="/wishlist" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3}}>♡ Wishlist</Link>
-      </div>
-    </nav>
-  );
-
   if (loading) return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
-      <PageBackground subtle/><Nav/>
+      <PageBackground subtle/>
+      <Navbar active="bundles" />
       <div style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',justifyContent:'center',minHeight:'70vh',flexDirection:'column',gap:16}}>
         <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:64,color:'rgba(27,67,50,0.1)',animation:'pulseRays 2s ease-in-out infinite'}}>حزمة</div>
         <div style={{fontSize:13,color:'#a09890',letterSpacing:1}}>Loading…</div>
@@ -66,7 +51,8 @@ export default function BundlePage() {
 
   if (notFound || !bundle) return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
-      <PageBackground subtle/><Nav/>
+      <PageBackground subtle/>
+      <Navbar active="bundles" />
       <div style={{position:'relative',zIndex:1,textAlign:'center',padding:'100px 24px'}}>
         <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:80,color:'rgba(27,67,50,0.08)',marginBottom:20}}>حزمة</div>
         <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,color:'#1b4332',marginBottom:12}}>Bundle Not Found</h1>
@@ -84,7 +70,7 @@ export default function BundlePage() {
   return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>
       <PageBackground subtle/>
-      <Nav/>
+      <Navbar active="bundles" />
 
       {/* BREADCRUMB */}
       <div style={{position:'relative',zIndex:1,padding:'20px clamp(20px,5vw,72px)',borderBottom:'1px solid rgba(27,67,50,0.06)'}}>

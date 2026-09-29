@@ -2,9 +2,11 @@ import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { hashPassword, sanitizeUser, createSession } from '@/lib/userAuth';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req) {
   try {
-    const { username, password } = await req.json();
+    const { username, password, rememberMe = true } = await req.json();
 
     const cleanUsername = String(username || '').trim();
     const cleanPassword = String(password || '');
@@ -51,20 +53,42 @@ export async function POST(req) {
       await redis.set('mn_users_index', userList);
     }
 
-    const sessionToken = await createSession(userId);
+    const shouldRemember = Boolean(rememberMe);
+    const sessionToken = await createSession(userId, shouldRemember);
 
     const res = NextResponse.json({
       success: true,
       user: sanitizeUser(newUser),
     });
 
-    res.cookies.set('mn_user_token', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 30 * 24 * 60 * 60,
-    });
+    // Remove any guest flag now that user is registered
+    res.cookies.delete('mn_guest');
+
+    if (shouldRemember) {
+      res.cookies.set('mn_user_token', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 90 * 24 * 60 * 60,
+      });
+
+      res.cookies.set('mn_remember_username', cleanUsername, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 90 * 24 * 60 * 60,
+      });
+    } else {
+      res.cookies.set('mn_user_token', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+      res.cookies.delete('mn_remember_username');
+    }
 
     return res;
   } catch (e) {
