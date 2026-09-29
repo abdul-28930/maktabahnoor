@@ -45,7 +45,11 @@ export async function PUT(req, { params }) {
     const categories = getBookCategories(merged);
     const primaryCategory = categories[0] || 'General';
     const thumb = await ensureThumbnail(updates.coverThumb ?? existing.coverThumb, updates.coverUrl ?? existing.coverUrl);
+    const fullCover = (updates.coverUrl && updates.coverUrl.startsWith('/api/'))
+      ? (existing.coverUrl || '')
+      : (updates.coverUrl !== undefined ? updates.coverUrl : existing.coverUrl);
     const updated = { ...existing, ...updates,
+      coverUrl: fullCover,
       category: primaryCategory,
       categories,
       stockCount, inStock: stockCount > 0,
@@ -58,13 +62,15 @@ export async function PUT(req, { params }) {
     const meta = await redis.get('mn_books_meta') || [];
     const idx  = meta.findIndex(b => b.slug === params.slug);
     if (idx >= 0) {
+      const metaCoverUrl = (fullCover && fullCover.startsWith('data:'))
+        ? `/api/books/${params.slug}/cover`
+        : (fullCover || '');
       meta[idx] = { ...meta[idx], sku: updated.sku, title: updated.title, translator: updated.translator, publisher: updated.publisher,
         author: updated.author, category: updated.category, categories: updated.categories, language: updated.language,
         binding: updated.binding, volumes: updated.volumes, pages: updated.pages,
         mrp: updated.mrp, price: updated.price, offerType: updated.offerType,
         stockCount, inStock: updated.inStock, visible: updated.visible !== false, tags: updated.tags,
-        // The shared list gets the small thumbnail so it stays small regardless of catalog size
-        coverUrl: thumb,
+        coverUrl: metaCoverUrl,
         gallery: updated.gallery };
       await redis.set('mn_books_meta', meta);
       revalidatePath('/');
