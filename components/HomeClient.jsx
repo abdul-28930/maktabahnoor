@@ -4,7 +4,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { IG_URL, WA_NUMBER, EMAIL, PHONE_DISPLAY } from '@/lib/constants';
 import InstagramEmbed from '@/components/InstagramEmbed';
+import Navbar from '@/components/Navbar';
 import BooksNavDropdown from '@/components/BooksNavDropdown';
+import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 
 const CAT_AR = {
   'Aqeedah':'عقيدة','Fiqh':'فقه','Hadith':'حديث','Tafsir':'تفسير',
@@ -140,6 +143,8 @@ function FeaturedSlider({ slides = [] }) {
 
 export default function HomeClient({ featuredBooks = [], newArrivals = [], heroSlides = [] }) {
   const rootRef = useRef(null);
+  const { user, loading: authLoading } = useAuth();
+  const { cartCount, openCart } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [igTiles, setIgTiles] = useState([]);
   const [liveCats, setLiveCats] = useState(null);
@@ -226,49 +231,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
       </div>
 
       {/* NAV */}
-      <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:40,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'20px clamp(20px,5vw,72px)',backdropFilter:'blur(8px)',background:'rgba(250,249,245,0.72)',borderBottom:'1px solid rgba(27,67,50,0.07)'}}>
-        <Link href="/" style={{display:'flex',alignItems:'center',gap:12,textDecoration:'none',color:'#1b4332'}}>
-          <Image src="/logo.png" alt="Maktabah An Noor" width={38} height={38} style={{height:38,width:'auto'}}/>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,letterSpacing:.5}}>Maktabah An Noor</span>
-        </Link>
-        <div className="hp-nav-links" style={{display:'flex',alignItems:'center',gap:34}}>
-          {NAV.map(n => (
-            <a key={n} href={`#${n.toLowerCase().replace(/ /g,'-')}`} className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>{n}</a>
-          ))}
-          <BooksNavDropdown className="hp-nlink" style={{fontSize:14,color:'#6b6460'}}/>
-          <Link href="/accessories" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>Accessories</Link>
-          <Link href="/clothing" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>Clothing</Link>
-          <Link href="/wishlist" className="hp-nlink" style={{textDecoration:'none',color:'#6b6460',fontSize:14,letterSpacing:.3}}>♡ Wishlist</Link>
-        </div>
-        <button
-          className="hp-hamburger"
-          onClick={() => setMobileMenuOpen(o => !o)}
-          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={mobileMenuOpen}
-          style={{display:'none',alignItems:'center',justifyContent:'center',width:40,height:40,border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:10,background:'transparent',color:'#1b4332',marginLeft:8}}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            {mobileMenuOpen ? (
-              <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
-            ) : (
-              <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
-            )}
-          </svg>
-        </button>
-      </nav>
-
-      {/* MOBILE DROPDOWN MENU */}
-      {mobileMenuOpen && (
-        <div className="hp-hamburger" style={{display:'flex',position:'fixed',top:'72px',left:0,right:0,zIndex:39,flexDirection:'column',background:'#faf9f5',borderBottom:'1px solid rgba(27,67,50,0.1)',boxShadow:'0 12px 32px rgba(27,67,50,0.12)',padding:'12px clamp(20px,5vw,72px) 20px'}}>
-          {NAV.map(n => (
-            <a key={n} href={`#${n.toLowerCase().replace(/ /g,'-')}`} onClick={()=>setMobileMenuOpen(false)}
-              style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px',borderBottom:'1px solid rgba(27,67,50,0.06)'}}>{n}</a>
-          ))}
-          <Link href="/books" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Books</Link>
-          <Link href="/accessories" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Accessories</Link>
-          <Link href="/clothing" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>Clothing</Link>
-          <Link href="/wishlist" onClick={()=>setMobileMenuOpen(false)} style={{textDecoration:'none',color:'#1b4332',fontSize:15,padding:'12px 4px'}}>♡ Wishlist</Link>
-        </div>
-      )}
+      <Navbar active="home" />
 
       {/* HERO */}
       <header id="top" style={{position:'relative',zIndex:1,minHeight:'100vh',display:'flex',alignItems:'center',padding:'140px clamp(20px,5vw,72px) 130px'}}>

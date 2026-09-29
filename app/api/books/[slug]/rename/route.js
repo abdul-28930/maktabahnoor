@@ -30,8 +30,13 @@ export async function POST(req, { params }) {
 
     // Update the lightweight meta list used for browsing/filtering.
     const meta = await redis.get('mn_books_meta') || [];
-    const idx = meta.findIndex(b => b.slug === oldSlug);
-    if (idx >= 0) { meta[idx] = { ...meta[idx], slug: newSlug }; await redis.set('mn_books_meta', meta); }
+    if (idx >= 0) {
+      const coverUrl = meta[idx].coverUrl === `/api/books/${oldSlug}/cover`
+        ? `/api/books/${newSlug}/cover`
+        : meta[idx].coverUrl;
+      meta[idx] = { ...meta[idx], slug: newSlug, coverUrl };
+      await redis.set('mn_books_meta', meta);
+    }
 
     // Cascade — anywhere else that stored the old slug as a reference.
     const bundlesMeta = await redis.get('mn_bundles_meta') || [];

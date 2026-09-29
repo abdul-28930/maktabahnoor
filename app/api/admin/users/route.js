@@ -2,6 +2,8 @@ import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { sanitizeUser } from '@/lib/userAuth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);

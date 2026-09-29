@@ -28,27 +28,41 @@ export function AuthProvider({ children }) {
     refreshUser();
   }, [refreshUser]);
 
-  const login = useCallback(async (username, password) => {
+  const login = useCallback(async (username, password, rememberMe = true) => {
     const res = await fetch('/api/user/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, rememberMe }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Login failed.');
     setUser(data.user);
+    try {
+      if (rememberMe && data.user?.username) {
+        localStorage.setItem('mn_remember_username', data.user.username);
+      } else {
+        localStorage.removeItem('mn_remember_username');
+      }
+    } catch {}
     return data.user;
   }, []);
 
-  const register = useCallback(async (username, password) => {
+  const register = useCallback(async (username, password, rememberMe = true) => {
     const res = await fetch('/api/user/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, rememberMe }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Registration failed.');
     setUser(data.user);
+    try {
+      if (rememberMe && data.user?.username) {
+        localStorage.setItem('mn_remember_username', data.user.username);
+      } else {
+        localStorage.removeItem('mn_remember_username');
+      }
+    } catch {}
     return data.user;
   }, []);
 

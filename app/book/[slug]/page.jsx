@@ -7,6 +7,7 @@ import { EMAIL, nameSlug, splitAuthors, splitTranslators, getBookCategories } fr
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import PageBackground from '@/components/PageBackground';
+import Navbar from '@/components/Navbar';
 
 // Minimal markdown support for book descriptions — paragraphs (blank-line or
 // single-line-separated), **bold**, and *italic*. No library needed for
@@ -75,27 +76,10 @@ export default function BookPage() {
       .catch(() => {});
   }, [book?.category, book?.slug]);
 
-  const Nav = () => (
-    <nav style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(16px,4vw,72px)',gap:12,backdropFilter:'blur(10px)',background:'rgba(250,249,245,0.85)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
-      <Link href="/" style={{display:'flex',alignItems:'center',gap:10,textDecoration:'none',color:'#1b4332',flexShrink:0}}>
-        <Image src="/logo.png" alt="Logo" width={36} height={36} style={{height:36,width:'auto'}}/>
-        <span className="site-name-text" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,letterSpacing:.5,whiteSpace:'nowrap'}}>Maktabah An Noor</span>
-      </Link>
-      <div className="nav-links-scroll" style={{display:'flex',alignItems:'center',gap:16,overflowX:'auto',scrollbarWidth:'none',maxWidth:'70vw',flexShrink:1}}>
-        <Link href="/"        style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>Home</Link>
-        <Link href="/books"   style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>Collection</Link>
-        <Link href="/bundles" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>Bundles</Link>
-        <Link href="/accessories" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>Accessories</Link>
-        <Link href="/clothing" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>Clothing</Link>
-        <Link href="/wishlist" style={{textDecoration:'none',fontSize:13,color:'#6b6460',letterSpacing:.3,whiteSpace:'nowrap',flexShrink:0}}>♡ Wishlist</Link>
-      </div>
-    </nav>
-  );
-
   if (loading) return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
       <PageBackground subtle/>
-      <Nav/>
+      <Navbar active="books" />
       <div style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',justifyContent:'center',minHeight:'70vh',flexDirection:'column',gap:16}}>
         <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:64,color:'rgba(27,67,50,0.1)',animation:'pulseRays 2s ease-in-out infinite'}}>النور</div>
         <div style={{fontSize:13,color:'#a09890',letterSpacing:1}}>Loading…</div>
@@ -106,7 +90,7 @@ export default function BookPage() {
   if (notFound || !book) return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
       <PageBackground subtle/>
-      <Nav/>
+      <Navbar active="books" />
       <div style={{position:'relative',zIndex:1,textAlign:'center',padding:'100px 24px'}}>
         <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:80,color:'rgba(27,67,50,0.08)',marginBottom:20}}>كتاب</div>
         <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,color:'#1b4332',marginBottom:12}}>Book Not Found</h1>
@@ -131,7 +115,7 @@ export default function BookPage() {
   return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>
       <PageBackground subtle/>
-      <Nav/>
+      <Navbar active="books" />
 
       {/* BREADCRUMB */}
       <div style={{position:'relative',zIndex:1,padding:'20px clamp(20px,5vw,72px)',borderBottom:'1px solid rgba(27,67,50,0.06)'}}>

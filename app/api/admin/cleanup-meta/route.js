@@ -19,10 +19,9 @@ export async function POST(req) {
     let trimmed = 0;
     const cleaned = [];
     for (const b of meta) {
-      if (b.coverUrl && b.coverUrl.startsWith('data:') && b.coverUrl.length > META_COVER_MAX_CHARS) {
+      if (b.coverUrl && b.coverUrl.startsWith('data:')) {
         trimmed++;
-        const thumb = await ensureThumbnail('', b.coverUrl);
-        cleaned.push({ ...b, coverUrl: thumb });
+        cleaned.push({ ...b, coverUrl: `/api/books/${b.slug}/cover` });
       } else {
         cleaned.push(b);
       }

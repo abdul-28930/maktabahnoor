@@ -1,8 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import BooksNavDropdown from '@/components/BooksNavDropdown';
-import Image from 'next/image';
+import Navbar from '@/components/Navbar';
 import PageBackground from '@/components/PageBackground';
 import { useCart } from '@/context/CartContext';
 
@@ -76,20 +75,7 @@ export default function ClothingPage() {
   return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>
       <PageBackground subtle/>
-      <nav style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,72px)',backdropFilter:'blur(12px)',background:'rgba(250,249,245,0.88)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
-        <Link href="/" style={{display:'flex',alignItems:'center',gap:12,textDecoration:'none',color:'#1b4332'}}>
-          <Image src="/logo.png" alt="Logo" width={36} height={36} style={{height:36,width:'auto'}}/>
-          <span className="site-name-text" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,letterSpacing:.5}}>Maktabah An Noor</span>
-        </Link>
-        <div className="nav-links-scroll" style={{display:'flex',alignItems:'center',gap:6,overflowX:'auto',scrollbarWidth:'none',maxWidth:'70vw'}}>
-          <Link href="/" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>Home</Link>
-          <BooksNavDropdown/>
-          <Link href="/bundles" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>Bundles</Link>
-          <Link href="/accessories" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>Accessories</Link>
-          <Link href="/clothing" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#1b4332',fontWeight:500,background:'rgba(27,67,50,0.07)'}}>Clothing</Link>
-          <Link href="/wishlist" style={{textDecoration:'none',padding:'7px 14px',borderRadius:20,fontSize:12,color:'#6b6460'}}>♡ Wishlist</Link>
-        </div>
-      </nav>
+      <Navbar active="clothing" />
 
       <div style={{position:'relative',zIndex:1,padding:'52px clamp(20px,5vw,72px) 40px',borderBottom:'1px solid rgba(27,67,50,0.07)'}}>
         <div style={{maxWidth:1280,margin:'0 auto'}}>
