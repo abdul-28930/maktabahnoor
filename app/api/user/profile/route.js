@@ -31,7 +31,7 @@ export async function PUT(req) {
     }
 
     const body = await req.json();
-    const { username, phone, whatsapp, interestedCategories, currentPassword, newPassword } = body;
+    const { username, name, address, phone, whatsapp, interestedCategories, currentPassword, newPassword } = body;
 
     let updatedUser = { ...user };
 
@@ -75,7 +75,11 @@ export async function PUT(req) {
       updatedUser.salt = salt;
     }
 
-    // 3. Contact details
+    // 3. Name & Address
+    if (name !== undefined) updatedUser.name = String(name || '').trim();
+    if (address !== undefined) updatedUser.address = String(address || '').trim();
+
+    // 4. Contact details
     if (phone !== undefined) updatedUser.phone = String(phone || '').trim();
     if (whatsapp !== undefined) updatedUser.whatsapp = String(whatsapp || '').trim();
 

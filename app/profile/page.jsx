@@ -12,6 +12,8 @@ export default function ProfilePage() {
   const { user, loading: authLoading, updateProfile, logout } = useAuth();
 
   const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [selectedCats, setSelectedCats] = useState([]);
@@ -40,6 +42,8 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setUsername(user.username || '');
+      setName(user.name || '');
+      setAddress(user.address || '');
       setPhone(user.phone || '');
       setWhatsapp(user.whatsapp || '');
       setSelectedCats(user.interestedCategories || []);
@@ -80,6 +84,8 @@ export default function ProfilePage() {
     try {
       await updateProfile({
         username: username.trim(),
+        name: name.trim(),
+        address: address.trim(),
         phone: phone.trim(),
         whatsapp: whatsapp.trim(),
         interestedCategories: selectedCats,
@@ -207,6 +213,54 @@ export default function ProfilePage() {
                     color: '#1a1712',
                     outline: 'none',
                     boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#1b4332', marginBottom: 6 }}>
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. Zayd Ahmad"
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    background: '#faf9f5',
+                    border: '1.5px solid rgba(27,67,50,0.12)',
+                    borderRadius: 10,
+                    fontSize: 14,
+                    color: '#1a1712',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#1b4332', marginBottom: 6 }}>
+                  Delivery / Postal Address
+                </label>
+                <textarea
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  placeholder="House / Flat no., Street, Area, City, State, Pincode"
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    background: '#faf9f5',
+                    border: '1.5px solid rgba(27,67,50,0.12)',
+                    borderRadius: 10,
+                    fontSize: 14,
+                    color: '#1a1712',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    fontFamily: "'DM Sans', sans-serif",
+                    resize: 'vertical',
                   }}
                 />
               </div>

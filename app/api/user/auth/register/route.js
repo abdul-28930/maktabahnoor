@@ -35,6 +35,8 @@ export async function POST(req) {
     const newUser = {
       id: userId,
       username: cleanUsername,
+      name: '',
+      address: '',
       passwordHash: hash,
       salt: salt,
       phone: '',

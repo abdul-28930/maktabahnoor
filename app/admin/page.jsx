@@ -2635,17 +2635,24 @@ export default function AdminPage() {
                       <div key={u.id} style={{padding:'18px 24px',borderBottom:i<users.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
                         <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:16,flexWrap:'wrap',marginBottom:8}}>
                           <div>
-                            <div style={{display:'flex',alignItems:'center',gap:10}}>
+                            <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                               <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>@{u.username}</span>
+                              {u.name && <span style={{fontSize:14,fontWeight:500,color:'#1a1712'}}>({u.name})</span>}
                               <span style={{fontSize:11,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>
                                 {userOrders.length} order{userOrders.length !== 1 ? 's' : ''}
                               </span>
                             </div>
                             <div style={{display:'flex',gap:14,marginTop:6,fontSize:12,color:'#6b6460',flexWrap:'wrap'}}>
-                              {u.phone && <span>📞 Phone: <b>{u.phone}</b></span>}
-                              {u.whatsapp && <span>💬 WhatsApp: <b>{u.whatsapp}</b></span>}
+                              {u.name && <span>👤 Name: <b style={{color:'#1a1712'}}>{u.name}</b></span>}
+                              {u.phone && <span>📞 Phone: <b style={{color:'#1a1712'}}>{u.phone}</b></span>}
+                              {u.whatsapp && <span>💬 WhatsApp: <b style={{color:'#1a1712'}}>{u.whatsapp}</b></span>}
                               <span>Registered: {new Date(u.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                             </div>
+                            {u.address && (
+                              <div style={{marginTop:6,fontSize:12,color:'#6b6460'}}>
+                                📍 Delivery Address: <b style={{color:'#1a1712',fontWeight:500}}>{u.address}</b>
+                              </div>
+                            )}
                           </div>
                         </div>
 
