@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS, getBookCategories, getCategoryArabic, CAT_AR } from '@/lib/constants';
 import PageBackground from '@/components/PageBackground';
+import { renderDescription } from '@/components/FormattedDescription';
 
 const EMPTY_BOOK = {
   title:'',author:'',translator:'',publisher:'',sku:'',language:'Arabic',category:'Aqeedah',categories:['Aqeedah'],
@@ -1328,6 +1329,14 @@ export default function AdminPage() {
             <textarea value={form.description} onChange={e=>f('description',e.target.value)} placeholder="2–3 lines about what this book covers…" rows={3}
               style={{width:'100%',padding:'12px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',resize:'vertical',lineHeight:1.65,transition:'border-color .2s'}}
               onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
+            {form.description && form.description.trim() ? (
+              <div style={{marginTop:10,padding:'12px 14px',background:'rgba(27,67,50,0.03)',borderRadius:10,border:'1px solid rgba(27,67,50,0.1)'}}>
+                <div style={{fontSize:10,letterSpacing:'1.5px',textTransform:'uppercase',color:'#b8965a',fontWeight:600,marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                  <span>✦</span> Formatted Preview
+                </div>
+                {renderDescription(form.description, { fontSize: 14.5, lineHeight: 1.6 })}
+              </div>
+            ) : null}
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
             <div><Label>Binding *</Label><FSelect value={form.binding} onChange={e=>f('binding',e.target.value)} options={BINDINGS} placeholder="— Select —"/></div>
@@ -1439,6 +1448,14 @@ export default function AdminPage() {
           <textarea value={bundleForm.description} onChange={e=>bf('description',e.target.value)} placeholder="What makes this bundle special?" rows={2}
             style={{width:'100%',padding:'12px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',resize:'vertical',lineHeight:1.65,transition:'border-color .2s'}}
             onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
+          {bundleForm.description && bundleForm.description.trim() ? (
+            <div style={{marginTop:10,padding:'12px 14px',background:'rgba(27,67,50,0.03)',borderRadius:10,border:'1px solid rgba(27,67,50,0.1)'}}>
+              <div style={{fontSize:10,letterSpacing:'1.5px',textTransform:'uppercase',color:'#b8965a',fontWeight:600,marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                <span>✦</span> Formatted Preview
+              </div>
+              {renderDescription(bundleForm.description, { fontSize: 14.5, lineHeight: 1.6 })}
+            </div>
+          ) : null}
         </Card>
 
         {/* Select Books */}
