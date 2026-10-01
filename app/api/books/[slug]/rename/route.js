@@ -19,17 +19,44 @@ export async function POST(req, { params }) {
     if (!newSlug) return NextResponse.json({ error: 'Enter a valid slug.' }, { status: 400 });
     if (newSlug === oldSlug) return NextResponse.json({ success: true, newSlug });
 
-    const book = await redis.get(`mn_book:${oldSlug}`);
-    if (!book) return NextResponse.json({ error: 'Book not found.' }, { status: 404 });
-    if (await redis.get(`mn_book:${newSlug}`))
-      return NextResponse.json({ error: `Slug "${newSlug}" is already in use by another book.` }, { status: 400 });
+    const meta = await redis.get('mn_books_meta') || [];
+    const idx = meta.findIndex(b => b.slug === oldSlug);
 
-    // Move the book record itself.
-    await redis.set(`mn_book:${newSlug}`, { ...book, slug: newSlug });
-    await redis.del(`mn_book:${oldSlug}`);
+    let book = await redis.get(`mn_book:${oldSlug}`);
+    if (!book) {
+      // In case a previous rename attempt partially moved the record to newSlug before failing
+      const existingNew = await redis.get(`mn_book:${newSlug}`);
+      if (existingNew && idx >= 0) {
+        book = existingNew;
+      } else {
+        return NextResponse.json({ error: 'Book not found.' }, { status: 404 });
+      }
+    } else {
+      if (await redis.get(`mn_book:${newSlug}`))
+        return NextResponse.json({ error: `Slug "${newSlug}" is already in use by another book.` }, { status: 400 });
+
+      // Move the book record itself.
+      await redis.set(`mn_book:${newSlug}`, { ...book, slug: newSlug });
+      await redis.del(`mn_book:${oldSlug}`);
+    }
+
+    // Migrate live stock counter if present
+    const liveStock = await redis.get(`mn_stock:book:${oldSlug}`);
+    if (liveStock !== null && liveStock !== undefined) {
+      await redis.set(`mn_stock:book:${newSlug}`, liveStock);
+      await redis.del(`mn_stock:book:${oldSlug}`);
+    } else if (book.stockCount !== undefined && (await redis.get(`mn_stock:book:${newSlug}`)) === null) {
+      await redis.set(`mn_stock:book:${newSlug}`, book.stockCount);
+    }
+
+    // Migrate analytics views if present
+    const views = await redis.hget('mn_book_views', oldSlug);
+    if (views !== null && views !== undefined) {
+      await redis.hset('mn_book_views', { [newSlug]: views });
+      await redis.hdel('mn_book_views', oldSlug);
+    }
 
     // Update the lightweight meta list used for browsing/filtering.
-    const meta = await redis.get('mn_books_meta') || [];
     if (idx >= 0) {
       const coverUrl = meta[idx].coverUrl === `/api/books/${oldSlug}/cover`
         ? `/api/books/${newSlug}/cover`
@@ -68,6 +95,10 @@ export async function POST(req, { params }) {
     }
 
     revalidatePath('/');
+    revalidatePath('/books');
+    revalidatePath(`/book/${oldSlug}`);
+    revalidatePath(`/book/${newSlug}`);
+
     return NextResponse.json({ success: true, newSlug });
   } catch (e) {
     console.error(e);
