@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext';
 import PageBackground from '@/components/PageBackground';
 import Navbar from '@/components/Navbar';
 import { getBookCategories } from '@/lib/constants';
+import { renderDescription } from '@/components/FormattedDescription';
 
 const OFFER_COLORS = {
   'Sale':                {bg:'rgba(220,38,38,0.1)',  border:'rgba(220,38,38,0.3)',  text:'#dc2626'},
@@ -111,9 +112,9 @@ export default function BundlePage() {
           </h1>
 
           {bundle.description && (
-            <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:17,color:'#6b6460',lineHeight:1.75,marginBottom:28}}>
-              {bundle.description}
-            </p>
+            <div style={{marginBottom:28}}>
+              {renderDescription(bundle.description, { fontSize: 17, lineHeight: 1.75 })}
+            </div>
           )}
 
           {/* Pricing */}

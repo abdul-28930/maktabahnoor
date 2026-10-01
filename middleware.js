@@ -32,12 +32,10 @@ export function middleware(req) {
     return NextResponse.next();
   }
 
-  // First-time or unauthenticated visitors without guest bypass see Login first
-  if (!isAuthenticated && !isGuest) {
+  // Profile page requires authentication
+  if (pathname.startsWith('/profile') && !isAuthenticated) {
     const loginUrl = new URL('/login', req.url);
-    if (pathname && pathname !== '/') {
-      loginUrl.searchParams.set('redirect', pathname + search);
-    }
+    loginUrl.searchParams.set('redirect', pathname + search);
     return NextResponse.redirect(loginUrl);
   }
 

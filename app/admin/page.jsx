@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS, getBookCategories, getCategoryArabic, CAT_AR } from '@/lib/constants';
 import PageBackground from '@/components/PageBackground';
+import { renderDescription } from '@/components/FormattedDescription';
 
 const EMPTY_BOOK = {
   title:'',author:'',translator:'',publisher:'',sku:'',language:'Arabic',category:'Aqeedah',categories:['Aqeedah'],
@@ -1328,6 +1329,14 @@ export default function AdminPage() {
             <textarea value={form.description} onChange={e=>f('description',e.target.value)} placeholder="2–3 lines about what this book covers…" rows={3}
               style={{width:'100%',padding:'12px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',resize:'vertical',lineHeight:1.65,transition:'border-color .2s'}}
               onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
+            {form.description && form.description.trim() ? (
+              <div style={{marginTop:10,padding:'12px 14px',background:'rgba(27,67,50,0.03)',borderRadius:10,border:'1px solid rgba(27,67,50,0.1)'}}>
+                <div style={{fontSize:10,letterSpacing:'1.5px',textTransform:'uppercase',color:'#b8965a',fontWeight:600,marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                  <span>✦</span> Formatted Preview
+                </div>
+                {renderDescription(form.description, { fontSize: 14.5, lineHeight: 1.6 })}
+              </div>
+            ) : null}
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
             <div><Label>Binding *</Label><FSelect value={form.binding} onChange={e=>f('binding',e.target.value)} options={BINDINGS} placeholder="— Select —"/></div>
@@ -1439,6 +1448,14 @@ export default function AdminPage() {
           <textarea value={bundleForm.description} onChange={e=>bf('description',e.target.value)} placeholder="What makes this bundle special?" rows={2}
             style={{width:'100%',padding:'12px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',resize:'vertical',lineHeight:1.65,transition:'border-color .2s'}}
             onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
+          {bundleForm.description && bundleForm.description.trim() ? (
+            <div style={{marginTop:10,padding:'12px 14px',background:'rgba(27,67,50,0.03)',borderRadius:10,border:'1px solid rgba(27,67,50,0.1)'}}>
+              <div style={{fontSize:10,letterSpacing:'1.5px',textTransform:'uppercase',color:'#b8965a',fontWeight:600,marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                <span>✦</span> Formatted Preview
+              </div>
+              {renderDescription(bundleForm.description, { fontSize: 14.5, lineHeight: 1.6 })}
+            </div>
+          ) : null}
         </Card>
 
         {/* Select Books */}
@@ -2635,17 +2652,24 @@ export default function AdminPage() {
                       <div key={u.id} style={{padding:'18px 24px',borderBottom:i<users.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
                         <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:16,flexWrap:'wrap',marginBottom:8}}>
                           <div>
-                            <div style={{display:'flex',alignItems:'center',gap:10}}>
+                            <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                               <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>@{u.username}</span>
+                              {u.name && <span style={{fontSize:14,fontWeight:500,color:'#1a1712'}}>({u.name})</span>}
                               <span style={{fontSize:11,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>
                                 {userOrders.length} order{userOrders.length !== 1 ? 's' : ''}
                               </span>
                             </div>
                             <div style={{display:'flex',gap:14,marginTop:6,fontSize:12,color:'#6b6460',flexWrap:'wrap'}}>
-                              {u.phone && <span>📞 Phone: <b>{u.phone}</b></span>}
-                              {u.whatsapp && <span>💬 WhatsApp: <b>{u.whatsapp}</b></span>}
+                              {u.name && <span>👤 Name: <b style={{color:'#1a1712'}}>{u.name}</b></span>}
+                              {u.phone && <span>📞 Phone: <b style={{color:'#1a1712'}}>{u.phone}</b></span>}
+                              {u.whatsapp && <span>💬 WhatsApp: <b style={{color:'#1a1712'}}>{u.whatsapp}</b></span>}
                               <span>Registered: {new Date(u.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                             </div>
+                            {u.address && (
+                              <div style={{marginTop:6,fontSize:12,color:'#6b6460'}}>
+                                📍 Delivery Address: <b style={{color:'#1a1712',fontWeight:500}}>{u.address}</b>
+                              </div>
+                            )}
                           </div>
                         </div>
 
