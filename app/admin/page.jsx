@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS, getBookCategories } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS, getBookCategories, getCategoryArabic, CAT_AR } from '@/lib/constants';
 import PageBackground from '@/components/PageBackground';
 
 const EMPTY_BOOK = {
@@ -331,7 +331,7 @@ export default function AdminPage() {
     try { stored = localStorage.getItem('mn_admin_session'); } catch {}
     if (!stored) return;
     setSession(stored); setView('dashboard');
-    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadUsers(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts();
+    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadUsers(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts(); loadHomeCats();
   }, []);
 
   const [books, setBooks]         = useState([]);
@@ -342,6 +342,11 @@ export default function AdminPage() {
   const [views, setViews]         = useState({});
   const [slides, setSlides]       = useState([]);
   const [picks, setPicks]         = useState({ featured: [], newArrivals: [] });
+  const [homeCats, setHomeCats]   = useState(null); // null = not yet loaded; [] = admin cleared it
+  const [homeCatsSaving, setHomeCatsSaving] = useState(false);
+  const [homeCatDragIdx, setHomeCatDragIdx] = useState(null);
+  const [newTopicCat, setNewTopicCat] = useState('');
+  const [newTopicAr, setNewTopicAr] = useState('');
   const [igPosts, setIgPosts]     = useState([]);
   const [igPostInput, setIgPostInput] = useState('');
   const [igImageInput, setIgImageInput] = useState('');
@@ -369,6 +374,8 @@ export default function AdminPage() {
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryInput, setCategoryInput] = useState('');
   const [categorySaving, setCategorySaving] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
   const [editBundleId, setEditBundleId] = useState(null);
   const [editSlideId, setEditSlideId] = useState(null);
   const [form, setForm]           = useState(EMPTY_BOOK);
@@ -509,7 +516,7 @@ export default function AdminPage() {
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
       setSession(pw); setView('dashboard'); setPw('');
       try { localStorage.setItem('mn_admin_session', pw); } catch {}
-      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadUsers(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts();
+      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadUsers(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts(); loadHomeCats();
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -572,6 +579,33 @@ export default function AdminPage() {
   }
   function removeIgPost(url) { saveIgPosts(igPosts.filter(p=>p.url!==url)); }
 
+  async function loadHomeCats() {
+    try {
+      const r = await fetch('/api/homepage-categories');
+      const d = await r.json();
+      const raw = d.categories ?? [];
+      const normalized = raw.map(c => {
+        if (typeof c === 'string') return { name: c, ar: getCategoryArabic(c) };
+        return { name: c?.name || '', ar: c?.ar || getCategoryArabic(c?.name || '') };
+      }).filter(c => c.name);
+      setHomeCats(normalized);
+    } catch { setHomeCats([]); }
+  }
+  async function saveHomeCats() {
+    setHomeCatsSaving(true);
+    try {
+      const r = await fetch('/api/homepage-categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: session, categories: homeCats }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed');
+      showToast('✓ "Browse by Topic" saved!', 'success');
+    } catch(e) { showToast(e.message, 'error'); }
+    finally { setHomeCatsSaving(false); }
+  }
+
   async function addTaxonomyOption(field, value) {
     try {
       const r = await fetch('/api/taxonomy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,field,value})});
@@ -625,6 +659,32 @@ export default function AdminPage() {
       if (d.taxonomy) setTaxonomy(d.taxonomy);
       await loadBooks();
       showToast(`✓ Deleted "${name}" (${d.count || 0} books updated)`, 'success');
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setCategorySaving(false);
+    }
+  }
+  async function addCategory(name) {
+    const clean = String(name || '').trim();
+    if (!clean) return;
+    if (taxonomy.categories.some(c => c.toLowerCase() === clean.toLowerCase())) {
+      showToast(`"${clean}" already exists.`, 'error');
+      return;
+    }
+    setCategorySaving(true);
+    try {
+      const r = await fetch('/api/taxonomy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: session, field: 'categories', value: clean }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to add category.');
+      if (d.taxonomy) setTaxonomy(d.taxonomy);
+      setAddingCategory(false);
+      setNewCategoryInput('');
+      showToast(`✓ Added "${clean}".`, 'success');
     } catch (e) {
       showToast(e.message, 'error');
     } finally {
@@ -1824,7 +1884,9 @@ export default function AdminPage() {
                   ? <Btn onClick={()=>{setEditAccId(null);setAccForm(EMPTY_ACCESSORY);setAccImgMode('url');setView('accEditor');}}>+ Add Accessory</Btn>
                   : tab==='clothing'
                     ? <Btn onClick={()=>{setEditClothId(null);setClothForm(EMPTY_CLOTHING);setClothImgMode('url');setView('clothEditor');}}>+ Add Clothing</Btn>
-                    : null
+                    : tab==='categories'
+                      ? <Btn onClick={()=>{setAddingCategory(true);setNewCategoryInput('');}}>+ Add Category</Btn>
+                      : null
           }
           <Btn variant="ghost" onClick={()=>{setSession('');setView('login');try{localStorage.removeItem('mn_admin_session');}catch{}}}>Log Out</Btn>
         </div>
@@ -1847,7 +1909,7 @@ export default function AdminPage() {
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content',flexWrap:'wrap'}}>
           {[{id:'books',label:`Books (${books.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length})`},{id:'users',label:`Customers & Interests (${users.length})`}].map(t=>(
-            <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif'"}}>
+            <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif"}}>
               {t.label}
             </button>
           ))}
@@ -2028,6 +2090,170 @@ export default function AdminPage() {
           <div style={{display:'flex',justifyContent:'flex-end',marginBottom:20}}>
             <Btn onClick={savePicks} disabled={loading}>{loading?'Saving…':'Save Homepage Picks'}</Btn>
           </div>
+
+          {/* ── BROWSE BY TOPIC EDITOR ── */}
+          <Card title="Browse by Topic">
+            <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
+              Each category on the homepage has its own box with its Arabic calligraphy translation above.
+              Edit the Arabic translation directly on any box, reorder using drag or the ▲/▼ buttons, or add new categories below.
+            </p>
+
+            {/* Current boxes grid */}
+            {(homeCats === null ? [] : homeCats).length > 0 && (
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(210px, 1fr))',gap:14,marginBottom:18}}>
+                {(homeCats || []).map((cat, i) => {
+                  const catName = typeof cat === 'string' ? cat : (cat?.name || '');
+                  const catAr = typeof cat === 'string' ? getCategoryArabic(cat) : (cat?.ar || getCategoryArabic(catName));
+                  return (
+                    <div
+                      key={catName + i}
+                      draggable
+                      onDragStart={() => setHomeCatDragIdx(i)}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={() => {
+                        if (homeCatDragIdx === null || homeCatDragIdx === i) return;
+                        const next = [...homeCats];
+                        const [moved] = next.splice(homeCatDragIdx, 1);
+                        next.splice(i, 0, moved);
+                        setHomeCats(next); setHomeCatDragIdx(null);
+                      }}
+                      onDragEnd={() => setHomeCatDragIdx(null)}
+                      style={{
+                        background: '#1b4332',
+                        border: '1.5px solid rgba(184,150,90,0.38)',
+                        borderRadius: 14,
+                        padding: '16px 14px',
+                        textAlign: 'center',
+                        position: 'relative',
+                        boxShadow: '0 4px 16px rgba(27,67,50,0.12)',
+                        cursor: 'grab',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        minHeight: 155,
+                      }}
+                    >
+                      {/* Top Action Bar */}
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                        <span style={{color:'rgba(212,171,112,0.6)',fontSize:14,userSelect:'none',cursor:'grab'}}>⠿</span>
+                        <div style={{display:'flex',gap:4}}>
+                          <button
+                            type="button"
+                            onClick={() => { if (i===0) return; const n=[...homeCats]; [n[i-1],n[i]]=[n[i],n[i-1]]; setHomeCats(n); }}
+                            disabled={i===0}
+                            title="Move earlier"
+                            style={{width:22,height:20,border:'1px solid rgba(255,255,255,0.2)',borderRadius:4,background:'rgba(255,255,255,0.06)',color:i===0?'rgba(255,255,255,0.2)':'#fff',fontSize:9,cursor:i===0?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>▲</button>
+                          <button
+                            type="button"
+                            onClick={() => { if (i===homeCats.length-1) return; const n=[...homeCats]; [n[i],n[i+1]]=[n[i+1],n[i]]; setHomeCats(n); }}
+                            disabled={i===homeCats.length-1}
+                            title="Move later"
+                            style={{width:22,height:20,border:'1px solid rgba(255,255,255,0.2)',borderRadius:4,background:'rgba(255,255,255,0.06)',color:i===homeCats.length-1?'rgba(255,255,255,0.2)':'#fff',fontSize:9,cursor:i===homeCats.length-1?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>▼</button>
+                          <button
+                            type="button"
+                            onClick={() => setHomeCats(homeCats.filter((_,j) => j !== i))}
+                            title="Remove box"
+                            style={{width:22,height:20,border:'1px solid rgba(255,100,100,0.3)',borderRadius:4,background:'rgba(255,100,100,0.12)',color:'#ff9999',fontSize:10,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                        </div>
+                      </div>
+
+                      {/* Arabic Translation Above (Editable) */}
+                      <div style={{marginBottom:6}}>
+                        <input
+                          type="text"
+                          dir="rtl"
+                          value={catAr}
+                          placeholder="Arabic (e.g. حديث)"
+                          onChange={e => {
+                            const val = e.target.value;
+                            const next = [...homeCats];
+                            next[i] = { name: catName, ar: val };
+                            setHomeCats(next);
+                          }}
+                          style={{
+                            fontFamily:"'Noto Naskh Arabic',serif",
+                            fontSize:26,
+                            color:'#d4ab70',
+                            background:'rgba(255,255,255,0.06)',
+                            border:'1px dashed rgba(212,171,112,0.4)',
+                            borderRadius:8,
+                            padding:'4px 8px',
+                            textAlign:'center',
+                            width:'100%',
+                            outline:'none',
+                            lineHeight:1.3,
+                          }}
+                        />
+                        <div style={{fontSize:9,color:'rgba(212,171,112,0.6)',marginTop:3,letterSpacing:.5,textTransform:'uppercase'}}>Arabic Translation</div>
+                      </div>
+
+                      {/* Category Name Below */}
+                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,color:'#fff',fontWeight:500,marginTop:6,borderTop:'1px solid rgba(255,255,255,0.1)',paddingTop:8}}>
+                        {catName}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Add to Browse by Topic bar */}
+            <div style={{display:'flex',gap:10,alignItems:'center',background:'rgba(27,67,50,0.03)',border:'1px solid rgba(27,67,50,0.1)',borderRadius:12,padding:'12px 16px',marginBottom:14,flexWrap:'wrap'}}>
+              <div style={{flex:1,minWidth:160}}>
+                <select
+                  value={newTopicCat}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setNewTopicCat(v);
+                    if (v && !newTopicAr) {
+                      setNewTopicAr(getCategoryArabic(v));
+                    }
+                  }}
+                  style={{width:'100%',padding:'9px 12px',background:'#fff',border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:10,fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'#1a1712',outline:'none',cursor:'pointer'}}>
+                  <option value="">Select category to add…</option>
+                  {taxonomy.categories.filter(c => !(homeCats||[]).some(h => (typeof h === 'string' ? h : h.name) === c)).map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{width:160}}>
+                <input
+                  type="text"
+                  dir="rtl"
+                  placeholder="Arabic translation"
+                  value={newTopicAr}
+                  onChange={e => setNewTopicAr(e.target.value)}
+                  style={{width:'100%',padding:'9px 12px',background:'#fff',border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:10,fontSize:14,fontFamily:"'Noto Naskh Arabic',serif",color:'#b8965a',textAlign:'center',outline:'none'}}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!newTopicCat.trim()) return;
+                  const name = newTopicCat.trim();
+                  const ar = newTopicAr.trim() || getCategoryArabic(name);
+                  setHomeCats([...(homeCats||[]), { name, ar }]);
+                  setNewTopicCat('');
+                  setNewTopicAr('');
+                }}
+                disabled={!newTopicCat.trim()}
+                style={{padding:'9px 20px',borderRadius:20,border:'none',background:newTopicCat.trim()?'#1b4332':'rgba(27,67,50,0.2)',color:'#fff',fontSize:12,fontWeight:500,cursor:newTopicCat.trim()?'pointer':'default',fontFamily:"'DM Sans',sans-serif"}}>                + Add Box
+              </button>
+            </div>
+
+            {(homeCats||[]).length === 0 && (
+              <p style={{fontSize:12,color:'#a09890',margin:'4px 0 12px',fontStyle:'italic'}}>
+                No categories selected — the homepage will auto-show categories from the Categories tab.
+              </p>
+            )}
+
+            <div style={{display:'flex',justifyContent:'flex-end'}}>
+              <Btn onClick={saveHomeCats} disabled={homeCatsSaving}>
+                {homeCatsSaving ? 'Saving…' : 'Save Browse by Topic'}
+              </Btn>
+            </div>
+          </Card>
+          <div style={{marginBottom:20}}/>
 
           <Card title={`Instagram Posts (${igPosts.length}/6)`}>
             <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
@@ -2251,7 +2477,7 @@ export default function AdminPage() {
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:12}}>
               <div>
                 <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'#1b4332',margin:0}}>Categories</h2>
-                <p style={{fontSize:12,color:'#a09890',margin:'4px 0 0'}}>Rename any category. It will automatically update across all books and storefront filters.</p>
+                <p style={{fontSize:12,color:'#a09890',margin:'4px 0 0'}}>Add, rename, or delete categories. Changes reflect instantly on the homepage and storefront filters.</p>
               </div>
             </div>
 
@@ -2318,9 +2544,44 @@ export default function AdminPage() {
                   </div>
                 );
               })}
+
+              {/* Inline Add Category form */}
+              {addingCategory ? (
+                <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',background:'rgba(27,67,50,0.04)',borderRadius:10,border:'1.5px dashed #1b4332',marginTop:4}}>
+                  <input
+                    type="text"
+                    value={newCategoryInput}
+                    onChange={e => setNewCategoryInput(e.target.value)}
+                    placeholder="New category name"
+                    autoFocus
+                    style={{flex:1,padding:'8px 12px',background:'#fff',border:'1px solid rgba(27,67,50,0.2)',borderRadius:8,fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none'}}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') addCategory(newCategoryInput);
+                      if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryInput(''); }
+                    }}
+                  />
+                  <Btn small disabled={categorySaving || !newCategoryInput.trim()} onClick={() => addCategory(newCategoryInput)}>
+                    {categorySaving ? 'Saving…' : 'Add'}
+                  </Btn>
+                  <button
+                    type="button"
+                    onClick={() => { setAddingCategory(false); setNewCategoryInput(''); }}
+                    style={{padding:'8px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#6b6460',fontSize:11,cursor:'pointer'}}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setAddingCategory(true); setNewCategoryInput(''); }}
+                  style={{marginTop:4,padding:'10px 18px',borderRadius:20,border:'1.5px dashed rgba(27,67,50,0.25)',background:'transparent',color:'#2d6a4f',fontSize:12,cursor:'pointer',textAlign:'left',fontFamily:"'DM Sans',sans-serif"}}>
+                  + Add new category
+                </button>
+              )}
             </div>
           </div>
         )}
+
 
         {/* CUSTOMERS & INTERESTS */}
         {tab === 'users' && (

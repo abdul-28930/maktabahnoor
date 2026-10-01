@@ -2,18 +2,13 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { IG_URL, WA_NUMBER, EMAIL, PHONE_DISPLAY } from '@/lib/constants';
+import { IG_URL, WA_NUMBER, EMAIL, PHONE_DISPLAY, CAT_AR, getCategoryArabic } from '@/lib/constants';
 import InstagramEmbed from '@/components/InstagramEmbed';
 import Navbar from '@/components/Navbar';
 import BooksNavDropdown from '@/components/BooksNavDropdown';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 
-const CAT_AR = {
-  'Aqeedah':'عقيدة','Fiqh':'فقه','Hadith':'حديث','Tafsir':'تفسير',
-  'Seerah':'سيرة','Manners & Character':'أخلاق','History':'تاريخ',
-  'Arabic Language':'لغة','Dua & Dhikr':'دعاء','Quran & Tajweed':'قرآن','General':'عام',
-};
 const COVER_BKGS = [
   'linear-gradient(155deg,#2d6a4f 0%,#1b4332 100%)',
   'linear-gradient(155deg,#234f3c 0%,#15291f 100%)',
@@ -150,7 +145,20 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
   const [liveCats, setLiveCats] = useState(null);
 
   useEffect(() => {
-    fetch('/api/taxonomy').then(r=>r.json()).then(d=>setLiveCats(d.taxonomy?.categories||null)).catch(()=>{});
+    // Prefer the admin-curated "Browse by Topic" list; fall back to taxonomy slice.
+    fetch('/api/homepage-categories')
+      .then(r => r.json())
+      .then(d => {
+        if (d.categories && d.categories.length > 0) {
+          setLiveCats(d.categories);
+        } else {
+          // Nothing configured yet — use first 8 taxonomy categories as before.
+          fetch('/api/taxonomy').then(r=>r.json()).then(tx=>setLiveCats(tx.taxonomy?.categories||null)).catch(()=>{});
+        }
+      })
+      .catch(() => {
+        fetch('/api/taxonomy').then(r=>r.json()).then(tx=>setLiveCats(tx.taxonomy?.categories||null)).catch(()=>{});
+      });
   }, []);
 
   useEffect(() => {
@@ -212,6 +220,48 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
     }
     return () => { if (onScroll) window.removeEventListener('scroll', onScroll); };
   }, []);
+
+  // Re-observe category cards each time liveCats loads/changes, ensuring none are left invisible
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion:reduce)').matches;
+    const catCards = root.querySelectorAll('.hp-cat-card');
+
+    if (reduced) {
+      catCards.forEach(el => { el.style.opacity = '1'; el.style.transform = 'none'; });
+      return;
+    }
+
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const d = parseFloat(e.target.getAttribute('data-reveal-delay') || 0);
+          setTimeout(() => e.target.classList.add('visible'), d * 1000);
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.05, rootMargin: '60px' });
+
+    catCards.forEach(el => {
+      if (!el.classList.contains('visible')) {
+        io.observe(el);
+      }
+    });
+
+    // If section is already visible in viewport, reveal all cards with stagger immediately
+    const sec = root.querySelector('#categories');
+    if (sec) {
+      const r = sec.getBoundingClientRect();
+      if (r.top < window.innerHeight && r.bottom > 0) {
+        catCards.forEach((el, i) => {
+          setTimeout(() => el.classList.add('visible'), i * 60);
+        });
+      }
+    }
+
+    return () => io.disconnect();
+  }, [liveCats]);
 
   const displayFeatured = featuredBooks.length > 0 ? featuredBooks : PLACEHOLDER_BOOKS;
   const displayNew      = newArrivals.length  > 0 ? newArrivals  : PLACEHOLDER_BOOKS.map(b=>({...b,tags:['New Arrival']}));
@@ -342,9 +392,45 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           <h2 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(40px,5vw,60px)',color:'#fff'}}>What are you looking for?</h2>
         </div>
         <div className="hp-four-grid hp-cats-grid" style={{position:'relative',maxWidth:1180,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:22}}>
-          {(liveCats ? liveCats.slice(0,8).map(c=>({name:c,ar:CAT_AR[c]||'',slug:c})) : DISPLAY_CATS).map((cat,i)=>(
-            <Link key={cat.name} href={`/books?category=${encodeURIComponent(cat.slug)}`} className="hp-cat-card hp-reveal" style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(184,150,90,0.32)',borderRadius:14,padding:'32px 20px',textAlign:'center',cursor:'pointer',textDecoration:'none',display:'block'}} data-reveal data-reveal-delay={i*0.07}>
-              <div className="hp-cat-ic" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:42,color:'#d4ab70',lineHeight:1,marginBottom:14}}>{cat.ar}</div>
+          {(liveCats ? liveCats.map(c => {
+            if (typeof c === 'string') return { name: c, ar: getCategoryArabic(c), slug: c };
+            return { name: c.name || '', ar: c.ar || getCategoryArabic(c.name || ''), slug: c.slug || c.name || '' };
+          }) : DISPLAY_CATS).filter(c => c.name).map((cat, i) => (
+            <Link
+              key={cat.name || i}
+              href={`/books?category=${encodeURIComponent(cat.slug || cat.name)}`}
+              className="hp-cat-card hp-reveal"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(184,150,90,0.32)',
+                borderRadius: 14,
+                padding: '32px 20px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                display: 'block',
+                transition: 'all .35s ease',
+              }}
+              data-reveal
+              data-reveal-delay={i * 0.07}
+            >
+              <div
+                className="hp-cat-ic"
+                style={{
+                  fontFamily: "'Noto Naskh Arabic',serif",
+                  fontSize: 42,
+                  color: '#d4ab70',
+                  lineHeight: 1,
+                  marginBottom: 14,
+                  minHeight: 44,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  direction: 'rtl',
+                }}
+              >
+                {cat.ar}
+              </div>
               <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:21,color:'#fff'}}>{cat.name}</div>
             </Link>
           ))}
@@ -505,11 +591,14 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
           <div>
             <div style={{fontSize:9,letterSpacing:'2.5px',textTransform:'uppercase',color:'#d4ab70',marginBottom:20,display:'flex',alignItems:'center',gap:8}}><span style={{width:12,height:1,background:'#d4ab70',display:'inline-block'}}/>Collection</div>
             <div style={{display:'flex',flexDirection:'column',gap:13}}>
-              {(liveCats || ['Aqeedah','Hadith','Fiqh','Seerah']).slice(0,7).map(cat=>(
-                <Link key={cat} href={'/books?category='+encodeURIComponent(cat)} style={{textDecoration:'none',color:'rgba(255,255,255,0.65)',fontSize:14,fontWeight:300,transition:'color .15s,paddingLeft .15s',display:'flex',alignItems:'center',gap:8}}
-                  onMouseEnter={e=>{e.currentTarget.style.color='#d4ab70';e.currentTarget.style.paddingLeft='4px';}}
-                  onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.65)';e.currentTarget.style.paddingLeft='0';}}>{cat}</Link>
-              ))}
+              {(liveCats || ['Aqeedah','Hadith','Fiqh','Seerah']).slice(0,7).map(cat=>{
+                const name = typeof cat === 'string' ? cat : (cat.name || '');
+                return (
+                  <Link key={name} href={'/books?category='+encodeURIComponent(name)} style={{textDecoration:'none',color:'rgba(255,255,255,0.65)',fontSize:14,fontWeight:300,transition:'color .15s,paddingLeft .15s',display:'flex',alignItems:'center',gap:8}}
+                    onMouseEnter={e=>{e.currentTarget.style.color='#d4ab70';e.currentTarget.style.paddingLeft='4px';}}
+                    onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.65)';e.currentTarget.style.paddingLeft='0';}}>{name}</Link>
+                );
+              })}
             </div>
           </div>
 
