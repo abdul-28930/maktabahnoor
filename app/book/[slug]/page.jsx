@@ -1,353 +1,55 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import { EMAIL, nameSlug, splitAuthors, splitTranslators, getBookCategories } from '@/lib/constants';
-import { useCart } from '@/context/CartContext';
-import { useWishlist } from '@/context/WishlistContext';
-import PageBackground from '@/components/PageBackground';
-import Navbar from '@/components/Navbar';
-import { renderDescription } from '@/components/FormattedDescription';
+import redis from '@/lib/redis';
+import BookPageClient from './BookPageClient';
 
+// Strip markdown bold/italic markers for plain-text OG description
+function stripMarkdown(text) {
+  if (!text) return '';
+  return text
+    .replace(/\*\*\*([^*]+)\*\*\*/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/\n+/g, ' ')
+    .trim();
+}
 
-const CAT_AR = {
-  'Aqeedah':'عقيدة','Fiqh':'فقه','Hadith':'حديث','Tafsir':'تفسير',
-  'Seerah':'سيرة','Manners & Character':'أخلاق','History':'تاريخ',
-  'Arabic Language':'لغة','Dua & Dhikr':'دعاء','Quran & Tajweed':'قرآن','General':'عام',
-};
-const COVER_BG = 'linear-gradient(155deg,#2d6a4f 0%,#1b4332 100%)';
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  const siteName = 'Maktabah An Noor';
+
+  try {
+    const book = await redis.get(`mn_book:${slug}`);
+    if (!book) return { title: siteName };
+
+    const title = book.title || siteName;
+    const rawDesc = book.description || '';
+    const description = stripMarkdown(rawDesc).slice(0, 300) || `${title} — available at ${siteName}`;
+
+    // Only use coverUrl if it's a real URL (not a base64 data URL)
+    const coverUrl = book.coverUrl && !book.coverUrl.startsWith('data:') ? book.coverUrl : null;
+    const images = coverUrl ? [{ url: coverUrl, alt: title }] : [];
+
+    return {
+      title: `${title} | ${siteName}`,
+      description,
+      openGraph: {
+        title,
+        description,
+        images,
+        type: 'website',
+        siteName,
+      },
+      twitter: {
+        card: coverUrl ? 'summary_large_image' : 'summary',
+        title,
+        description,
+        images: coverUrl ? [coverUrl] : [],
+      },
+    };
+  } catch {
+    return { title: siteName };
+  }
+}
 
 export default function BookPage() {
-  const { slug } = useParams();
-  const [book, setBook]       = useState(null);
-  const [qty, setQty]         = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [related, setRelated] = useState([]);
-  const { addToCart, isInCart } = useCart();
-  const { toggleWishlist, isWishlisted } = useWishlist();
-
-  useEffect(() => {
-    if (!slug) return;
-    fetch(`/api/books/${slug}`)
-      .then(r => {
-        if (r.status === 404) { setNotFound(true); setLoading(false); return null; }
-        return r.json();
-      })
-      .then(d => {
-        if (d) { setBook(d.book); setLoading(false); }
-      })
-      .catch(() => { setNotFound(true); setLoading(false); });
-  }, [slug]);
-
-  // Fire-and-forget view tracking — never blocks rendering or surfaces errors.
-  useEffect(() => {
-    if (!slug) return;
-    fetch('/api/analytics', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug }),
-    }).catch(() => {});
-  }, [slug]);
-
-  // Related books: same category, excluding this one
-  useEffect(() => {
-    if (!book?.category) return;
-    fetch(`/api/books?category=${encodeURIComponent(book.category)}`)
-      .then(r => r.json())
-      .then(d => setRelated((d.books || []).filter(b => b.slug !== book.slug).slice(0, 4)))
-      .catch(() => {});
-  }, [book?.category, book?.slug]);
-
-  if (loading) return (
-    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
-      <PageBackground subtle/>
-      <Navbar active="books" />
-      <div style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',justifyContent:'center',minHeight:'70vh',flexDirection:'column',gap:16}}>
-        <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:64,color:'rgba(27,67,50,0.1)',animation:'pulseRays 2s ease-in-out infinite'}}>النور</div>
-        <div style={{fontSize:13,color:'#a09890',letterSpacing:1}}>Loading…</div>
-      </div>
-    </div>
-  );
-
-  if (notFound || !book) return (
-    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
-      <PageBackground subtle/>
-      <Navbar active="books" />
-      <div style={{position:'relative',zIndex:1,textAlign:'center',padding:'100px 24px'}}>
-        <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:80,color:'rgba(27,67,50,0.08)',marginBottom:20}}>كتاب</div>
-        <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,color:'#1b4332',marginBottom:12}}>Book Not Found</h1>
-        <p style={{color:'#6b6460',marginBottom:28}}>This book does not exist or may have been removed.</p>
-        <Link href="/books" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:8,background:'#1b4332',color:'#fff',padding:'14px 28px',borderRadius:40,fontSize:13}}>← Back to Collection</Link>
-      </div>
-    </div>
-  );
-
-  const cats = getBookCategories(book);
-  const primaryCat = cats[0] || book.category || 'General';
-  const ar = CAT_AR[primaryCat] || 'كتاب';
-  const specs = [
-    book.binding    && { label:'Binding',    val:book.binding },
-    book.volumes    && { label:'Volumes',    val:book.volumes===1?'Single Volume':`${book.volumes} Volumes` },
-    book.pages > 0  && { label:'Pages',      val:book.pages },
-    book.language   && { label:'Language',   val:book.language },
-    cats.length > 0 && { label: cats.length > 1 ? 'Categories' : 'Category', val: cats.join(', ') },
-    book.translator && { label: splitTranslators(book.translator).length > 1 ? 'Translators' : 'Translator', val: book.translator, isTranslator: true },
-  ].filter(Boolean);
-
-  return (
-    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>
-      <PageBackground subtle/>
-      <Navbar active="books" />
-
-      {/* BREADCRUMB */}
-      <div style={{position:'relative',zIndex:1,padding:'20px clamp(20px,5vw,72px)',borderBottom:'1px solid rgba(27,67,50,0.06)'}}>
-        <div style={{maxWidth:1200,margin:'0 auto',display:'flex',alignItems:'center',gap:10,fontSize:12,color:'#a09890',letterSpacing:.5}}>
-          <Link href="/"      style={{textDecoration:'none',color:'#a09890'}}>Home</Link>
-          <span style={{color:'rgba(27,67,50,0.2)'}}>›</span>
-          <Link href="/books" style={{textDecoration:'none',color:'#a09890'}}>Collection</Link>
-          <span style={{color:'rgba(27,67,50,0.2)'}}>›</span>
-          <span style={{color:'#1b4332'}}>{book.title}</span>
-        </div>
-      </div>
-
-      {/* MAIN */}
-      <div className="detail-main-grid" style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'56px clamp(20px,5vw,72px) 100px',display:'grid',gridTemplateColumns:'300px 1fr',gap:64,alignItems:'start'}}>
-
-        {/* COVER */}
-        <div className="detail-cover-sticky" style={{position:'sticky',top:92}}>
-          <div style={{borderRadius:18,overflow:'hidden',boxShadow:'0 20px 60px rgba(27,67,50,0.2)',animation:'floatBook 6s ease-in-out infinite',aspectRatio:'3/4'}}>
-            {book.coverUrl ? (
-              <img src={book.coverUrl} alt={book.title} style={{width:'100%',height:'100%',objectFit:'contain',background:'#f3f1ea'}} loading="lazy"/>
-            ) : (
-              <div style={{width:'100%',height:'100%',background:COVER_BG,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,padding:32,position:'relative'}}>
-                <div style={{position:'absolute',inset:16,border:'1px solid rgba(212,171,112,0.4)',borderRadius:10}}/>
-                <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:56,color:'#d4ab70'}}>{ar}</span>
-                <span style={{color:'rgba(255,255,255,0.4)',fontSize:20}}>✦</span>
-                <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:20,color:'rgba(255,255,255,0.85)',textAlign:'center',lineHeight:1.3}}>{book.title}</span>
-              </div>
-            )}
-          </div>
-          {book.gallery?.length > 0 && (
-            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:16,justifyContent:'center'}}>
-              {book.gallery.map((url, i) => (
-                <div key={i} style={{width:56,height:76,borderRadius:8,overflow:'hidden',border:'1px solid rgba(27,67,50,0.12)',cursor:'pointer'}}
-                  onClick={() => window.open(url, '_blank', 'noreferrer')}>
-                  <img src={url} alt={`${book.title} — additional view ${i+1}`} style={{width:'100%',height:'100%',objectFit:'contain',background:'#f3f1ea'}} loading="lazy"/>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* DETAILS */}
-        <div>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:20,flexWrap:'wrap'}}>
-            {cats.map(c => (
-              <Link key={c} href={`/books?category=${encodeURIComponent(c)}`} style={{textDecoration:'none'}}>
-                <span style={{padding:'5px 14px',background:'rgba(27,67,50,0.07)',borderRadius:20,fontSize:10,fontWeight:500,letterSpacing:1,textTransform:'uppercase',color:'#1b4332'}}>{c}</span>
-              </Link>
-            ))}
-            <span style={{padding:'5px 14px',background:'rgba(184,150,90,0.08)',borderRadius:20,fontSize:10,fontWeight:500,letterSpacing:1,textTransform:'uppercase',color:'#b8965a',border:'1px solid rgba(184,150,90,0.25)'}}>{book.language}</span>
-          </div>
-
-          <h1 style={{margin:'0 0 10px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(32px,4.5vw,52px)',color:'#1b4332',lineHeight:1.12}}>
-            {book.title}
-          </h1>
-          {book.author && (
-            <div style={{fontSize:15,color:'#6b6460',marginBottom:8,fontWeight:300}}>
-              <span style={{fontWeight:500,color:'#4a453f'}}>{splitAuthors(book.author).length > 1 ? 'Authors:' : 'Author:'}</span>{' '}
-              {splitAuthors(book.author).map((a, i, arr) => (
-                <span key={a}>
-                  <Link href={`/author/${nameSlug(a)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.25)'}}>{a}</Link>
-                  {i < arr.length - 1 && ', '}
-                </span>
-              ))}
-            </div>
-          )}
-          {book.publisher && (
-            <div style={{fontSize:15,color:'#6b6460',marginBottom:28,fontWeight:300}}>
-              <span style={{fontWeight:500,color:'#4a453f'}}>Publisher:</span>{' '}
-              <Link href={`/publisher/${nameSlug(book.publisher)}`} style={{color:'#1a1712',fontWeight:400,textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{book.publisher}</Link>
-            </div>
-          )}
-          {!book.author && !book.publisher && <div style={{marginBottom:20}}/>}
-
-          <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:28}}>
-            <span style={{flex:1,height:1,background:'linear-gradient(90deg,rgba(27,67,50,0.2),transparent)'}}/>
-            <span style={{color:'#b8965a',fontSize:12}}>✦</span>
-          </div>
-
-          {/* SKU */}
-          {book.sku && (
-            <div style={{fontSize:11,color:'#a09890',letterSpacing:1.5,textTransform:'uppercase',marginBottom:16}}>
-              SKU: <span style={{color:'#6b6460',fontWeight:500}}>{book.sku}</span>
-            </div>
-          )}
-
-          {/* Pricing */}
-          {(book.mrp || book.price) && (
-            <div style={{marginBottom:20,padding:'20px 24px',background:'linear-gradient(135deg,rgba(27,67,50,0.04),rgba(184,150,90,0.04))',borderRadius:16,border:'1px solid rgba(27,67,50,0.08)'}}>
-              <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                {book.mrp && book.price && book.mrp > book.price && (
-                  <span style={{fontSize:20,color:'#a09890',textDecoration:'line-through',fontFamily:"'Cormorant Garamond',serif"}}>
-                    ₹{Number(book.mrp).toLocaleString('en-IN')}
-                  </span>
-                )}
-                <span style={{fontSize:36,fontWeight:500,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif",lineHeight:1}}>
-                  ₹{Number(book.price || book.mrp).toLocaleString('en-IN')}
-                </span>
-                {book.mrp && book.price && book.mrp > book.price && (
-                  <span style={{padding:'5px 14px',borderRadius:20,background:'rgba(45,106,79,0.12)',color:'#2d6a4f',fontSize:13,fontWeight:500}}>
-                    {Math.round((1 - book.price/book.mrp)*100)}% off
-                  </span>
-                )}
-                {book.offerType && (
-                  <span style={{padding:'5px 14px',borderRadius:20,fontSize:11,fontWeight:500,letterSpacing:1,textTransform:'uppercase',
-                    background:book.offerType==='Sale'?'rgba(220,38,38,0.1)':book.offerType==='Limited Edition'?'rgba(124,58,237,0.1)':'rgba(184,150,90,0.1)',
-                    border:book.offerType==='Sale'?'1px solid rgba(220,38,38,0.3)':book.offerType==='Limited Edition'?'1px solid rgba(124,58,237,0.3)':'1px solid rgba(184,150,90,0.3)',
-                    color:book.offerType==='Sale'?'#dc2626':book.offerType==='Limited Edition'?'#7c3aed':'#b8965a'}}>
-                    {book.offerType}
-                  </span>
-                )}
-              </div>
-              {book.mrp && book.price && book.mrp > book.price && (
-                <div style={{fontSize:13,color:'#6b6460',marginTop:8,fontWeight:300}}>
-                  You save ₹{(book.mrp - book.price).toLocaleString('en-IN')}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Stock badge */}
-          {(() => {
-            const isOut = book.stockCount !== undefined && book.stockCount !== null ? book.stockCount <= 0 : !book.inStock;
-            const isLow = !isOut && book.stockCount !== undefined && book.stockCount !== null && book.stockCount <= 5;
-            const urgent = isOut || isLow;
-            return (
-              <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 20px',borderRadius:30,marginBottom:28,
-                background:urgent?'rgba(192,57,43,0.08)':'rgba(45,106,79,0.08)',
-                border:`1px solid ${urgent?'rgba(192,57,43,0.25)':'rgba(45,106,79,0.2)'}`,
-                color:urgent?'#c0392b':'#2d6a4f',fontSize:12,fontWeight:600,letterSpacing:1,textTransform:'uppercase'}}>
-                <span style={{width:7,height:7,borderRadius:'50%',background:'currentColor'}}/>
-                {isOut ? 'Out of Stock' : isLow ? `Only ${book.stockCount} left!` : 'In Stock'}
-              </div>
-            );
-          })()}
-
-          {book.description && (
-            <div style={{marginBottom:36,paddingBottom:36,borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
-              {renderDescription(book.description)}
-            </div>
-          )}
-
-          {specs.length > 0 && (
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:36}}>
-              {specs.map(s => (
-                <div key={s.label} style={{padding:'16px 20px',background:'#fff',borderRadius:12,border:'1px solid rgba(27,67,50,0.08)',boxShadow:'0 2px 8px rgba(27,67,50,0.04)'}}>
-                  <div style={{fontSize:9,letterSpacing:'2px',textTransform:'uppercase',color:'#b8965a',marginBottom:5}}>{s.label}</div>
-                  <div style={{fontSize:15,color:'#1a1712',fontWeight:400}}>
-                    {s.isTranslator
-                      ? splitTranslators(s.val).map((t, idx, arr) => (
-                          <span key={t}>
-                            <Link href={`/translator/${nameSlug(t)}`} style={{color:'#1a1712',textDecoration:'none',borderBottom:'1px solid rgba(27,67,50,0.2)'}}>{t}</Link>
-                            {idx < arr.length - 1 && ', '}
-                          </span>
-                        ))
-                      : s.val}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{display:'flex',gap:14,flexWrap:'wrap',marginBottom:24,alignItems:'center'}}>
-            {/* Quantity stepper */}
-            {book.inStock !== false && !isInCart(book.slug) && (
-              <div style={{display:'flex',alignItems:'center',border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:40,overflow:'hidden'}}>
-                <button onClick={()=>setQty(q=>Math.max(1,q-1))} aria-label="Decrease quantity"
-                  style={{width:40,height:48,border:'none',background:'transparent',color:'#1b4332',fontSize:18,cursor:'pointer'}}>−</button>
-                <span style={{minWidth:32,textAlign:'center',fontSize:15,color:'#1a1712'}}>{qty}</span>
-                <button onClick={()=>setQty(q=>book.stockCount>0?Math.min(book.stockCount,q+1):q+1)} aria-label="Increase quantity"
-                  style={{width:40,height:48,border:'none',background:'transparent',color:'#1b4332',fontSize:18,cursor:'pointer'}}>+</button>
-              </div>
-            )}
-            {/* Add to Cart */}
-            {book.inStock !== false && (
-              <button
-                className={`book-add-to-cart book-add-to-cart--lg${isInCart(book.slug)?' book-add-to-cart--in':''}`}
-                onClick={() => { addToCart(book, qty); setQty(1); }}
-              >
-                {isInCart(book.slug) ? (
-                  <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added to Cart</>
-                ) : (
-                  <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
-                )}
-              </button>
-            )}
-            <button
-              onClick={() => toggleWishlist(book)}
-              aria-label={isWishlisted(book.slug) ? 'Remove from wishlist' : 'Add to wishlist'}
-              style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:52,height:52,borderRadius:'50%',border:'1.5px solid rgba(27,67,50,0.15)',background:'#fff',cursor:'pointer',flexShrink:0}}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill={isWishlisted(book.slug) ? '#c44' : 'none'} stroke={isWishlisted(book.slug) ? '#c44' : '#6b6460'} strokeWidth="2">
-                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-              </svg>
-            </button>
-            <Link href="/books"
-              style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:8,border:'1.5px solid rgba(27,67,50,0.2)',color:'#1b4332',padding:'16px 28px',borderRadius:40,fontSize:14,letterSpacing:.4}}>
-              ← Back to Collection
-            </Link>
-          </div>
-
-          <div style={{padding:'16px 20px',background:'rgba(184,150,90,0.06)',borderRadius:12,border:'1px solid rgba(184,150,90,0.18)',display:'flex',alignItems:'flex-start',gap:12}}>
-            <span style={{color:'#b8965a',fontSize:16,marginTop:1}}>✦</span>
-            <div>
-              <div style={{fontSize:12,fontWeight:500,color:'#1b4332',marginBottom:3,letterSpacing:.3}}>How to Order</div>
-              <p style={{margin:0,fontSize:13,color:'#6b6460',lineHeight:1.65,fontWeight:300}}>
-                Add it to your cart, then tap <span style={{color:'#1b4332',fontWeight:400}}>Order via WhatsApp</span> to send us your order. We&apos;ll confirm availability and arrange swift delivery — or reach us anytime at <a href={`mailto:${EMAIL}`} style={{color:'#1b4332',fontWeight:400}}>{EMAIL}</a>.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* RELATED BOOKS */}
-      {related.length > 0 && (
-        <div style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'0 clamp(20px,5vw,72px) 80px'}}>
-          <div style={{fontSize:11,letterSpacing:'2px',textTransform:'uppercase',color:'#b8965a',marginBottom:18,display:'flex',alignItems:'center',gap:8}}>
-            <span style={{width:16,height:1,background:'#b8965a',display:'inline-block'}}/>More in {primaryCat}
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:18}}>
-            {related.map(rb => (
-              <Link key={rb.slug} href={`/book/${rb.slug}`} style={{textDecoration:'none',display:'block',background:'#fff',borderRadius:14,border:'1px solid rgba(27,67,50,0.08)',overflow:'hidden',boxShadow:'0 2px 12px rgba(27,67,50,0.05)',transition:'transform .2s'}}
-                onMouseEnter={e=>e.currentTarget.style.transform='translateY(-3px)'} onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
-                <div style={{aspectRatio:'3/4',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  {rb.coverUrl ? <img src={rb.coverUrl} alt={rb.title} style={{width:'100%',height:'100%',objectFit:'contain',background:'#f3f1ea'}} loading="lazy"/>
-                    : <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:24,color:'#d4ab70'}}>{CAT_AR[rb.category]||'كتاب'}</span>}
-                </div>
-                <div style={{padding:'12px 14px'}}>
-                  <div style={{fontSize:13,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',marginBottom:3}}>{rb.title}</div>
-                  <div style={{fontSize:11,color:'#a09890',marginBottom:6}}>{rb.author}</div>
-                  {(rb.price || rb.mrp) && <div style={{fontSize:13,color:'#1b4332',fontWeight:500}}>₹{Number(rb.price || rb.mrp).toLocaleString('en-IN')}</div>}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Footer */}
-      <footer style={{position:'relative',zIndex:1,background:'#1b4332',padding:'48px clamp(20px,5vw,72px)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:20}}>
-        <Link href="/" style={{textDecoration:'none',fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#fff'}}>Maktabah An Noor</Link>
-        <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:22,color:'#b8965a'}}>مكتبة النور</div>
-        <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',letterSpacing:1}}>© 2026 · Books That Illuminate The Heart</div>
-      </footer>
-      <style jsx global>{`
-        @media (max-width:760px) {
-          .detail-main-grid { grid-template-columns:1fr!important; }
-          .detail-cover-sticky { position:static!important; max-width:280px; margin:0 auto; }
-        }
-      `}</style>
-    </div>
-  );
+  return <BookPageClient />;
 }
