@@ -543,7 +543,7 @@ export default function AdminPage() {
     try { const r=await fetch(`/api/analytics?password=${encodeURIComponent(s)}`); const d=await r.json(); setViews(d.views||{}); } catch {}
   }
   async function loadTaxonomy() {
-    try { const r=await fetch('/api/taxonomy'); const d=await r.json(); if (d.taxonomy) setTaxonomy(d.taxonomy); } catch {}
+    try { const r=await fetch(`/api/taxonomy?t=${Date.now()}`, { cache: 'no-store' }); const d=await r.json(); if (d.taxonomy) setTaxonomy(d.taxonomy); } catch {}
   }
   async function loadSlides(s=session) {
     try { const r=await fetch(`/api/hero-slides?password=${encodeURIComponent(s)}`); const d=await r.json(); setSlides(d.slides||[]); } catch {}

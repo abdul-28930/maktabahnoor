@@ -1,6 +1,9 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, DEFAULT_OFFER_TYPES } from '@/lib/constants';
+
+export const dynamic = 'force-dynamic';
 
 const TAXONOMY_KEY = 'mn_taxonomy';
 const FIELDS = ['categories', 'languages', 'offerTypes'];
@@ -13,36 +16,42 @@ function seedTaxonomy() {
   };
 }
 
-// Merge whatever is stored with the current defaults (so a code deploy that
-// adds a new default option shows up even for stores that already have a
-// taxonomy record saved), de-duplicated case-insensitively.
-function mergeWithDefaults(stored) {
-  const seed = seedTaxonomy();
-  const out = {};
-  for (const field of FIELDS) {
-    const combined = [...(stored?.[field] || []), ...seed[field]];
-    const seen = new Set();
-    out[field] = combined.filter(v => {
-      const key = String(v).trim().toLowerCase();
-      if (!key || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+// Ensures each field exists as an array. If stored is null or a field was never set,
+// seeds it with defaults. Stored categories in Redis are the source of truth,
+// so deleted categories are never re-added.
+function normalizeTaxonomy(stored) {
+  if (!stored || typeof stored !== 'object') {
+    return seedTaxonomy();
   }
-  return out;
+  return {
+    categories: Array.isArray(stored.categories) ? stored.categories : [...DEFAULT_CATEGORIES],
+    languages:  Array.isArray(stored.languages)  ? stored.languages  : [...DEFAULT_LANGUAGES],
+    offerTypes: Array.isArray(stored.offerTypes) ? stored.offerTypes : [...DEFAULT_OFFER_TYPES],
+  };
 }
 
 // Public — every visitor's browser needs this to render category/language
 // filters and admin needs it to populate the book form dropdowns.
-export async function GET() {
+export async function GET(req) {
   try {
     const stored = await redis.get(TAXONOMY_KEY);
-    const taxonomy = mergeWithDefaults(stored);
+    const taxonomy = normalizeTaxonomy(stored);
+
+    if (!stored) {
+      await redis.set(TAXONOMY_KEY, taxonomy);
+    }
+
+    const url = new URL(req?.url || 'http://localhost');
+    const isFresh = url.searchParams.has('t') || url.searchParams.has('fresh');
+    const cacheHeader = isFresh
+      ? 'no-store, no-cache, must-revalidate'
+      : 'public, s-maxage=10, stale-while-revalidate=30';
+
     return NextResponse.json(
       { taxonomy },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+          'Cache-Control': cacheHeader,
         },
       }
     );
@@ -63,11 +72,14 @@ export async function POST(req) {
     if (!trimmed)
       return NextResponse.json({ error: 'Value required.' }, { status: 400 });
 
-    const stored = mergeWithDefaults(await redis.get(TAXONOMY_KEY));
+    const stored = normalizeTaxonomy(await redis.get(TAXONOMY_KEY));
     const exists = stored[field].some(v => v.toLowerCase() === trimmed.toLowerCase());
     if (!exists) stored[field] = [...stored[field], trimmed];
 
     await redis.set(TAXONOMY_KEY, stored);
+    revalidatePath('/');
+    revalidatePath('/books');
+    revalidatePath('/admin');
     return NextResponse.json({ success: true, taxonomy: stored });
   } catch (e) {
     console.error(e);
