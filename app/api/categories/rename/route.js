@@ -1,9 +1,12 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, DEFAULT_OFFER_TYPES, getBookCategories } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, DEFAULT_OFFER_TYPES, getBookCategories, getCategoryArabic } from '@/lib/constants';
+
+export const dynamic = 'force-dynamic';
 
 const TAXONOMY_KEY = 'mn_taxonomy';
+const HOMEPAGE_CATS_KEY = 'mn_homepage_cats';
 
 export async function POST(req) {
   try {
@@ -23,12 +26,13 @@ export async function POST(req) {
     }
 
     // 1. Update taxonomy list in Redis
-    const stored = await redis.get(TAXONOMY_KEY) || {
+    const storedRaw = await redis.get(TAXONOMY_KEY);
+    const stored = (storedRaw && typeof storedRaw === 'object') ? storedRaw : {
       categories: [...DEFAULT_CATEGORIES],
       languages: [...DEFAULT_LANGUAGES],
       offerTypes: [...DEFAULT_OFFER_TYPES],
     };
-    if (!stored.categories) stored.categories = [...DEFAULT_CATEGORIES];
+    if (!Array.isArray(stored.categories)) stored.categories = [...DEFAULT_CATEGORIES];
 
     // Replace old category or add new if not present
     let foundInTaxonomy = false;
@@ -46,7 +50,27 @@ export async function POST(req) {
     stored.categories = [...new Set(stored.categories)];
     await redis.set(TAXONOMY_KEY, stored);
 
-    // 2. Update books in Redis (mn_books_meta and each individual mn_book:[slug])
+    // 2. Also rename in homepage categories if present
+    const homeCats = await redis.get(HOMEPAGE_CATS_KEY);
+    if (Array.isArray(homeCats)) {
+      let homeChanged = false;
+      const updatedHomeCats = homeCats.map(item => {
+        const catName = typeof item === 'string' ? item : item?.name;
+        if (catName && catName.toLowerCase() === oldCat.toLowerCase()) {
+          homeChanged = true;
+          return {
+            name: newCat,
+            ar: getCategoryArabic(newCat),
+          };
+        }
+        return item;
+      });
+      if (homeChanged) {
+        await redis.set(HOMEPAGE_CATS_KEY, updatedHomeCats);
+      }
+    }
+
+    // 3. Update books in Redis (mn_books_meta and each individual mn_book:[slug])
     const meta = await redis.get('mn_books_meta') || [];
     let affectedCount = 0;
 
@@ -89,6 +113,8 @@ export async function POST(req) {
     }
 
     revalidatePath('/');
+    revalidatePath('/books');
+    revalidatePath('/admin');
     return NextResponse.json({ success: true, count: affectedCount, taxonomy: stored });
   } catch (e) {
     console.error('Rename category error:', e);

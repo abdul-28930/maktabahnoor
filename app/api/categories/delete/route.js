@@ -3,7 +3,10 @@ import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, DEFAULT_OFFER_TYPES, getBookCategories } from '@/lib/constants';
 
+export const dynamic = 'force-dynamic';
+
 const TAXONOMY_KEY = 'mn_taxonomy';
+const HOMEPAGE_CATS_KEY = 'mn_homepage_cats';
 const FALLBACK_CATEGORY = 'General';
 
 export async function POST(req) {
@@ -19,18 +22,16 @@ export async function POST(req) {
     }
 
     // 1. Remove from taxonomy list in Redis
-    const stored = await redis.get(TAXONOMY_KEY) || {
+    const storedRaw = await redis.get(TAXONOMY_KEY);
+    const stored = (storedRaw && typeof storedRaw === 'object') ? storedRaw : {
       categories: [...DEFAULT_CATEGORIES],
       languages: [...DEFAULT_LANGUAGES],
       offerTypes: [...DEFAULT_OFFER_TYPES],
     };
-    if (!stored.categories) stored.categories = [...DEFAULT_CATEGORIES];
+    if (!Array.isArray(stored.categories)) stored.categories = [...DEFAULT_CATEGORIES];
 
     const existed = stored.categories.some(c => c.toLowerCase() === target.toLowerCase());
-    if (!existed) {
-      return NextResponse.json({ error: 'Category not found.' }, { status: 404 });
-    }
-    if (stored.categories.length <= 1) {
+    if (existed && stored.categories.length <= 1) {
       return NextResponse.json({ error: 'At least one category must remain.' }, { status: 400 });
     }
 
@@ -39,12 +40,24 @@ export async function POST(req) {
     // fallback — prefer "General" if it still exists, otherwise the first
     // remaining category in the list.
     const fallback = remainingCategories.find(c => c.toLowerCase() === FALLBACK_CATEGORY.toLowerCase())
-      || remainingCategories[0];
+      || remainingCategories[0] || 'General';
 
     stored.categories = remainingCategories;
     await redis.set(TAXONOMY_KEY, stored);
 
-    // 2. Strip the category from books in Redis (mn_books_meta and each
+    // 2. Also remove from homepage categories if present
+    const homeCats = await redis.get(HOMEPAGE_CATS_KEY);
+    if (Array.isArray(homeCats)) {
+      const filteredHomeCats = homeCats.filter(item => {
+        const catName = typeof item === 'string' ? item : item?.name;
+        return catName && catName.toLowerCase() !== target.toLowerCase();
+      });
+      if (filteredHomeCats.length !== homeCats.length) {
+        await redis.set(HOMEPAGE_CATS_KEY, filteredHomeCats.length > 0 ? filteredHomeCats : null);
+      }
+    }
+
+    // 3. Strip the category from books in Redis (mn_books_meta and each
     // individual mn_book:[slug]), falling back where it was their only one.
     const meta = await redis.get('mn_books_meta') || [];
     let affectedCount = 0;
@@ -88,6 +101,8 @@ export async function POST(req) {
     }
 
     revalidatePath('/');
+    revalidatePath('/books');
+    revalidatePath('/admin');
     return NextResponse.json({ success: true, count: affectedCount, taxonomy: stored });
   } catch (e) {
     console.error('Delete category error:', e);
