@@ -38,7 +38,7 @@ export async function POST(req) {
       bookSlugs:   data.bookSlugs || [],
       totalMrp:    parseFloat(data.totalMrp) || 0,
       bundlePrice: parseFloat(data.bundlePrice) || 0,
-      offerType:   data.offerType || 'Limited Deal',
+      offerType:   data.offerType ?? '',
       stockCount:  parseInt(data.stockCount) || 0,
       active:      data.active !== false,
       createdAt:   now, updatedAt: now,

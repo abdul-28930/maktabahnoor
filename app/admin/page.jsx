@@ -18,7 +18,7 @@ const EMPTY_BOOK = {
 const FIELD_LABELS = { title:'Title', author:'Author', category:'Category', language:'Language', price:'Sale Price', stockCount:'Stock Count', binding:'Binding' };
 const EMPTY_BUNDLE = {
   name:'',description:'',sku:'',bookSlugs:[],
-  totalMrp:'',bundlePrice:'',offerType:'Limited Deal',stockCount:'',active:true,
+  totalMrp:'',bundlePrice:'',offerType:'',stockCount:'',active:true,
 };
 
 const EMPTY_SLIDE = {
@@ -369,6 +369,12 @@ export default function AdminPage() {
   const [editSlug, setEditSlug]   = useState(null);
   const [slugInput, setSlugInput] = useState('');
   const [slugSaving, setSlugSaving] = useState(false);
+  const [editAccSlug, setEditAccSlug] = useState(null);
+  const [accSlugInput, setAccSlugInput] = useState('');
+  const [accSlugSaving, setAccSlugSaving] = useState(false);
+  const [editClothSlug, setEditClothSlug] = useState(null);
+  const [clothSlugInput, setClothSlugInput] = useState('');
+  const [clothSlugSaving, setClothSlugSaving] = useState(false);
   const [origNames, setOrigNames] = useState({author:'',translator:'',publisher:''});
   const [renameInputs, setRenameInputs] = useState({author:'',translator:'',publisher:''});
   const [renameSaving, setRenameSaving] = useState({author:false,translator:false,publisher:false});
@@ -454,8 +460,23 @@ export default function AdminPage() {
   }
   function openEditAcc(a) {
     setEditAccId(a.id);
+    setEditAccSlug(a.slug || a.id);
+    setAccSlugInput(a.slug || a.id);
     setAccForm({ name:a.name||'',description:a.description||'',price:a.price??'',mrp:a.mrp??'',stockCount:a.stockCount??'',coverUrl:a.coverUrl||'',variants:a.variants||[],visible:a.visible!==false });
     setAccImgMode('url'); setView('accEditor');
+  }
+  async function renameAccSlug() {
+    if (!accSlugInput.trim() || accSlugInput === editAccSlug) return;
+    setAccSlugSaving(true);
+    try {
+      const r = await fetch(`/api/accessories/${editAccId}/rename`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,newSlug:accSlugInput})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed to rename.');
+      showToast(`✓ URL changed to /accessory/${d.newSlug}`,'success');
+      setEditAccSlug(d.newSlug); setAccSlugInput(d.newSlug);
+      await loadAccessories();
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setAccSlugSaving(false); }
   }
   function handleAccImg(e) {
     const file=e.target.files?.[0];
@@ -490,8 +511,23 @@ export default function AdminPage() {
   }
   function openEditCloth(a) {
     setEditClothId(a.id);
+    setEditClothSlug(a.slug || a.id);
+    setClothSlugInput(a.slug || a.id);
     setClothForm({ name:a.name||'',description:a.description||'',price:a.price??'',mrp:a.mrp??'',stockCount:a.stockCount??'',coverUrl:a.coverUrl||'',variants:a.variants||[],visible:a.visible!==false });
     setClothImgMode('url'); setView('clothEditor');
+  }
+  async function renameClothSlug() {
+    if (!clothSlugInput.trim() || clothSlugInput === editClothSlug) return;
+    setClothSlugSaving(true);
+    try {
+      const r = await fetch(`/api/clothing/${editClothId}/rename`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,newSlug:clothSlugInput})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed to rename.');
+      showToast(`✓ URL changed to /clothing/${d.newSlug}`,'success');
+      setEditClothSlug(d.newSlug); setClothSlugInput(d.newSlug);
+      await loadClothing();
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setClothSlugSaving(false); }
   }
   function handleClothImg(e) {
     const file=e.target.files?.[0];
@@ -808,7 +844,7 @@ export default function AdminPage() {
         setBundleForm({
           name:d.bundle.name||'',description:d.bundle.description||'',sku:d.bundle.sku||'',
           bookSlugs:d.bundle.bookSlugs||[],totalMrp:d.bundle.totalMrp||'',
-          bundlePrice:d.bundle.bundlePrice||'',offerType:d.bundle.offerType||'Limited Deal',
+          bundlePrice:d.bundle.bundlePrice||'',offerType:d.bundle.offerType??'',
           stockCount:d.bundle.stockCount||'',active:d.bundle.active!==false,
         });
         setBundleBookSearch(''); setBundleBookPage(1);
@@ -1742,6 +1778,18 @@ export default function AdminPage() {
             <span style={{fontSize:14,color:accForm.visible?'#1b4332':'#6b6460'}}>{accForm.visible?'Visible (shown on site)':'Hidden'}</span>
           </label>
         </Card>
+
+        {editAccId && (
+          <Card title="URL Slug">
+            <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
+              This is the accessory's web address: yoursite.com/accessory/<b>{editAccSlug}</b>. Changing it updates the link — any old link already shared (e.g. on Instagram) will stop working.
+            </p>
+            <div style={{display:'flex',gap:8}}>
+              <div style={{flex:1}}><FInput value={accSlugInput} onChange={e=>setAccSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,''))} placeholder="accessory-url-slug"/></div>
+              <Btn onClick={renameAccSlug} disabled={accSlugSaving || !accSlugInput.trim() || accSlugInput===editAccSlug}>{accSlugSaving?'Saving…':'Change URL'}</Btn>
+            </div>
+          </Card>
+        )}
         <div style={{display:'flex',gap:10}}>
           <Btn variant="ghost" onClick={()=>setView('dashboard')}>Cancel</Btn>
           <Btn onClick={saveAcc} disabled={loading}>{loading?'Saving…':'Save'}</Btn>
@@ -1808,6 +1856,18 @@ export default function AdminPage() {
             <span style={{fontSize:14,color:clothForm.visible?'#1b4332':'#6b6460'}}>{clothForm.visible?'Visible (shown on site)':'Hidden'}</span>
           </label>
         </Card>
+
+        {editClothId && (
+          <Card title="URL Slug">
+            <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
+              This is the item's web address: yoursite.com/clothing/<b>{editClothSlug}</b>. Changing it updates the link — any old link already shared (e.g. on Instagram) will stop working.
+            </p>
+            <div style={{display:'flex',gap:8}}>
+              <div style={{flex:1}}><FInput value={clothSlugInput} onChange={e=>setClothSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,''))} placeholder="clothing-url-slug"/></div>
+              <Btn onClick={renameClothSlug} disabled={clothSlugSaving || !clothSlugInput.trim() || clothSlugInput===editClothSlug}>{clothSlugSaving?'Saving…':'Change URL'}</Btn>
+            </div>
+          </Card>
+        )}
         <div style={{display:'flex',gap:10}}>
           <Btn variant="ghost" onClick={()=>setView('dashboard')}>Cancel</Btn>
           <Btn onClick={saveCloth} disabled={loading}>{loading?'Saving…':'Save'}</Btn>
