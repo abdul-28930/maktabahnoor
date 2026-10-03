@@ -9,11 +9,24 @@ export async function GET() {
       redis.get('mn_bundles_meta') || [],
       redis.get('mn_books_meta') || []
     ]);
+    const bundleList = bundles || [];
     const bookMap = new Map((meta || []).map(b => [b.slug, b]));
-    const populated = (bundles || []).map(bundle => ({
-      ...bundle,
-      books: (bundle.bookSlugs || []).map(slug => bookMap.get(slug)).filter(Boolean)
-    }));
+
+    // Read all live stock counters in parallel (same pattern as /api/bundles/[id])
+    const liveStocks = await Promise.all(
+      bundleList.map(b => redis.get(`mn_stock:bundle:${b.id}`))
+    );
+
+    const populated = bundleList.map((bundle, i) => {
+      const live = liveStocks[i];
+      const stockCount = (live !== null && live !== undefined) ? live : bundle.stockCount;
+      return {
+        ...bundle,
+        stockCount,
+        books: (bundle.bookSlugs || []).map(slug => bookMap.get(slug)).filter(Boolean)
+      };
+    });
+
     return NextResponse.json({ bundles: populated }, {
       headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' }
     });
@@ -38,7 +51,7 @@ export async function POST(req) {
       bookSlugs:   data.bookSlugs || [],
       totalMrp:    parseFloat(data.totalMrp) || 0,
       bundlePrice: parseFloat(data.bundlePrice) || 0,
-      offerType:   data.offerType || 'Limited Deal',
+      offerType:   data.offerType ?? '',
       stockCount:  parseInt(data.stockCount) || 0,
       active:      data.active !== false,
       createdAt:   now, updatedAt: now,

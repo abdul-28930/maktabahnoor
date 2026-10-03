@@ -13,28 +13,72 @@ function AccessoryCard({ item }) {
   const slug = `accessory:${item.id}${selected ? ':' + selected.id : ''}`;
   const inCart = isInCart(slug);
   const soldOut = effectiveStock <= 0;
+  const itemSlug = item.slug || item.id;
+
+  function handleAddToCart(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    addAccessoryToCart(item, selected);
+  }
+
+  function handleSelectVariant(e, v) {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelected(v);
+  }
 
   return (
-    <div style={{background:'#fff',borderRadius:18,border:'1px solid rgba(27,67,50,0.08)',overflow:'hidden',boxShadow:'0 4px 20px rgba(27,67,50,0.05)'}}>
-      <div style={{position:'relative',aspectRatio:'1/1',background:'linear-gradient(155deg,#2d6a4f,#1b4332)'}}>
+    <Link
+      href={`/accessory/${itemSlug}`}
+      style={{
+        textDecoration: 'none',
+        color: 'inherit',
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#fff',
+        borderRadius: 18,
+        border: '1px solid rgba(27,67,50,0.08)',
+        overflow: 'hidden',
+        boxShadow: '0 4px 20px rgba(27,67,50,0.05)',
+        transition: 'transform .3s, box-shadow .3s',
+        cursor: 'pointer'
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-5px)';
+        e.currentTarget.style.boxShadow = '0 18px 40px rgba(27,67,50,0.13)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'none';
+        e.currentTarget.style.boxShadow = '0 4px 20px rgba(27,67,50,0.05)';
+      }}
+    >
+      <div style={{position:'relative',aspectRatio:'1/1',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',overflow:'hidden'}}>
         {item.coverUrl
-          ? <img src={item.coverUrl} alt={item.name} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
+          ? <img src={item.coverUrl} alt={item.name} style={{width:'100%',height:'100%',objectFit:'cover',transition:'transform .4s'}}
+              onMouseEnter={e=>e.target.style.transform='scale(1.04)'}
+              onMouseLeave={e=>e.target.style.transform='scale(1)'}
+              loading="lazy"/>
           : <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.6)',fontSize:13}}>{item.name}</div>}
         {soldOut && <div style={{position:'absolute',inset:0,background:'rgba(250,249,245,0.65)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{padding:'6px 14px',background:'#1a1712',color:'#fff',fontSize:9,letterSpacing:1.5,textTransform:'uppercase',borderRadius:20}}>Out of Stock</span></div>}
       </div>
-      <div style={{padding:'16px 18px'}}>
+      <div style={{padding:'16px 18px',display:'flex',flexDirection:'column',flex:1}}>
         <h3 style={{margin:'0 0 4px',fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:18,color:'#1a1712'}}>{item.name}</h3>
-        {item.description && <p style={{margin:'0 0 10px',fontSize:12,color:'#6b6460',lineHeight:1.5}}>{item.description}</p>}
-        <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:hasVariants?10:12}}>
+        {item.description && <p style={{margin:'0 0 10px',fontSize:12,color:'#6b6460',lineHeight:1.5,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{item.description}</p>}
+        <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:hasVariants?10:12,flexWrap:'wrap'}}>
           <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>₹{item.price}</span>
           {item.mrp > item.price && <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{item.mrp}</span>}
+          {item.mrp > item.price && (
+            <span style={{fontSize:11,fontWeight:700,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 7px',borderRadius:8}}>
+              {Math.round((1 - item.price/item.mrp)*100)}% off
+            </span>
+          )}
         </div>
         {hasVariants && (
           <div style={{marginBottom:12}}>
             <div style={{fontSize:11,color:'#a09890',marginBottom:6}}>Color: <span style={{color:'#1a1712'}}>{selected?.label}</span></div>
             <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
               {item.variants.map(v => (
-                <button key={v.id} onClick={()=>setSelected(v)} title={`${v.label}${v.stockCount<=0?' (out of stock)':''}`}
+                <button key={v.id} onClick={(e)=>handleSelectVariant(e, v)} title={`${v.label}${v.stockCount<=0?' (out of stock)':''}`}
                   style={{width:26,height:26,borderRadius:'50%',background:v.color,cursor:'pointer',
                     border:selected?.id===v.id?'2px solid #1b4332':'2px solid rgba(0,0,0,0.1)',
                     boxShadow:selected?.id===v.id?'0 0 0 2px #fff, 0 0 0 3px #1b4332':'none',
@@ -45,13 +89,31 @@ function AccessoryCard({ item }) {
             </div>
           </div>
         )}
-        {!soldOut && (
-          <button onClick={()=>addAccessoryToCart(item, selected)} className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`}>
-            {inCart ? 'Added' : 'Add to Cart'}
-          </button>
-        )}
+        <div style={{marginTop:'auto'}}>
+          {!soldOut && (
+            <button onClick={handleAddToCart} className={`book-add-to-cart${inCart?' book-add-to-cart--in':''}`} style={{width:'100%',padding:'6px 10px',fontSize:11,height:32}}>
+              {inCart ? (
+                <>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{marginRight:4}}>
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Added
+                </>
+              ) : (
+                <>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight:4}}>
+                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <path d="M16 10a4 4 0 01-8 0"/>
+                  </svg>
+                  Add to Cart
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

@@ -1,14 +1,42 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
+import { slugify, sanitizeSlug } from '@/lib/constants';
 
 const KEY = 'mn_clothing';
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function makeUniqueSlug(baseSlug, existingItems, currentId = null) {
+  let slug = sanitizeSlug(baseSlug) || 'clothing';
+  let candidate = slug;
+  let counter = 2;
+  while (existingItems.some(i => i.id !== currentId && (i.slug === candidate || i.id === candidate))) {
+    candidate = `${slug}-${counter}`;
+    counter++;
+  }
+  return candidate;
+}
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const isAdmin = searchParams.get('password') === process.env.ADMIN_PASSWORD;
   try {
-    const all = await redis.get(KEY) || [];
+    let all = await redis.get(KEY) || [];
+    let updated = false;
+
+    // Ensure all items have a unique slug
+    all = all.map(item => {
+      if (!item.slug) {
+        const generated = makeUniqueSlug(slugify(item.name) || item.id, all, item.id);
+        updated = true;
+        return { ...item, slug: generated };
+      }
+      return item;
+    });
+
+    if (updated) {
+      await redis.set(KEY, all);
+    }
+
     const list = isAdmin ? all : all.filter(a => a.visible !== false);
     return NextResponse.json(
       { clothing: list },
@@ -32,8 +60,13 @@ export async function POST(req) {
 
     const all = await redis.get(KEY) || [];
     const now = new Date().toISOString();
+    const id = uid();
+    const baseSlug = data.slug ? sanitizeSlug(data.slug) : slugify(data.name);
+    const slug = makeUniqueSlug(baseSlug || id, all);
+
     const item = {
-      id: uid(),
+      id,
+      slug,
       name: data.name.trim(),
       description: data.description?.trim() || '',
       price: Number(data.price),

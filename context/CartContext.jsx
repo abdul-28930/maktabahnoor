@@ -117,35 +117,35 @@ export function CartProvider({ children }) {
   }, []);
 
   /* ── Add an accessory to cart ── */
-  const addAccessoryToCart = useCallback((item, variant) => {
+  const addAccessoryToCart = useCallback((item, variant, qty = 1) => {
     const slug = `accessory:${item.id}${variant ? ':' + variant.id : ''}`;
     const effectiveStock = variant ? variant.stockCount : item.stockCount;
     const cap = effectiveStock > 0 ? effectiveStock : Infinity;
     setItems(prev => {
       const exists = prev.find(i => i.slug === slug);
-      if (exists) return prev.map(i => i.slug === slug ? { ...i, qty: Math.min(cap, i.qty + 1) } : i);
+      if (exists) return prev.map(i => i.slug === slug ? { ...i, qty: Math.min(cap, i.qty + qty) } : i);
       return [...prev, {
         type: 'accessory', slug, accessoryId: item.id,
         title: item.name + (variant ? ` (${variant.label})` : ''), author: '', category: 'Accessory',
         stockCount: effectiveStock ?? null,
-        coverUrl: item.coverUrl || '', price: item.price || null, mrp: item.mrp || null, qty: 1,
+        coverUrl: item.coverUrl || '', price: item.price || null, mrp: item.mrp || null, qty,
       }];
     });
     setIsOpen(true);
   }, []);
 
-  const addClothingToCart = useCallback((item, variant) => {
+  const addClothingToCart = useCallback((item, variant, qty = 1) => {
     const slug = `clothing:${item.id}${variant ? ':' + variant.id : ''}`;
     const effectiveStock = variant ? variant.stockCount : item.stockCount;
     const cap = effectiveStock > 0 ? effectiveStock : Infinity;
     setItems(prev => {
       const exists = prev.find(i => i.slug === slug);
-      if (exists) return prev.map(i => i.slug === slug ? { ...i, qty: Math.min(cap, i.qty + 1) } : i);
+      if (exists) return prev.map(i => i.slug === slug ? { ...i, qty: Math.min(cap, i.qty + qty) } : i);
       return [...prev, {
         type: 'clothing', slug, clothingId: item.id,
         title: item.name + (variant ? ` (${variant.label})` : ''), author: '', category: 'Clothing',
         stockCount: effectiveStock ?? null,
-        coverUrl: item.coverUrl || '', price: item.price || null, mrp: item.mrp || null, qty: 1,
+        coverUrl: item.coverUrl || '', price: item.price || null, mrp: item.mrp || null, qty,
       }];
     });
     setIsOpen(true);
