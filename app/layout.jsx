@@ -5,8 +5,27 @@ import { WishlistProvider } from '@/context/WishlistContext';
 import CartDrawer from '@/components/CartDrawer';
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
   title: 'Maktabah An Noor — Books That Illuminate The Heart',
   description: "Spreading beneficial knowledge — Qurans, Islamic Books & Essentials. Shipping worldwide.",
+  openGraph: {
+    title: 'Maktabah An Noor — Books That Illuminate The Heart',
+    description: "Spreading beneficial knowledge — Qurans, Islamic Books & Essentials. Shipping worldwide.",
+    siteName: 'Maktabah An Noor',
+    images: [
+      {
+        url: '/logo.png',
+        alt: 'Maktabah An Noor',
+      },
+    ],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Maktabah An Noor — Books That Illuminate The Heart',
+    description: "Spreading beneficial knowledge — Qurans, Islamic Books & Essentials. Shipping worldwide.",
+    images: ['/logo.png'],
+  },
 };
 
 export default function RootLayout({ children }) {
