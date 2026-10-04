@@ -31,7 +31,7 @@ export async function PUT(req) {
     }
 
     const body = await req.json();
-    const { username, name, address, phone, whatsapp, interestedCategories, currentPassword, newPassword } = body;
+    const { username, name, address, phone, whatsapp, interestedCategories, currentPassword, newPassword, country, state, city, pincode } = body;
 
     let updatedUser = { ...user };
 
@@ -82,6 +82,12 @@ export async function PUT(req) {
     // 4. Contact details
     if (phone !== undefined) updatedUser.phone = String(phone || '').trim();
     if (whatsapp !== undefined) updatedUser.whatsapp = String(whatsapp || '').trim();
+
+    // 5. Shipping location fields
+    if (country !== undefined) updatedUser.country = String(country || '').trim();
+    if (state   !== undefined) updatedUser.state   = String(state   || '').trim();
+    if (city    !== undefined) updatedUser.city    = String(city    || '').trim();
+    if (pincode !== undefined) updatedUser.pincode = String(pincode || '').trim();
 
     // 4. Interested categories
     if (Array.isArray(interestedCategories)) {

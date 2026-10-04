@@ -2520,8 +2520,9 @@ export default function AdminPage() {
                       <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                         <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:600,color:'#1b4332'}}>{o.orderRef}</span>
                         {o.username && <span style={{fontSize:11,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>👤 {o.username}</span>}
+                        {/* New: show name from delivery details */}
+                        {o.name && <span style={{fontSize:11,color:'#6b6460',background:'#f3f1ea',padding:'2px 8px',borderRadius:8}}>🪪 {o.name}</span>}
                         {o.phone && <span style={{fontSize:11,color:'#6b6460',background:'#f3f1ea',padding:'2px 8px',borderRadius:8}}>📞 {o.phone}</span>}
-                        {o.whatsapp && o.whatsapp !== o.phone && <span style={{fontSize:11,color:'#1b4332',background:'rgba(27,67,50,0.06)',padding:'2px 8px',borderRadius:8}}>💬 {o.whatsapp}</span>}
                         {o.pincode && <span style={{fontSize:10,color:'#1b4332',background:'rgba(27,67,50,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>📍 {o.pincode}</span>}
                         <span style={{fontSize:11,color:'#a09890'}}>{new Date(o.createdAt).toLocaleString('en-IN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
                       </div>
@@ -2536,6 +2537,13 @@ export default function AdminPage() {
                         </button>
                       </div>
                     </div>
+                    {/* Delivery address block */}
+                    {(o.address || o.city || o.state || o.country) && (
+                      <div style={{fontSize:11,color:'#6b6460',background:'rgba(27,67,50,0.03)',border:'1px solid rgba(27,67,50,0.07)',borderRadius:8,padding:'6px 10px',marginBottom:6,lineHeight:1.6}}>
+                        📦 {[o.address, o.city, o.state, o.pincode, o.country].filter(Boolean).join(', ')}
+                        {o.coupon && <span style={{marginLeft:10,color:'#2d6a4f',fontWeight:500}}>🏷 {o.coupon.code} (−₹{o.coupon.discount})</span>}
+                      </div>
+                    )}
                     <div style={{fontSize:12,color:'#6b6460',lineHeight:1.7}}>
                       {(o.items||[]).map((it,idx)=>(
                         <span key={idx}>{it.title}{it.qty>1?` × ${it.qty}`:''}{idx<o.items.length-1?', ':''}</span>

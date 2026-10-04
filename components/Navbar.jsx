@@ -9,7 +9,7 @@ import { useCart } from '@/context/CartContext';
 export default function Navbar({ active = '' }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, loading: authLoading } = useAuth();
-  const { cartCount, openCart } = useCart();
+  const { cartCount } = useCart();
 
   return (
     <>
@@ -179,7 +179,24 @@ export default function Navbar({ active = '' }) {
             ♡ Wishlist
           </Link>
 
-          {/* 8. Sign-in / User's account (their name if logged in) */}
+          {/* 8. Cart (visible to all users) */}
+          <Link
+            href="/cart"
+            className="hp-nlink"
+            style={{
+              textDecoration: 'none',
+              color: active === 'cart' ? '#1b4332' : '#6b6460',
+              fontSize: 14,
+              letterSpacing: '.3px',
+              fontWeight: active === 'cart' ? 500 : 400,
+              transition: 'color .2s ease',
+            }}
+            aria-label={`Shopping cart${cartCount > 0 ? ` (${cartCount} items)` : ''}`}
+          >
+            🛒 Cart{cartCount > 0 ? ` (${cartCount})` : ''}
+          </Link>
+
+          {/* 9. Sign-in / User's account (their name if logged in) */}
           {!authLoading && (
             user ? (
               <Link
@@ -233,31 +250,8 @@ export default function Navbar({ active = '' }) {
               </div>
             )
           )}
-
-          {/* 9. Cart (only if the user is signed in) */}
-          {!authLoading && user && (
-            <button
-              type="button"
-              onClick={openCart}
-              className="hp-nlink"
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 14,
-                letterSpacing: '.3px',
-                color: '#6b6460',
-                cursor: 'pointer',
-                fontWeight: 400,
-                transition: 'color .2s ease',
-              }}
-              aria-label={`Open shopping cart${cartCount > 0 ? ` (${cartCount} items)` : ''}`}
-            >
-              Cart{cartCount > 0 ? ` (${cartCount})` : ''}
-            </button>
-          )}
         </div>
+
 
         {/* Mobile Hamburger Button */}
         <button
@@ -456,29 +450,22 @@ export default function Navbar({ active = '' }) {
             )
           )}
 
-          {/* Cart in mobile menu (only if signed in) */}
-          {!authLoading && user && (
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                openCart();
-              }}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: '10px 4px',
-                textAlign: 'left',
-                color: '#1b4332',
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              🛒 Cart{cartCount > 0 ? ` (${cartCount})` : ''}
-            </button>
-          )}
+          {/* Cart in mobile menu (for all users) */}
+          <Link
+            href="/cart"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{
+              textDecoration: 'none',
+              color: '#1b4332',
+              fontSize: 15,
+              padding: '10px 4px',
+              fontWeight: 600,
+              borderBottom: '1px solid rgba(27,67,50,0.06)',
+              display: 'block',
+            }}
+          >
+            🛒 Cart{cartCount > 0 ? ` (${cartCount})` : ''}
+          </Link>
         </div>
       )}
     </>
