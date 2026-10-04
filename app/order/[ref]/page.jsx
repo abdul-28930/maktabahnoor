@@ -20,6 +20,20 @@ export default function OrderPage({ params }) {
 
   const items = order?.items || [];
   const subtotal = order?.total || items.reduce((s, i) => s + (Number(i.price || i.mrp || 0) * (i.qty || 1)), 0);
+  const coupon = order?.coupon || null;
+  const total = coupon ? Math.max(0, subtotal - coupon.discount) : subtotal;
+
+  // Delivery details from the new order schema
+  const delivery = {
+    name:    order?.name    || '',
+    phone:   order?.phone   || '',
+    address: order?.address || '',
+    city:    order?.city    || '',
+    state:   order?.state   || '',
+    country: order?.country || '',
+    pincode: order?.pincode || '',
+  };
+  const hasDelivery = delivery.name || delivery.address || delivery.city || delivery.pincode;
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#faf9f5', fontFamily: "'DM Sans', sans-serif" }}>
@@ -28,30 +42,24 @@ export default function OrderPage({ params }) {
 
       <main style={{ position: 'relative', zIndex: 1, maxWidth: 560, margin: '0 auto', padding: '32px clamp(16px, 4vw, 24px) 80px' }}>
 
-        {/* Order request badge â€” right aligned like reference */}
+        {/* Badge */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginBottom: 16, color: '#1b4332', fontSize: 13 }}>
-          <span>ðŸ”’</span>
+          <span>{'🔒'}</span>
           <span style={{ fontWeight: 500 }}>Order request</span>
         </div>
 
         {/* Card */}
-        <div style={{
-          background: '#fff',
-          borderRadius: 16,
-          border: '1px solid rgba(27,67,50,0.1)',
-          boxShadow: '0 2px 16px rgba(27,67,50,0.06)',
-          padding: '24px 20px',
-        }}>
+        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid rgba(27,67,50,0.1)', boxShadow: '0 2px 16px rgba(27,67,50,0.06)', padding: '24px 20px' }}>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 700, color: '#1a1712', margin: '0 0 20px' }}>
             Order summary
           </h1>
 
           {loading ? (
-            <p style={{ color: '#a09890', fontSize: 14, textAlign: 'center', padding: '24px 0' }}>Loadingâ€¦</p>
+            <p style={{ color: '#a09890', fontSize: 14, textAlign: 'center', padding: '24px 0' }}>Loading...</p>
           ) : (
             <>
               {/* Items */}
-              {items.map((item, idx) => (
+              {items.length > 0 ? items.map((item, idx) => (
                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                   <div style={{ position: 'relative', width: 44, height: 58, flexShrink: 0 }}>
                     {item.coverUrl ? (
@@ -62,7 +70,7 @@ export default function OrderPage({ params }) {
                       />
                     ) : (
                       <div style={{ width: '100%', height: '100%', borderRadius: 6, background: '#1b4332', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ color: '#b8965a', fontSize: 10, fontFamily: "'Noto Naskh Arabic', serif" }}>ÙƒØªØ§Ø¨</span>
+                        <span style={{ color: '#b8965a', fontSize: 10, fontFamily: "'Noto Naskh Arabic', serif" }}>{'كتاب'}</span>
                       </div>
                     )}
                     <span style={{
@@ -81,36 +89,57 @@ export default function OrderPage({ params }) {
                       {item.title}
                     </span>
                     <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1712', flexShrink: 0 }}>
-                      â‚¹{((Number(item.price || item.mrp || 0)) * (item.qty || 1)).toLocaleString('en-IN')}
+                      {'\u20B9'}{((Number(item.price || item.mrp || 0)) * (item.qty || 1)).toLocaleString('en-IN')}
                     </span>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <p style={{ color: '#a09890', fontSize: 13, marginBottom: 16 }}>No items found for this order.</p>
+              )}
 
               <div style={{ height: 1, background: 'rgba(27,67,50,0.08)', margin: '16px 0' }} />
 
+              {/* Price rows */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b6460' }}>
                   <span>Subtotal</span>
-                  <span style={{ color: '#1a1712' }}>â‚¹{Number(subtotal).toLocaleString('en-IN')}</span>
+                  <span style={{ color: '#1a1712' }}>{'\u20B9'}{Number(subtotal).toLocaleString('en-IN')}</span>
                 </div>
+                {coupon && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#2d6a4f' }}>
+                    <span>Coupon ({coupon.code})</span>
+                    <span>-{'\u20B9'}{Number(coupon.discount).toLocaleString('en-IN')}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b6460' }}>
                   <span>Shipping</span>
                   <span style={{ color: '#2d6a4f' }}>Confirmed on WhatsApp</span>
                 </div>
-                {order?.pincode && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b6460' }}>
-                    <span>Delivery Pincode</span>
-                    <span style={{ color: '#1b4332', fontWeight: 500 }}>ðŸ“ {order.pincode}</span>
-                  </div>
-                )}
               </div>
+
+              {/* Delivery details */}
+              {hasDelivery && (
+                <>
+                  <div style={{ height: 1, background: 'rgba(27,67,50,0.08)', margin: '16px 0' }} />
+                  <div style={{ fontSize: 12, color: '#6b6460', lineHeight: 1.7 }}>
+                    <div style={{ fontWeight: 500, color: '#1b4332', marginBottom: 4 }}>Delivery to</div>
+                    {delivery.name    && <div>{delivery.name}</div>}
+                    {delivery.phone   && <div>{delivery.phone}</div>}
+                    {delivery.address && <div>{delivery.address}</div>}
+                    {(delivery.city || delivery.state || delivery.pincode) && (
+                      <div>{[delivery.city, delivery.state, delivery.pincode].filter(Boolean).join(', ')}</div>
+                    )}
+                    {delivery.country && <div>{delivery.country}</div>}
+                  </div>
+                </>
+              )}
 
               <div style={{ height: 1, background: 'rgba(27,67,50,0.08)', margin: '16px 0' }} />
 
+              {/* Items total */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <span style={{ fontSize: 15, fontWeight: 600, color: '#1a1712' }}>Items total</span>
-                <span style={{ fontSize: 20, fontWeight: 700, color: '#1b4332' }}>â‚¹{Number(subtotal).toLocaleString('en-IN')}</span>
+                <span style={{ fontSize: 20, fontWeight: 700, color: '#1b4332' }}>{'\u20B9'}{Number(total).toLocaleString('en-IN')}</span>
               </div>
             </>
           )}

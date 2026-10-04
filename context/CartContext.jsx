@@ -87,7 +87,6 @@ export function CartProvider({ children }) {
         qty: Math.min(cap, qty),
       }];
     });
-    setIsOpen(true);
   }, []);
 
   /* ── Add a bundle deal to cart ── */
@@ -113,7 +112,6 @@ export function CartProvider({ children }) {
         qty:       1,
       }];
     });
-    setIsOpen(true);
   }, []);
 
   /* ── Add an accessory to cart ── */
@@ -131,7 +129,6 @@ export function CartProvider({ children }) {
         coverUrl: item.coverUrl || '', price: item.price || null, mrp: item.mrp || null, qty,
       }];
     });
-    setIsOpen(true);
   }, []);
 
   const addClothingToCart = useCallback((item, variant, qty = 1) => {
@@ -148,7 +145,6 @@ export function CartProvider({ children }) {
         coverUrl: item.coverUrl || '', price: item.price || null, mrp: item.mrp || null, qty,
       }];
     });
-    setIsOpen(true);
   }, []);
 
   const removeFromCart = useCallback((slug) => {
