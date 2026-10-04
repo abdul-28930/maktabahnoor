@@ -73,7 +73,7 @@ export async function generateMetadata({ params }) {
       title: `${title} | ${siteName}`,
       description,
       openGraph: {
-        title,
+        title: `${title} | ${siteName}`,
         description,
         images,
         type: 'website',
@@ -81,7 +81,7 @@ export async function generateMetadata({ params }) {
       },
       twitter: {
         card: imageUrl ? 'summary_large_image' : 'summary',
-        title,
+        title: `${title} | ${siteName}`,
         description,
         images: imageUrl ? [imageUrl] : [],
       },
