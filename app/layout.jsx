@@ -4,17 +4,22 @@ import { CartProvider } from '@/context/CartContext';
 import { WishlistProvider } from '@/context/WishlistContext';
 import CartDrawer from '@/components/CartDrawer';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+  metadataBase: new URL(SITE_URL),
   title: 'Maktabah An Noor — Books That Illuminate The Heart',
   description: "Spreading beneficial knowledge — Qurans, Islamic Books & Essentials. Shipping worldwide.",
   openGraph: {
     title: 'Maktabah An Noor — Books That Illuminate The Heart',
     description: "Spreading beneficial knowledge — Qurans, Islamic Books & Essentials. Shipping worldwide.",
     siteName: 'Maktabah An Noor',
+    url: SITE_URL,
     images: [
       {
-        url: '/logo.png',
+        url: `${SITE_URL}/logo.png`,
+        width: 800,
+        height: 800,
         alt: 'Maktabah An Noor',
       },
     ],
@@ -24,7 +29,7 @@ export const metadata = {
     card: 'summary',
     title: 'Maktabah An Noor — Books That Illuminate The Heart',
     description: "Spreading beneficial knowledge — Qurans, Islamic Books & Essentials. Shipping worldwide.",
-    images: ['/logo.png'],
+    images: [`${SITE_URL}/logo.png`],
   },
 };
 

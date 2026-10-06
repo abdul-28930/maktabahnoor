@@ -9,6 +9,7 @@ import { useWishlist } from '@/context/WishlistContext';
 import PageBackground from '@/components/PageBackground';
 import Navbar from '@/components/Navbar';
 import { renderDescription } from '@/components/FormattedDescription';
+import ReviewSection from '@/components/ReviewSection';
 
 
 const CAT_AR = {
@@ -335,6 +336,11 @@ export default function BookPageClient() {
           </div>
         </div>
       )}
+
+      {/* REVIEWS */}
+      <div style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'0 clamp(20px,5vw,72px) 80px'}}>
+        <ReviewSection itemId={`book:${book.slug}`} itemType="book" />
+      </div>
 
       {/* Footer */}
       <footer style={{position:'relative',zIndex:1,background:'#1b4332',padding:'48px clamp(20px,5vw,72px)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:20}}>
