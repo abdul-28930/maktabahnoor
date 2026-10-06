@@ -332,7 +332,7 @@ export default function AdminPage() {
     try { stored = localStorage.getItem('mn_admin_session'); } catch {}
     if (!stored) return;
     setSession(stored); setView('dashboard');
-    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadUsers(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts(); loadHomeCats();
+    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadUsers(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts(); loadHomeCats(); loadPendingReviews(stored);
   }, []);
 
   const [books, setBooks]         = useState([]);
@@ -357,6 +357,8 @@ export default function AdminPage() {
   const [reorderSaving, setReorderSaving] = useState(false);
   const [coupons, setCoupons]     = useState([]);
   const [couponForm, setCouponForm] = useState(EMPTY_COUPON);
+  const [pendingReviews, setPendingReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [editAccId, setEditAccId] = useState(null);
   const [accForm, setAccForm]     = useState(EMPTY_ACCESSORY);
   const [accImgMode, setAccImgMode] = useState('url');
@@ -411,6 +413,20 @@ export default function AdminPage() {
   function cf(k,v) { setCouponForm(p=>({...p,[k]:v})); }
   async function loadCoupons(s=session) {
     try { const r=await fetch(`/api/coupons?password=${encodeURIComponent(s)}`); const d=await r.json(); setCoupons(d.coupons||[]); } catch {}
+  }
+  async function loadPendingReviews(s=session) {
+    setReviewsLoading(true);
+    try { const r=await fetch(`/api/admin/reviews?password=${encodeURIComponent(s)}`); const d=await r.json(); setPendingReviews(d.reviews||[]); } catch {}
+    finally { setReviewsLoading(false); }
+  }
+  async function reviewAction(reviewId, itemId, action) {
+    try {
+      const r = await fetch('/api/admin/reviews',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,reviewId,itemId,action})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed');
+      showToast(action==='approve'?'✓ Review approved!':'Review rejected.','success');
+      await loadPendingReviews();
+    } catch(e) { showToast(e.message,'error'); }
   }
   async function saveCoupon() {
     if (!couponForm.code.trim()) { showToast('Coupon code is required.','error'); return; }
@@ -553,7 +569,7 @@ export default function AdminPage() {
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
       setSession(pw); setView('dashboard'); setPw('');
       try { localStorage.setItem('mn_admin_session', pw); } catch {}
-      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadUsers(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts(); loadHomeCats();
+      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadUsers(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts(); loadHomeCats(); loadPendingReviews(pw);
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -1985,7 +2001,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content',flexWrap:'wrap'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length})`},{id:'users',label:`Customers & Interests (${users.length})`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length})`},{id:'reviews',label:`Reviews${pendingReviews.length>0?` (${pendingReviews.length} pending)`:''}`},{id:'users',label:`Customers & Interests (${users.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif"}}>
               {t.label}
             </button>
@@ -2548,6 +2564,71 @@ export default function AdminPage() {
                       {(o.items||[]).map((it,idx)=>(
                         <span key={idx}>{it.title}{it.qty>1?` × ${it.qty}`:''}{idx<o.items.length-1?', ':''}</span>
                       ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* REVIEWS — PENDING VERIFICATION */}
+        {tab==='reviews' && (
+          <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
+            <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+              <div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:'#1b4332'}}>Pending Reviews</div>
+                <div style={{fontSize:11,color:'#a09890',marginTop:2}}>Guest reviews awaiting verification — logged-in user reviews are auto-approved.</div>
+              </div>
+              <button onClick={()=>loadPendingReviews()} style={{padding:'7px 16px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#1b4332',fontSize:11,cursor:'pointer',letterSpacing:.5,textTransform:'uppercase'}}>Refresh</button>
+            </div>
+            {reviewsLoading ? (
+              <div style={{textAlign:'center',padding:'60px 24px',color:'#a09890',fontSize:13}}>Loading…</div>
+            ) : pendingReviews.length === 0 ? (
+              <div style={{textAlign:'center',padding:'60px 24px'}}>
+                <div style={{fontSize:44,marginBottom:12,opacity:.2}}>★</div>
+                <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:0}}>No pending reviews.</p>
+                <p style={{fontSize:12,color:'#a09890',marginTop:8}}>All guest reviews have been verified, or none have been submitted yet.</p>
+              </div>
+            ) : (
+              <div>
+                {pendingReviews.map((rv, i) => (
+                  <div key={rv.id} style={{padding:'20px 24px',borderBottom:i<pendingReviews.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
+                    <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:16,flexWrap:'wrap'}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        {/* Header row */}
+                        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8,flexWrap:'wrap'}}>
+                          <div style={{width:32,height:32,borderRadius:'50%',background:'rgba(27,67,50,0.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:600,color:'#1b4332',flexShrink:0}}>
+                            {(rv.reviewerName||'?')[0].toUpperCase()}
+                          </div>
+                          <span style={{fontWeight:500,fontSize:14,color:'#1a1712'}}>{rv.reviewerName}</span>
+                          {/* Stars */}
+                          <span style={{display:'inline-flex',gap:2}}>
+                            {[1,2,3,4,5].map(s=>(
+                              <span key={s} style={{fontSize:13,color:s<=rv.rating?'#b8965a':'rgba(184,150,90,0.25)',lineHeight:1}}>★</span>
+                            ))}
+                          </span>
+                          <span style={{fontSize:11,color:'#a09890'}}>{rv.purchaseDate && `Purchased: ${rv.purchaseDate}`}</span>
+                          <span style={{fontSize:11,color:'#a09890',marginLeft:'auto'}}>{new Date(rv.createdAt).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})}</span>
+                        </div>
+                        {/* Item info */}
+                        <div style={{fontSize:11,color:'#2d6a4f',background:'rgba(45,106,79,0.07)',display:'inline-block',padding:'2px 10px',borderRadius:8,marginBottom:10,fontWeight:500}}>
+                          {rv.itemType?.toUpperCase()} · {rv.itemId?.split(':')[1]}
+                        </div>
+                        {/* Review text */}
+                        <p style={{fontSize:14,color:'#4a453f',lineHeight:1.7,margin:0,fontWeight:300}}>{rv.review}</p>
+                      </div>
+                      {/* Actions */}
+                      <div style={{display:'flex',gap:8,flexShrink:0}}>
+                        <button
+                          onClick={()=>reviewAction(rv.id,rv.itemId,'approve')}
+                          style={{padding:'8px 18px',borderRadius:20,border:'1.5px solid rgba(45,106,79,0.3)',background:'rgba(45,106,79,0.07)',color:'#2d6a4f',fontSize:11,cursor:'pointer',fontWeight:500,letterSpacing:.5,textTransform:'uppercase'}}
+                        >✓ Approve</button>
+                        <button
+                          onClick={()=>reviewAction(rv.id,rv.itemId,'reject')}
+                          style={{padding:'8px 18px',borderRadius:20,border:'1.5px solid rgba(180,60,60,0.25)',background:'transparent',color:'#b44',fontSize:11,cursor:'pointer',letterSpacing:.5,textTransform:'uppercase'}}
+                        >✕ Reject</button>
+                      </div>
                     </div>
                   </div>
                 ))}
