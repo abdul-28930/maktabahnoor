@@ -215,39 +215,20 @@ export default function Navbar({ active = '' }) {
                 {user.username}
               </Link>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Link
-                  href="/login"
-                  className="hp-nlink"
-                  style={{
-                    textDecoration: 'none',
-                    color: active === 'login' ? '#1b4332' : '#6b6460',
-                    fontSize: 14,
-                    letterSpacing: '.3px',
-                    fontWeight: active === 'login' ? 500 : 400,
-                    transition: 'color .2s ease',
-                  }}
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/login?mode=register"
-                  className="hp-nlink"
-                  style={{
-                    textDecoration: 'none',
-                    color: '#1b4332',
-                    fontSize: 13,
-                    letterSpacing: '.3px',
-                    fontWeight: 500,
-                    padding: '5px 12px',
-                    borderRadius: 20,
-                    border: '1px solid rgba(27,67,50,0.25)',
-                    transition: 'all .2s ease',
-                  }}
-                >
-                  Sign Up
-                </Link>
-              </div>
+              <Link
+                href="/login"
+                className="hp-nlink"
+                style={{
+                  textDecoration: 'none',
+                  color: active === 'login' ? '#1b4332' : '#6b6460',
+                  fontSize: 14,
+                  letterSpacing: '.3px',
+                  fontWeight: active === 'login' ? 500 : 400,
+                  transition: 'color .2s ease',
+                }}
+              >
+                Sign In
+              </Link>
             )
           )}
         </div>
@@ -419,34 +400,20 @@ export default function Navbar({ active = '' }) {
                 👤 {user.username} (Account Preferences)
               </Link>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, borderBottom: '1px solid rgba(27,67,50,0.06)' }}>
-                <Link
-                  href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{
-                    textDecoration: 'none',
-                    color: '#1b4332',
-                    fontSize: 15,
-                    padding: '10px 4px 6px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/login?mode=register"
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{
-                    textDecoration: 'none',
-                    color: '#b8965a',
-                    fontSize: 15,
-                    padding: '6px 4px 12px',
-                    fontWeight: 600,
-                  }}
-                >
-                  Create Account / Sign Up →
-                </Link>
-              </div>
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  textDecoration: 'none',
+                  color: '#1b4332',
+                  fontSize: 15,
+                  padding: '10px 4px',
+                  fontWeight: 600,
+                  borderBottom: '1px solid rgba(27,67,50,0.06)',
+                }}
+              >
+                Sign In
+              </Link>
             )
           )}
 
