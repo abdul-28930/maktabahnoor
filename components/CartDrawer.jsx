@@ -13,7 +13,7 @@ const CAT_AR = {
 const COVER_BG = 'linear-gradient(155deg,#2d6a4f 0%,#1b4332 100%)';
 
 function buildOrderRef() {
-  return `MN-${Date.now().toString(36).slice(-5).toUpperCase()}`;
+  return `MAN-${Date.now().toString(36).slice(-5).toUpperCase()}`;
 }
 
 function buildWhatsAppMessage(items, orderRef, coupon, pincode) {
