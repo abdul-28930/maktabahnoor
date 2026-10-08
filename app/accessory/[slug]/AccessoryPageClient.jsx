@@ -12,6 +12,7 @@ import ReviewSection from '@/components/ReviewSection';
 export default function AccessoryPageClient() {
   const { slug } = useParams();
   const [item, setItem] = useState(null);
+  const [activeImg, setActiveImg] = useState('');
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -33,6 +34,7 @@ export default function AccessoryPageClient() {
       .then(d => {
         if (d?.accessory) {
           setItem(d.accessory);
+          setActiveImg(d.accessory.coverUrl || '');
           if (d.accessory.variants?.length > 0) {
             setSelected(d.accessory.variants[0]);
           } else {
@@ -133,24 +135,79 @@ export default function AccessoryPageClient() {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="detail-main-grid" style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'56px clamp(20px,5vw,72px) 100px',display:'grid',gridTemplateColumns:'360px 1fr',gap:64,alignItems:'start'}}>
+      <div className="detail-main-grid" style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'56px clamp(20px,5vw,72px) 100px',display:'grid',gridTemplateColumns:'auto 1fr',gap:56,alignItems:'start'}}>
         
-        {/* IMAGE / COVER */}
-        <div className="detail-cover-sticky" style={{position:'sticky',top:92}}>
-          <div style={{position:'relative',borderRadius:18,overflow:'hidden',boxShadow:'0 20px 60px rgba(27,67,50,0.15)',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',aspectRatio:'1/1'}}>
-            {item.coverUrl ? (
-              <img src={item.coverUrl} alt={item.name} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
-            ) : (
-              <div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.6)',fontSize:14,padding:24,textAlign:'center'}}>
-                <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:50,color:'#d4ab70',marginBottom:8}}>إكسسوار</div>
-                <span>{item.name}</span>
-              </div>
-            )}
-            {soldOut && (
-              <div style={{position:'absolute',inset:0,background:'rgba(250,249,245,0.7)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                <span style={{padding:'8px 18px',background:'#1a1712',color:'#fff',fontSize:10,letterSpacing:1.5,textTransform:'uppercase',borderRadius:24,fontWeight:600}}>Out of Stock</span>
-              </div>
-            )}
+        {/* IMAGE / COVER & GALLERY */}
+        <div className="detail-cover-sticky" style={{position:'sticky',top:92,display:'flex',gap:16,alignItems:'flex-start'}}>
+          {/* Thumbnails on Left-Hand Side */}
+          {item.gallery?.length > 0 && (
+            <div className="detail-thumb-col" style={{display:'flex',flexDirection:'column',gap:12,maxHeight:'70vh',overflowY:'auto',paddingRight:4,flexShrink:0}}>
+              {/* Primary cover thumbnail */}
+              {item.coverUrl && (
+                <div
+                  onClick={() => setActiveImg(item.coverUrl)}
+                  style={{
+                    width: 76,
+                    height: 76,
+                    borderRadius: 10,
+                    overflow: 'hidden',
+                    border: (activeImg === item.coverUrl || !activeImg) ? '2.5px solid #1b4332' : '1.5px solid rgba(27,67,50,0.15)',
+                    boxShadow: (activeImg === item.coverUrl || !activeImg) ? '0 4px 14px rgba(27,67,50,0.2)' : 'none',
+                    cursor: 'pointer',
+                    background: '#f3f1ea',
+                    transition: 'all .2s ease',
+                    opacity: (activeImg === item.coverUrl || !activeImg) ? 1 : 0.7,
+                  }}
+                  title="Main Image"
+                >
+                  <img src={item.coverUrl} alt={item.name} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
+                </div>
+              )}
+              {/* Additional gallery thumbnails */}
+              {item.gallery.map((url, i) => {
+                const isSelected = activeImg === url;
+                return (
+                  <div
+                    key={i}
+                    onClick={() => setActiveImg(url)}
+                    style={{
+                      width: 76,
+                      height: 76,
+                      borderRadius: 10,
+                      overflow: 'hidden',
+                      border: isSelected ? '2.5px solid #1b4332' : '1.5px solid rgba(27,67,50,0.15)',
+                      boxShadow: isSelected ? '0 4px 14px rgba(27,67,50,0.2)' : 'none',
+                      cursor: 'pointer',
+                      background: '#f3f1ea',
+                      transition: 'all .2s ease',
+                      opacity: isSelected ? 1 : 0.7,
+                    }}
+                    title={`View ${i + 1}`}
+                  >
+                    <img src={url} alt={`${item.name} view ${i + 1}`} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Main Selected Image Display */}
+          <div style={{width: 360, maxWidth: '100%'}}>
+            <div style={{position:'relative',borderRadius:18,overflow:'hidden',boxShadow:'0 20px 60px rgba(27,67,50,0.15)',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',aspectRatio:'1/1'}}>
+              {activeImg || item.coverUrl ? (
+                <img src={activeImg || item.coverUrl} alt={item.name} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
+              ) : (
+                <div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.6)',fontSize:14,padding:24,textAlign:'center'}}>
+                  <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:50,color:'#d4ab70',marginBottom:8}}>إكسسوار</div>
+                  <span>{item.name}</span>
+                </div>
+              )}
+              {soldOut && (
+                <div style={{position:'absolute',inset:0,background:'rgba(250,249,245,0.7)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <span style={{padding:'8px 18px',background:'#1a1712',color:'#fff',fontSize:10,letterSpacing:1.5,textTransform:'uppercase',borderRadius:24,fontWeight:600}}>Out of Stock</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -355,6 +412,16 @@ export default function AccessoryPageClient() {
         <Link href="/" style={{textDecoration:'none',fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#fff'}}>Maktabah An Noor</Link>
         <div dir="rtl" style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:22,color:'#b8965a'}}>مكتبة النور</div>
       </footer>
+      <style jsx global>{`
+        @media (max-width:960px) {
+          .detail-main-grid { grid-template-columns:1fr!important; gap:40px!important; }
+          .detail-cover-sticky { position:static!important; max-width:420px; margin:0 auto; }
+        }
+        @media (max-width:600px) {
+          .detail-cover-sticky { flex-direction:column-reverse!important; align-items:center!important; }
+          .detail-thumb-col { flex-direction:row!important; max-height:none!important; overflow-x:auto!important; padding-bottom:6px; max-width:100%!important; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -22,6 +22,7 @@ const COVER_BG = 'linear-gradient(155deg,#2d6a4f 0%,#1b4332 100%)';
 export default function BookPageClient() {
   const { slug } = useParams();
   const [book, setBook]       = useState(null);
+  const [activeImg, setActiveImg] = useState('');
   const [qty, setQty]         = useState(1);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -37,7 +38,11 @@ export default function BookPageClient() {
         return r.json();
       })
       .then(d => {
-        if (d) { setBook(d.book); setLoading(false); }
+        if (d) {
+          setBook(d.book);
+          setActiveImg(d.book?.coverUrl || '');
+          setLoading(false);
+        }
       })
       .catch(() => { setNotFound(true); setLoading(false); });
   }, [slug]);
@@ -113,32 +118,77 @@ export default function BookPageClient() {
       </div>
 
       {/* MAIN */}
-      <div className="detail-main-grid" style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'56px clamp(20px,5vw,72px) 100px',display:'grid',gridTemplateColumns:'300px 1fr',gap:64,alignItems:'start'}}>
+      <div className="detail-main-grid" style={{position:'relative',zIndex:1,maxWidth:1200,margin:'0 auto',padding:'56px clamp(20px,5vw,72px) 100px',display:'grid',gridTemplateColumns:'auto 1fr',gap:56,alignItems:'start'}}>
 
-        {/* COVER */}
-        <div className="detail-cover-sticky" style={{position:'sticky',top:92}}>
-          <div style={{borderRadius:18,overflow:'hidden',boxShadow:'0 20px 60px rgba(27,67,50,0.2)',animation:'floatBook 6s ease-in-out infinite',aspectRatio:'3/4'}}>
-            {book.coverUrl ? (
-              <img src={book.coverUrl} alt={book.title} style={{width:'100%',height:'100%',objectFit:'contain',background:'#f3f1ea'}} loading="lazy"/>
-            ) : (
-              <div style={{width:'100%',height:'100%',background:COVER_BG,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,padding:32,position:'relative'}}>
-                <div style={{position:'absolute',inset:16,border:'1px solid rgba(212,171,112,0.4)',borderRadius:10}}/>
-                <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:56,color:'#d4ab70'}}>{ar}</span>
-                <span style={{color:'rgba(255,255,255,0.4)',fontSize:20}}>✦</span>
-                <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:20,color:'rgba(255,255,255,0.85)',textAlign:'center',lineHeight:1.3}}>{book.title}</span>
-              </div>
-            )}
-          </div>
+        {/* COVER & GALLERY SECTION */}
+        <div className="detail-cover-sticky" style={{position:'sticky',top:92,display:'flex',gap:16,alignItems:'flex-start'}}>
+          {/* Thumbnails on Left-Hand Side */}
           {book.gallery?.length > 0 && (
-            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:16,justifyContent:'center'}}>
-              {book.gallery.map((url, i) => (
-                <div key={i} style={{width:56,height:76,borderRadius:8,overflow:'hidden',border:'1px solid rgba(27,67,50,0.12)',cursor:'pointer'}}
-                  onClick={() => window.open(url, '_blank', 'noreferrer')}>
-                  <img src={url} alt={`${book.title} — additional view ${i+1}`} style={{width:'100%',height:'100%',objectFit:'contain',background:'#f3f1ea'}} loading="lazy"/>
+            <div className="detail-thumb-col" style={{display:'flex',flexDirection:'column',gap:12,maxHeight:'70vh',overflowY:'auto',paddingRight:4,flexShrink:0}}>
+              {/* Primary cover thumbnail */}
+              {book.coverUrl && (
+                <div
+                  onClick={() => setActiveImg(book.coverUrl)}
+                  style={{
+                    width: 76,
+                    height: 102,
+                    borderRadius: 10,
+                    overflow: 'hidden',
+                    border: (activeImg === book.coverUrl || !activeImg) ? '2.5px solid #1b4332' : '1.5px solid rgba(27,67,50,0.15)',
+                    boxShadow: (activeImg === book.coverUrl || !activeImg) ? '0 4px 14px rgba(27,67,50,0.2)' : 'none',
+                    cursor: 'pointer',
+                    background: '#f3f1ea',
+                    transition: 'all .2s ease',
+                    opacity: (activeImg === book.coverUrl || !activeImg) ? 1 : 0.7,
+                  }}
+                  title="Front Cover"
+                >
+                  <img src={book.coverUrl} alt="Cover" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
                 </div>
-              ))}
+              )}
+              {/* Additional images thumbnails */}
+              {book.gallery.map((url, i) => {
+                const isSelected = activeImg === url;
+                return (
+                  <div
+                    key={i}
+                    onClick={() => setActiveImg(url)}
+                    style={{
+                      width: 76,
+                      height: 102,
+                      borderRadius: 10,
+                      overflow: 'hidden',
+                      border: isSelected ? '2.5px solid #1b4332' : '1.5px solid rgba(27,67,50,0.15)',
+                      boxShadow: isSelected ? '0 4px 14px rgba(27,67,50,0.2)' : 'none',
+                      cursor: 'pointer',
+                      background: '#f3f1ea',
+                      transition: 'all .2s ease',
+                      opacity: isSelected ? 1 : 0.7,
+                    }}
+                    title={`View ${i + 1}`}
+                  >
+                    <img src={url} alt={`${book.title} view ${i + 1}`} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
+                  </div>
+                );
+              })}
             </div>
           )}
+
+          {/* Main Selected Image Display */}
+          <div style={{width: 320, maxWidth: '100%'}}>
+            <div style={{borderRadius:18,overflow:'hidden',boxShadow:'0 20px 60px rgba(27,67,50,0.18)',animation:'floatBook 6s ease-in-out infinite',aspectRatio:'3/4',background:'#f3f1ea'}}>
+              {activeImg || book.coverUrl ? (
+                <img src={activeImg || book.coverUrl} alt={book.title} style={{width:'100%',height:'100%',objectFit:'contain',background:'#f3f1ea'}} loading="lazy"/>
+              ) : (
+                <div style={{width:'100%',height:'100%',background:COVER_BG,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,padding:32,position:'relative'}}>
+                  <div style={{position:'absolute',inset:16,border:'1px solid rgba(212,171,112,0.4)',borderRadius:10}}/>
+                  <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:56,color:'#d4ab70'}}>{ar}</span>
+                  <span style={{color:'rgba(255,255,255,0.4)',fontSize:20}}>✦</span>
+                  <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',fontSize:20,color:'rgba(255,255,255,0.85)',textAlign:'center',lineHeight:1.3}}>{book.title}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* DETAILS */}
@@ -349,9 +399,13 @@ export default function BookPageClient() {
         <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',letterSpacing:1}}>© 2026 · Books That Illuminate The Heart</div>
       </footer>
       <style jsx global>{`
-        @media (max-width:760px) {
-          .detail-main-grid { grid-template-columns:1fr!important; }
-          .detail-cover-sticky { position:static!important; max-width:280px; margin:0 auto; }
+        @media (max-width:960px) {
+          .detail-main-grid { grid-template-columns:1fr!important; gap:40px!important; }
+          .detail-cover-sticky { position:static!important; max-width:420px; margin:0 auto; }
+        }
+        @media (max-width:600px) {
+          .detail-cover-sticky { flex-direction:column-reverse!important; align-items:center!important; }
+          .detail-thumb-col { flex-direction:row!important; max-height:none!important; overflow-x:auto!important; padding-bottom:6px; max-width:100%!important; }
         }
       `}</style>
     </div>
