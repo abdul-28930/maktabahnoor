@@ -26,8 +26,8 @@ const EMPTY_SLIDE = {
   ctaLabel:'', ctaUrl:'', active:true,
 };
 
-const EMPTY_ACCESSORY = { name:'',description:'',price:'',mrp:'',stockCount:'',coverUrl:'',variants:[],visible:true };
-const EMPTY_CLOTHING = { name:'',description:'',price:'',mrp:'',stockCount:'',coverUrl:'',variants:[],visible:true };
+const EMPTY_ACCESSORY = { name:'',description:'',price:'',mrp:'',stockCount:'',coverUrl:'',gallery:[],variants:[],visible:true };
+const EMPTY_CLOTHING = { name:'',description:'',price:'',mrp:'',stockCount:'',coverUrl:'',gallery:[],variants:[],visible:true };
 const EMPTY_COUPON = { code:'',type:'percent',value:'',minOrder:'',expiresAt:'',active:true };
 
 const OFFER_COLORS = {
@@ -402,6 +402,14 @@ export default function AdminPage() {
   const [toast, setToast]         = useState({msg:'',type:'',show:false});
   const timer   = useRef(null);
   const fileRef = useRef(null);
+  const galleryFileRef = useRef(null);
+  const [galleryImgMode, setGalleryImgMode] = useState('upload');
+  const accGalleryFileRef = useRef(null);
+  const [accGalleryImgMode, setAccGalleryImgMode] = useState('upload');
+  const [accGalleryInput, setAccGalleryInput] = useState('');
+  const clothGalleryFileRef = useRef(null);
+  const [clothGalleryImgMode, setClothGalleryImgMode] = useState('upload');
+  const [clothGalleryInput, setClothGalleryInput] = useState('');
 
   function f(k,v)  { setForm(p=>({...p,[k]:v})); }
   function bf(k,v) { setBundleForm(p=>({...p,[k]:v})); }
@@ -410,6 +418,69 @@ export default function AdminPage() {
   function addVariant() { setAccForm(p=>({...p,variants:[...p.variants,{id:Date.now().toString(36),label:'',color:'#1b4332',stockCount:0}]})); }
   function updVariant(id,k,v) { setAccForm(p=>({...p,variants:p.variants.map(x=>x.id===id?{...x,[k]:v}:x)})); }
   function rmVariant(id) { setAccForm(p=>({...p,variants:p.variants.filter(x=>x.id!==id)})); }
+  function addAccGalleryUrl(url) {
+    if (!url?.trim()) return;
+    af('gallery', [...(accForm.gallery||[]), url.trim()]);
+  }
+  function removeAccGalleryUrl(idx) {
+    af('gallery', (accForm.gallery||[]).filter((_,i) => i !== idx));
+  }
+  function moveAccGalleryUrl(fromIdx, toIdx) {
+    const list = [...(accForm.gallery || [])];
+    if (toIdx < 0 || toIdx >= list.length) return;
+    const [item] = list.splice(fromIdx, 1);
+    list.splice(toIdx, 0, item);
+    af('gallery', list);
+  }
+  async function handleAccGalleryFiles(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    e.target.value = '';
+    for (const file of files) {
+      await new Promise(resolve => {
+        readImgFile(file, (full) => {
+          if (full) {
+            setAccForm(p => ({ ...p, gallery: [...(p.gallery || []), full] }));
+          }
+          resolve();
+        });
+      });
+    }
+  }
+
+  function clf(k,v) { setClothForm(p=>({...p,[k]:v})); }
+  function addClothVariant() { setClothForm(p=>({...p,variants:[...p.variants,{id:Date.now().toString(36),label:'',size:'',color:'',stockCount:0}]})); }
+  function updClothVariant(id,k,v) { setClothForm(p=>({...p,variants:p.variants.map(x=>x.id===id?{...x,[k]:v}:x)})); }
+  function rmClothVariant(id) { setClothForm(p=>({...p,variants:p.variants.filter(x=>x.id!==id)})); }
+  function addClothGalleryUrl(url) {
+    if (!url?.trim()) return;
+    clf('gallery', [...(clothForm.gallery||[]), url.trim()]);
+  }
+  function removeClothGalleryUrl(idx) {
+    clf('gallery', (clothForm.gallery||[]).filter((_,i) => i !== idx));
+  }
+  function moveClothGalleryUrl(fromIdx, toIdx) {
+    const list = [...(clothForm.gallery || [])];
+    if (toIdx < 0 || toIdx >= list.length) return;
+    const [item] = list.splice(fromIdx, 1);
+    list.splice(toIdx, 0, item);
+    clf('gallery', list);
+  }
+  async function handleClothGalleryFiles(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    e.target.value = '';
+    for (const file of files) {
+      await new Promise(resolve => {
+        readImgFile(file, (full) => {
+          if (full) {
+            setClothForm(p => ({ ...p, gallery: [...(p.gallery || []), full] }));
+          }
+          resolve();
+        });
+      });
+    }
+  }
   function cf(k,v) { setCouponForm(p=>({...p,[k]:v})); }
   async function loadCoupons(s=session) {
     try { const r=await fetch(`/api/coupons?password=${encodeURIComponent(s)}`); const d=await r.json(); setCoupons(d.coupons||[]); } catch {}
@@ -478,8 +549,8 @@ export default function AdminPage() {
     setEditAccId(a.id);
     setEditAccSlug(a.slug || a.id);
     setAccSlugInput(a.slug || a.id);
-    setAccForm({ name:a.name||'',description:a.description||'',price:a.price??'',mrp:a.mrp??'',stockCount:a.stockCount??'',coverUrl:a.coverUrl||'',variants:a.variants||[],visible:a.visible!==false });
-    setAccImgMode('url'); setView('accEditor');
+    setAccForm({ name:a.name||'',description:a.description||'',price:a.price??'',mrp:a.mrp??'',stockCount:a.stockCount??'',coverUrl:a.coverUrl||'',gallery:a.gallery||[],variants:a.variants||[],visible:a.visible!==false });
+    setAccImgMode('url'); setAccGalleryImgMode('upload'); setAccGalleryInput(''); setView('accEditor');
   }
   async function renameAccSlug() {
     if (!accSlugInput.trim() || accSlugInput === editAccSlug) return;
@@ -529,8 +600,8 @@ export default function AdminPage() {
     setEditClothId(a.id);
     setEditClothSlug(a.slug || a.id);
     setClothSlugInput(a.slug || a.id);
-    setClothForm({ name:a.name||'',description:a.description||'',price:a.price??'',mrp:a.mrp??'',stockCount:a.stockCount??'',coverUrl:a.coverUrl||'',variants:a.variants||[],visible:a.visible!==false });
-    setClothImgMode('url'); setView('clothEditor');
+    setClothForm({ name:a.name||'',description:a.description||'',price:a.price??'',mrp:a.mrp??'',stockCount:a.stockCount??'',coverUrl:a.coverUrl||'',gallery:a.gallery||[],variants:a.variants||[],visible:a.visible!==false });
+    setClothImgMode('url'); setClothGalleryImgMode('upload'); setClothGalleryInput(''); setView('clothEditor');
   }
   async function renameClothSlug() {
     if (!clothSlugInput.trim() || clothSlugInput === editClothSlug) return;
@@ -1179,6 +1250,28 @@ export default function AdminPage() {
   function removeGalleryUrl(idx) {
     f('gallery', form.gallery.filter((_,i) => i !== idx));
   }
+  function moveGalleryUrl(fromIdx, toIdx) {
+    const list = [...(form.gallery || [])];
+    if (toIdx < 0 || toIdx >= list.length) return;
+    const [item] = list.splice(fromIdx, 1);
+    list.splice(toIdx, 0, item);
+    f('gallery', list);
+  }
+  async function handleGalleryFiles(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    e.target.value = '';
+    for (const file of files) {
+      await new Promise(resolve => {
+        readImgFile(file, (full) => {
+          if (full) {
+            setForm(p => ({ ...p, gallery: [...(p.gallery || []), full] }));
+          }
+          resolve();
+        });
+      });
+    }
+  }
   function toggleBookInBundle(slug) {
     const s = bundleForm.bookSlugs;
     const next = s.includes(slug) ? s.filter(x=>x!==slug) : [...s,slug];
@@ -1416,26 +1509,55 @@ export default function AdminPage() {
             )
           }
           {form.coverUrl && <button onClick={()=>{f('coverUrl',''); f('coverThumb','');}} style={{marginTop:8,fontSize:11,color:'#a09890',background:'none',border:'none',cursor:'pointer',padding:0}}>✕ Remove image</button>}
+        </Card>
 
-          <div style={{marginTop:24,paddingTop:20,borderTop:'1px solid rgba(27,67,50,0.07)'}}>
-            <Label hint="Extra photos (back cover, sample pages) shown on the book detail page">Additional Images</Label>
-            <div style={{display:'flex',gap:8,marginBottom:12}}>
+        {/* Additional Images (Multiple Images) */}
+        <Card title={`Additional Images (${(form.gallery || []).length})`}>
+          <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 16px',lineHeight:1.6}}>
+            Upload multiple photos (back cover, inner pages, table of contents, sample text). These will show as clickable preview thumbnails on the left-hand side of the main book cover.
+          </p>
+          <div style={{display:'flex',gap:8,marginBottom:14}}>
+            {['upload','url'].map(m=>(
+              <button key={m} onClick={()=>setGalleryImgMode(m)} style={{padding:'7px 18px',borderRadius:20,border:`1.5px solid ${galleryImgMode===m?'#1b4332':'rgba(27,67,50,0.15)'}`,background:galleryImgMode===m?'rgba(27,67,50,0.07)':'transparent',color:galleryImgMode===m?'#1b4332':'#6b6460',fontSize:12,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+                {m==='upload'?'Upload Photos (Multiple)':'Paste Image URL'}
+              </button>
+            ))}
+          </div>
+
+          {galleryImgMode==='upload' ? (
+            <div onClick={()=>galleryFileRef.current?.click()} style={{border:'2px dashed rgba(27,67,50,0.18)',borderRadius:12,padding:'28px 20px',textAlign:'center',cursor:'pointer',background:'#faf9f5',transition:'border-color .2s'}} onMouseEnter={e=>e.currentTarget.style.borderColor='#1b4332'} onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(27,67,50,0.18)'}>
+              <div style={{fontSize:24,color:'#1b4332',marginBottom:6}}>📸</div>
+              <div style={{fontSize:13,fontWeight:500,color:'#1b4332',marginBottom:4}}>Click to upload multiple images</div>
+              <div style={{fontSize:11,color:'#a09890'}}>Select 1 or more images (JPG or PNG)</div>
+              <input ref={galleryFileRef} type="file" accept="image/*" multiple style={{display:'none'}} onChange={handleGalleryFiles}/>
+            </div>
+          ) : (
+            <div style={{display:'flex',gap:8,marginBottom:8}}>
               <div style={{flex:1}}>
                 <FInput value={galleryInput} onChange={e=>setGalleryInput(e.target.value)} placeholder="https://… (additional image URL)"/>
               </div>
               <button onClick={()=>{addGalleryUrl(galleryInput);setGalleryInput('');}} style={{padding:'0 20px',borderRadius:10,border:'none',background:'#1b4332',color:'#fff',fontSize:12,cursor:'pointer',flexShrink:0}}>+ Add</button>
             </div>
-            {form.gallery?.length > 0 && (
-              <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
+          )}
+
+          {form.gallery?.length > 0 && (
+            <div style={{marginTop:20}}>
+              <Label hint="Drag or use arrows to adjust order. The first image displays directly beside the cover.">Uploaded Photos ({form.gallery.length})</Label>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(110px,1fr))',gap:12,marginTop:8}}>
                 {form.gallery.map((url,idx) => (
-                  <div key={idx} style={{position:'relative',width:72,height:96,borderRadius:8,overflow:'hidden',border:'1px solid rgba(27,67,50,0.12)'}}>
-                    <img src={url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
-                    <button onClick={()=>removeGalleryUrl(idx)} style={{position:'absolute',top:2,right:2,width:20,height:20,borderRadius:'50%',border:'none',background:'rgba(0,0,0,0.6)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                  <div key={idx} style={{position:'relative',borderRadius:10,overflow:'hidden',border:'1.5px solid rgba(27,67,50,0.15)',background:'#f3f1ea',aspectRatio:'3/4',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+                    <img src={url} alt={`Photo ${idx+1}`} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
+                    <span style={{position:'absolute',top:4,left:4,background:'rgba(27,67,50,0.85)',color:'#fff',fontSize:10,fontWeight:600,padding:'2px 6px',borderRadius:6}}>#{idx+1}</span>
+                    <button onClick={()=>removeGalleryUrl(idx)} title="Delete photo" style={{position:'absolute',top:4,right:4,width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(180,40,40,0.85)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                    <div style={{position:'absolute',bottom:4,right:4,display:'flex',gap:4}}>
+                      <button onClick={()=>moveGalleryUrl(idx,idx-1)} disabled={idx===0} title="Move left" style={{width:20,height:20,borderRadius:4,border:'none',background:'rgba(0,0,0,0.65)',color:idx===0?'#888':'#fff',fontSize:10,cursor:idx===0?'default':'pointer'}}>◀</button>
+                      <button onClick={()=>moveGalleryUrl(idx,idx+1)} disabled={idx===form.gallery.length-1} title="Move right" style={{width:20,height:20,borderRadius:4,border:'none',background:'rgba(0,0,0,0.65)',color:idx===form.gallery.length-1?'#888':'#fff',fontSize:10,cursor:idx===form.gallery.length-1?'default':'pointer'}}>▶</button>
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </Card>
 
         {/* Tags */}
@@ -1774,6 +1896,55 @@ export default function AdminPage() {
             )}
           {accForm.coverUrl && <button onClick={()=>af('coverUrl','')} style={{marginTop:8,fontSize:11,color:'#a09890',background:'none',border:'none',cursor:'pointer',padding:0}}>✕ Remove image</button>}
         </Card>
+
+        {/* Additional Images (Multiple Images) */}
+        <Card title={`Additional Images (${(accForm.gallery || []).length})`}>
+          <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 16px',lineHeight:1.6}}>
+            Upload multiple photos (different angles, packaging, details). These will show as clickable preview thumbnails on the left-hand side of the main product image.
+          </p>
+          <div style={{display:'flex',gap:8,marginBottom:14}}>
+            {['upload','url'].map(m=>(
+              <button key={m} onClick={()=>setAccGalleryImgMode(m)} style={{padding:'7px 18px',borderRadius:20,border:`1.5px solid ${accGalleryImgMode===m?'#1b4332':'rgba(27,67,50,0.15)'}`,background:accGalleryImgMode===m?'rgba(27,67,50,0.07)':'transparent',color:accGalleryImgMode===m?'#1b4332':'#6b6460',fontSize:12,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+                {m==='upload'?'Upload Photos (Multiple)':'Paste Image URL'}
+              </button>
+            ))}
+          </div>
+
+          {accGalleryImgMode==='upload' ? (
+            <div onClick={()=>accGalleryFileRef.current?.click()} style={{border:'2px dashed rgba(27,67,50,0.18)',borderRadius:12,padding:'28px 20px',textAlign:'center',cursor:'pointer',background:'#faf9f5',transition:'border-color .2s'}} onMouseEnter={e=>e.currentTarget.style.borderColor='#1b4332'} onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(27,67,50,0.18)'}>
+              <div style={{fontSize:24,color:'#1b4332',marginBottom:6}}>📸</div>
+              <div style={{fontSize:13,fontWeight:500,color:'#1b4332',marginBottom:4}}>Click to upload multiple images</div>
+              <div style={{fontSize:11,color:'#a09890'}}>Select 1 or more images (JPG or PNG)</div>
+              <input ref={accGalleryFileRef} type="file" accept="image/*" multiple style={{display:'none'}} onChange={handleAccGalleryFiles}/>
+            </div>
+          ) : (
+            <div style={{display:'flex',gap:8,marginBottom:8}}>
+              <div style={{flex:1}}>
+                <FInput value={accGalleryInput} onChange={e=>setAccGalleryInput(e.target.value)} placeholder="https://… (additional image URL)"/>
+              </div>
+              <button onClick={()=>{addAccGalleryUrl(accGalleryInput);setAccGalleryInput('');}} style={{padding:'0 20px',borderRadius:10,border:'none',background:'#1b4332',color:'#fff',fontSize:12,cursor:'pointer',flexShrink:0}}>+ Add</button>
+            </div>
+          )}
+
+          {accForm.gallery?.length > 0 && (
+            <div style={{marginTop:20}}>
+              <Label hint="Drag or use arrows to adjust order. The first image displays directly beside the cover.">Uploaded Photos ({accForm.gallery.length})</Label>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(110px,1fr))',gap:12,marginTop:8}}>
+                {accForm.gallery.map((url,idx) => (
+                  <div key={idx} style={{position:'relative',borderRadius:10,overflow:'hidden',border:'1.5px solid rgba(27,67,50,0.15)',background:'#f3f1ea',aspectRatio:'1/1',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+                    <img src={url} alt={`Photo ${idx+1}`} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
+                    <span style={{position:'absolute',top:4,left:4,background:'rgba(27,67,50,0.85)',color:'#fff',fontSize:10,fontWeight:600,padding:'2px 6px',borderRadius:6}}>#{idx+1}</span>
+                    <button onClick={()=>removeAccGalleryUrl(idx)} title="Delete photo" style={{position:'absolute',top:4,right:4,width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(180,40,40,0.85)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                    <div style={{position:'absolute',bottom:4,right:4,display:'flex',gap:4}}>
+                      <button onClick={()=>moveAccGalleryUrl(idx,idx-1)} disabled={idx===0} title="Move left" style={{width:20,height:20,borderRadius:4,border:'none',background:'rgba(0,0,0,0.65)',color:idx===0?'#888':'#fff',fontSize:10,cursor:idx===0?'default':'pointer'}}>◀</button>
+                      <button onClick={()=>moveAccGalleryUrl(idx,idx+1)} disabled={idx===accForm.gallery.length-1} title="Move right" style={{width:20,height:20,borderRadius:4,border:'none',background:'rgba(0,0,0,0.65)',color:idx===accForm.gallery.length-1?'#888':'#fff',fontSize:10,cursor:idx===accForm.gallery.length-1?'default':'pointer'}}>▶</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
         <Card title="Colors (optional)">
           <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px'}}>Add color options like on Amazon — each with its own stock count. Leave empty for a single-color product.</p>
           {accForm.variants.map(v => (
@@ -1850,6 +2021,55 @@ export default function AdminPage() {
               </div>
             )}
           {clothForm.coverUrl && <button onClick={()=>clf('coverUrl','')} style={{marginTop:8,fontSize:11,color:'#a09890',background:'none',border:'none',cursor:'pointer',padding:0}}>✕ Remove image</button>}
+        </Card>
+
+        {/* Additional Images (Multiple Images) */}
+        <Card title={`Additional Images (${(clothForm.gallery || []).length})`}>
+          <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 16px',lineHeight:1.6}}>
+            Upload multiple photos (different angles, fabrics, close-ups). These will show as clickable preview thumbnails on the left-hand side of the main product image.
+          </p>
+          <div style={{display:'flex',gap:8,marginBottom:14}}>
+            {['upload','url'].map(m=>(
+              <button key={m} onClick={()=>setClothGalleryImgMode(m)} style={{padding:'7px 18px',borderRadius:20,border:`1.5px solid ${clothGalleryImgMode===m?'#1b4332':'rgba(27,67,50,0.15)'}`,background:clothGalleryImgMode===m?'rgba(27,67,50,0.07)':'transparent',color:clothGalleryImgMode===m?'#1b4332':'#6b6460',fontSize:12,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+                {m==='upload'?'Upload Photos (Multiple)':'Paste Image URL'}
+              </button>
+            ))}
+          </div>
+
+          {clothGalleryImgMode==='upload' ? (
+            <div onClick={()=>clothGalleryFileRef.current?.click()} style={{border:'2px dashed rgba(27,67,50,0.18)',borderRadius:12,padding:'28px 20px',textAlign:'center',cursor:'pointer',background:'#faf9f5',transition:'border-color .2s'}} onMouseEnter={e=>e.currentTarget.style.borderColor='#1b4332'} onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(27,67,50,0.18)'}>
+              <div style={{fontSize:24,color:'#1b4332',marginBottom:6}}>📸</div>
+              <div style={{fontSize:13,fontWeight:500,color:'#1b4332',marginBottom:4}}>Click to upload multiple images</div>
+              <div style={{fontSize:11,color:'#a09890'}}>Select 1 or more images (JPG or PNG)</div>
+              <input ref={clothGalleryFileRef} type="file" accept="image/*" multiple style={{display:'none'}} onChange={handleClothGalleryFiles}/>
+            </div>
+          ) : (
+            <div style={{display:'flex',gap:8,marginBottom:8}}>
+              <div style={{flex:1}}>
+                <FInput value={clothGalleryInput} onChange={e=>setClothGalleryInput(e.target.value)} placeholder="https://… (additional image URL)"/>
+              </div>
+              <button onClick={()=>{addClothGalleryUrl(clothGalleryInput);setClothGalleryInput('');}} style={{padding:'0 20px',borderRadius:10,border:'none',background:'#1b4332',color:'#fff',fontSize:12,cursor:'pointer',flexShrink:0}}>+ Add</button>
+            </div>
+          )}
+
+          {clothForm.gallery?.length > 0 && (
+            <div style={{marginTop:20}}>
+              <Label hint="Drag or use arrows to adjust order. The first image displays directly beside the cover.">Uploaded Photos ({clothForm.gallery.length})</Label>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(110px,1fr))',gap:12,marginTop:8}}>
+                {clothForm.gallery.map((url,idx) => (
+                  <div key={idx} style={{position:'relative',borderRadius:10,overflow:'hidden',border:'1.5px solid rgba(27,67,50,0.15)',background:'#f3f1ea',aspectRatio:'1/1',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+                    <img src={url} alt={`Photo ${idx+1}`} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
+                    <span style={{position:'absolute',top:4,left:4,background:'rgba(27,67,50,0.85)',color:'#fff',fontSize:10,fontWeight:600,padding:'2px 6px',borderRadius:6}}>#{idx+1}</span>
+                    <button onClick={()=>removeClothGalleryUrl(idx)} title="Delete photo" style={{position:'absolute',top:4,right:4,width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(180,40,40,0.85)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                    <div style={{position:'absolute',bottom:4,right:4,display:'flex',gap:4}}>
+                      <button onClick={()=>moveClothGalleryUrl(idx,idx-1)} disabled={idx===0} title="Move left" style={{width:20,height:20,borderRadius:4,border:'none',background:'rgba(0,0,0,0.65)',color:idx===0?'#888':'#fff',fontSize:10,cursor:idx===0?'default':'pointer'}}>◀</button>
+                      <button onClick={()=>moveClothGalleryUrl(idx,idx+1)} disabled={idx===clothForm.gallery.length-1} title="Move right" style={{width:20,height:20,borderRadius:4,border:'none',background:'rgba(0,0,0,0.65)',color:idx===clothForm.gallery.length-1?'#888':'#fff',fontSize:10,cursor:idx===clothForm.gallery.length-1?'default':'pointer'}}>▶</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
         <Card title="Sizes / Colors (optional)">
           <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px'}}>Add size and/or color options, each with its own stock count. Leave a field blank if it doesn't apply (e.g. size-only, no color). Leave the whole section empty for a single-variant product.</p>
@@ -1974,9 +2194,9 @@ export default function AdminPage() {
               : tab==='slides'
                 ? <Btn onClick={()=>{setEditSlideId(null);setSlideForm(EMPTY_SLIDE);setSlideImgMode('url');setView('slideEditor');}}>+ Add Slide</Btn>
                 : tab==='accessories'
-                  ? <Btn onClick={()=>{setEditAccId(null);setAccForm(EMPTY_ACCESSORY);setAccImgMode('url');setView('accEditor');}}>+ Add Accessory</Btn>
+                  ? <Btn onClick={()=>{setEditAccId(null);setAccForm(EMPTY_ACCESSORY);setAccImgMode('url');setAccGalleryImgMode('upload');setAccGalleryInput('');setView('accEditor');}}>+ Add Accessory</Btn>
                   : tab==='clothing'
-                    ? <Btn onClick={()=>{setEditClothId(null);setClothForm(EMPTY_CLOTHING);setClothImgMode('url');setView('clothEditor');}}>+ Add Clothing</Btn>
+                    ? <Btn onClick={()=>{setEditClothId(null);setClothForm(EMPTY_CLOTHING);setClothImgMode('url');setClothGalleryImgMode('upload');setClothGalleryInput('');setView('clothEditor');}}>+ Add Clothing</Btn>
                     : tab==='categories'
                       ? <Btn onClick={()=>{setAddingCategory(true);setNewCategoryInput('');}}>+ Add Category</Btn>
                       : null

@@ -45,6 +45,9 @@ export async function PUT(req, { params }) {
         .map(v => ({ id: v.id || (Date.now().toString(36)+Math.random().toString(36).slice(2,6)), label: v.label.trim(), size: v.size?.trim() || '', color: v.color || '', stockCount: Math.max(0, parseInt(v.stockCount) || 0) }))
         : [];
     }
+    if (updates.gallery !== undefined) {
+      updates.gallery = Array.isArray(updates.gallery) ? updates.gallery.filter(Boolean) : [];
+    }
     all[idx] = { ...all[idx], ...updates, id: currentItem.id, updatedAt: new Date().toISOString() };
     await redis.set(KEY, all);
 

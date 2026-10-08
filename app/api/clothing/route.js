@@ -73,6 +73,7 @@ export async function POST(req) {
       mrp: data.mrp ? Number(data.mrp) : null,
       stockCount: parseInt(data.stockCount) || 0,
       coverUrl: data.coverUrl?.trim() || '',
+      gallery: Array.isArray(data.gallery) ? data.gallery.filter(Boolean) : [],
       // Variants can carry a size and/or color — either or both, per item.
       variants: Array.isArray(data.variants) ? data.variants
         .filter(v => v.label?.trim())
