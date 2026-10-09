@@ -355,6 +355,9 @@ export default function AdminPage() {
   const [reorderList, setReorderList] = useState([]);
   const [dragIdx, setDragIdx] = useState(null);
   const [reorderSaving, setReorderSaving] = useState(false);
+  const [reorderType, setReorderType] = useState('books'); // 'books' | 'bundles' | 'accessories' | 'clothing'
+  const [catDragIdx, setCatDragIdx] = useState(null);
+  const [catReorderSaving, setCatReorderSaving] = useState(false);
   const [coupons, setCoupons]     = useState([]);
   const [couponForm, setCouponForm] = useState(EMPTY_COUPON);
   const [pendingReviews, setPendingReviews] = useState([]);
@@ -859,9 +862,19 @@ export default function AdminPage() {
     finally { setLoading(false); }
   }
 
-  function openReorder() {
-    const sorted = [...books].sort((a,b)=>(a.order ?? new Date(a.createdAt).getTime()) - (b.order ?? new Date(b.createdAt).getTime()));
-    setReorderList(sorted); setView('reorderBooks');
+  function openReorder(type = 'books') {
+    setReorderType(type);
+    if (type === 'books') {
+      const sorted = [...books].sort((a,b)=>(a.order ?? new Date(a.createdAt).getTime()) - (b.order ?? new Date(b.createdAt).getTime()));
+      setReorderList(sorted);
+    } else if (type === 'bundles') {
+      setReorderList([...bundles]);
+    } else if (type === 'accessories') {
+      setReorderList([...accessories]);
+    } else if (type === 'clothing') {
+      setReorderList([...clothing]);
+    }
+    setView('reorderView');
   }
   function dragDrop(dropIdx) {
     if (dragIdx === null || dragIdx === dropIdx) return;
@@ -873,11 +886,61 @@ export default function AdminPage() {
   async function saveReorder() {
     setReorderSaving(true);
     try {
-      const r = await fetch('/api/books/reorder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,slugs:reorderList.map(b=>b.slug)})});
-      if (!r.ok) throw new Error((await r.json()).error||'Failed');
-      showToast('✓ Book order saved!','success'); await loadBooks(); setView('dashboard'); setTab('books');
+      if (reorderType === 'books') {
+        const r = await fetch('/api/books/reorder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,slugs:reorderList.map(b=>b.slug)})});
+        if (!r.ok) throw new Error((await r.json()).error||'Failed');
+        showToast('✓ Book order saved!','success'); await loadBooks(); setView('dashboard'); setTab('books');
+      } else if (reorderType === 'bundles') {
+        const r = await fetch('/api/bundles/reorder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,ids:reorderList.map(b=>b.id)})});
+        if (!r.ok) throw new Error((await r.json()).error||'Failed');
+        showToast('✓ Bundles order saved!','success'); await loadBundles(); setView('dashboard'); setTab('bundles');
+      } else if (reorderType === 'accessories') {
+        const r = await fetch('/api/accessories/reorder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,ids:reorderList.map(a=>a.id)})});
+        if (!r.ok) throw new Error((await r.json()).error||'Failed');
+        showToast('✓ Accessories order saved!','success'); await loadAccessories(); setView('dashboard'); setTab('accessories');
+      } else if (reorderType === 'clothing') {
+        const r = await fetch('/api/clothing/reorder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,ids:reorderList.map(c=>c.id)})});
+        if (!r.ok) throw new Error((await r.json()).error||'Failed');
+        showToast('✓ Clothing order saved!','success'); await loadClothing(); setView('dashboard'); setTab('clothing');
+      }
     } catch(e) { showToast(e.message,'error'); }
     finally { setReorderSaving(false); }
+  }
+
+  async function saveCategoryOrder(newCats) {
+    setCatReorderSaving(true);
+    try {
+      const r = await fetch('/api/taxonomy', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: session, field: 'categories', values: newCats }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to save order.');
+      if (d.taxonomy) setTaxonomy(d.taxonomy);
+      showToast('✓ Category order saved! Changes reflect in dropdown & filters.', 'success');
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setCatReorderSaving(false);
+    }
+  }
+
+  function moveCategory(fromIdx, toIdx) {
+    if (toIdx < 0 || toIdx >= taxonomy.categories.length) return;
+    const next = [...taxonomy.categories];
+    const [moved] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, moved);
+    saveCategoryOrder(next);
+  }
+
+  function catDragDrop(dropIdx) {
+    if (catDragIdx === null || catDragIdx === dropIdx) return;
+    const next = [...taxonomy.categories];
+    const [moved] = next.splice(catDragIdx, 1);
+    next.splice(dropIdx, 0, moved);
+    setCatDragIdx(null);
+    saveCategoryOrder(next);
   }
 
   async function renameSlug() {
@@ -2114,41 +2177,69 @@ export default function AdminPage() {
   );
 
 
-  /* ── REORDER BOOKS ── */
-  if (view==='reorderBooks') return (
-    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
-      <PageBackground subtle/>
-      <header style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,48px)',background:'rgba(250,249,245,0.92)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332'}}>Reorder Books</div>
-        <div style={{display:'flex',gap:10}}>
-          <Btn variant="ghost" onClick={()=>setView('dashboard')}>Cancel</Btn>
-          <Btn onClick={saveReorder} disabled={reorderSaving}>{reorderSaving?'Saving…':'Save Order'}</Btn>
+  /* ── REORDER VIEW (BOOKS, BUNDLES, ACCESSORIES, CLOTHING) ── */
+  if (view==='reorderView') {
+    const title = reorderType === 'books' ? 'Reorder Books'
+      : reorderType === 'bundles' ? 'Reorder Bundles'
+      : reorderType === 'accessories' ? 'Reorder Accessories'
+      : 'Reorder Clothing';
+
+    const hint = reorderType === 'books'
+      ? 'Drag rows to set this as "Our Order" — the default sort on the Books page. Note: Featured books always show first and out-of-stock books always show last on the site regardless of where you place them here.'
+      : reorderType === 'bundles'
+      ? 'Drag rows to set the display order for bundle deals on the /bundles page.'
+      : reorderType === 'accessories'
+      ? 'Drag rows to set the display order for accessories on the /accessories page.'
+      : 'Drag rows to set the display order for clothing on the /clothing page.';
+
+    return (
+      <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
+        <PageBackground subtle/>
+        <header style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,48px)',background:'rgba(250,249,245,0.92)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332'}}>{title}</div>
+          <div style={{display:'flex',gap:10}}>
+            <Btn variant="ghost" onClick={()=>setView('dashboard')}>Cancel</Btn>
+            <Btn onClick={saveReorder} disabled={reorderSaving}>{reorderSaving?'Saving…':'Save Order'}</Btn>
+          </div>
+        </header>
+        <div style={{position:'relative',zIndex:1,maxWidth:700,margin:'0 auto',padding:'32px clamp(20px,5vw,48px) 80px'}}>
+          <p style={{fontSize:12,color:'#a09890',margin:'0 0 16px',lineHeight:1.6}}>
+            {hint}
+          </p>
+          <div style={{background:'#fff',borderRadius:16,border:'1px solid rgba(27,67,50,0.08)',overflow:'hidden'}}>
+            {reorderList.map((item,i)=>{
+              const key = item.slug || item.id;
+              const name = item.title || item.name;
+              const imgUrl = item.coverUrl || (item.bookSlugs?.length ? books.find(bk => bk.slug === item.bookSlugs[0])?.coverUrl : null);
+              const isOut = item.inStock === false || item.stockCount <= 0;
+
+              return (
+                <div key={key} draggable
+                  onDragStart={()=>setDragIdx(i)}
+                  onDragOver={e=>e.preventDefault()}
+                  onDrop={()=>dragDrop(i)}
+                  style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderBottom:i<reorderList.length-1?'1px solid rgba(27,67,50,0.06)':'none',background:dragIdx===i?'rgba(27,67,50,0.04)':'#fff',cursor:'grab'}}>
+                  <span style={{color:'#c0b8b0',fontSize:16,flexShrink:0}}>⠿</span>
+                  <span style={{fontSize:11,color:'#a09890',width:22,flexShrink:0}}>{i+1}</span>
+                  {imgUrl ? (
+                    <img src={imgUrl} alt="" style={{width:32,height:42,objectFit:'cover',borderRadius:4,flexShrink:0}} loading="lazy"/>
+                  ) : (
+                    <div style={{width:32,height:42,borderRadius:4,background:'rgba(27,67,50,0.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,flexShrink:0}}>
+                      {reorderType==='bundles' ? '📦' : '✦'}
+                    </div>
+                  )}
+                  <span style={{flex:1,fontSize:13,color:'#1a1712',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>
+                  {item.tags?.includes('Featured') && <span style={{fontSize:9,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,flexShrink:0}}>Featured</span>}
+                  {isOut && <span style={{fontSize:9,color:'#b44',background:'rgba(180,60,60,0.07)',padding:'2px 8px',borderRadius:8,flexShrink:0}}>Out of Stock</span>}
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </header>
-      <div style={{position:'relative',zIndex:1,maxWidth:700,margin:'0 auto',padding:'32px clamp(20px,5vw,48px) 80px'}}>
-        <p style={{fontSize:12,color:'#a09890',margin:'0 0 16px',lineHeight:1.6}}>
-          Drag rows to set this as "Our Order" — the default sort on the Books page. Note: <b>Featured books always show first</b> and <b>out-of-stock books always show last</b> on the site regardless of where you place them here.
-        </p>
-        <div style={{background:'#fff',borderRadius:16,border:'1px solid rgba(27,67,50,0.08)',overflow:'hidden'}}>
-          {reorderList.map((b,i)=>(
-            <div key={b.slug} draggable
-              onDragStart={()=>setDragIdx(i)}
-              onDragOver={e=>e.preventDefault()}
-              onDrop={()=>dragDrop(i)}
-              style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderBottom:i<reorderList.length-1?'1px solid rgba(27,67,50,0.06)':'none',background:dragIdx===i?'rgba(27,67,50,0.04)':'#fff',cursor:'grab'}}>
-              <span style={{color:'#c0b8b0',fontSize:16,flexShrink:0}}>⠿</span>
-              <span style={{fontSize:11,color:'#a09890',width:22,flexShrink:0}}>{i+1}</span>
-              {b.coverUrl && <img src={b.coverUrl} alt="" style={{width:32,height:42,objectFit:'cover',borderRadius:4,flexShrink:0}} loading="lazy"/>}
-              <span style={{flex:1,fontSize:13,color:'#1a1712',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</span>
-              {b.tags?.includes('Featured') && <span style={{fontSize:9,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,flexShrink:0}}>Featured</span>}
-              {!b.inStock && <span style={{fontSize:9,color:'#b44',background:'rgba(180,60,60,0.07)',padding:'2px 8px',borderRadius:8,flexShrink:0}}>Out of Stock</span>}
-            </div>
-          ))}
-        </div>
+        <Toast t={toast}/>
       </div>
-      <Toast t={toast}/>
-    </div>
-  );
+    );
+  }
 
   /* ── LOGIN ── */
   if (view==='login') return (
@@ -2186,7 +2277,10 @@ export default function AdminPage() {
           <Link href="/" style={{textDecoration:'none',padding:'9px 18px',border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:20,fontSize:11,color:'#6b6460',letterSpacing:.5,textTransform:'uppercase',transition:'all .2s'}}>View Site</Link>
           {tab==='books' && <Btn variant="ghost" onClick={exportBooksCsv}>Export CSV</Btn>}
           {tab==='books' && <Btn variant="ghost" onClick={cleanupMeta}>⚠ Fix Save Errors</Btn>}
-          {tab==='books' && <Btn variant="ghost" onClick={openReorder}>⠿ Reorder</Btn>}
+          {tab==='books' && <Btn variant="ghost" onClick={()=>openReorder('books')}>⠿ Reorder</Btn>}
+          {tab==='bundles' && <Btn variant="ghost" onClick={()=>openReorder('bundles')}>⠿ Reorder</Btn>}
+          {tab==='accessories' && <Btn variant="ghost" onClick={()=>openReorder('accessories')}>⠿ Reorder</Btn>}
+          {tab==='clothing' && <Btn variant="ghost" onClick={()=>openReorder('clothing')}>⠿ Reorder</Btn>}
           {tab==='books'
             ? <Btn onClick={()=>{setEditSlug(null);setForm(EMPTY_BOOK);setImgMode('url');setView('bookEditor');}}>+ Add Book</Btn>
             : tab==='bundles'
@@ -2863,12 +2957,13 @@ export default function AdminPage() {
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:12}}>
               <div>
                 <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'#1b4332',margin:0}}>Categories</h2>
-                <p style={{fontSize:12,color:'#a09890',margin:'4px 0 0'}}>Add, rename, or delete categories. Changes reflect instantly on the homepage and storefront filters.</p>
+                <p style={{fontSize:12,color:'#a09890',margin:'4px 0 0'}}>Add, rename, delete, or drag / use ▲▼ arrows to reorder categories. Order reflects in Books dropdown &amp; filters.</p>
               </div>
+              {catReorderSaving && <span style={{fontSize:12,color:'#2d6a4f',fontWeight:500}}>Saving order…</span>}
             </div>
 
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
-              {taxonomy.categories.map(cat => {
+              {taxonomy.categories.map((cat, i) => {
                 const isEditing = editingCategory === cat;
                 const bookCount = books.filter(b => getBookCategories(b).includes(cat)).length;
 
@@ -2901,8 +2996,56 @@ export default function AdminPage() {
                 }
 
                 return (
-                  <div key={cat} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',background:'#faf9f5',borderRadius:12,border:'1px solid rgba(27,67,50,0.08)'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                  <div
+                    key={cat}
+                    draggable={!editingCategory}
+                    onDragStart={() => setCatDragIdx(i)}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={() => catDragDrop(i)}
+                    style={{
+                      display:'flex',
+                      alignItems:'center',
+                      justifyContent:'space-between',
+                      padding:'12px 16px',
+                      background: catDragIdx === i ? 'rgba(27,67,50,0.06)' : '#faf9f5',
+                      borderRadius:12,
+                      border:'1px solid rgba(27,67,50,0.08)',
+                      cursor: editingCategory ? 'default' : 'grab',
+                      transition: 'background .15s'
+                    }}>
+                    <div style={{display:'flex',alignItems:'center',gap:10}}>
+                      <span style={{color:'#c0b8b0',fontSize:15,flexShrink:0,userSelect:'none'}}>⠿</span>
+                      <span style={{fontSize:11,color:'#a09890',width:18,flexShrink:0,fontWeight:600}}>{i+1}</span>
+                      <div style={{display:'flex',flexDirection:'column',gap:2,marginRight:4}}>
+                        <button
+                          type="button"
+                          disabled={i === 0 || catReorderSaving}
+                          onClick={() => moveCategory(i, i - 1)}
+                          title="Move up"
+                          style={{
+                            padding:0,
+                            lineHeight:1,
+                            border:'none',
+                            background:'transparent',
+                            cursor: (i === 0 || catReorderSaving) ? 'default' : 'pointer',
+                            color: (i === 0 || catReorderSaving) ? '#ddd' : '#1b4332',
+                            fontSize:11
+                          }}>▲</button>
+                        <button
+                          type="button"
+                          disabled={i === taxonomy.categories.length - 1 || catReorderSaving}
+                          onClick={() => moveCategory(i, i + 1)}
+                          title="Move down"
+                          style={{
+                            padding:0,
+                            lineHeight:1,
+                            border:'none',
+                            background:'transparent',
+                            cursor: (i === taxonomy.categories.length - 1 || catReorderSaving) ? 'default' : 'pointer',
+                            color: (i === taxonomy.categories.length - 1 || catReorderSaving) ? '#ddd' : '#1b4332',
+                            fontSize:11
+                          }}>▼</button>
+                      </div>
                       <span style={{fontSize:14,fontWeight:500,color:'#1a1712'}}>{cat}</span>
                       <span style={{fontSize:11,color:'#a09890',background:'rgba(27,67,50,0.06)',padding:'2px 8px',borderRadius:10}}>
                         {bookCount} {bookCount === 1 ? 'book' : 'books'}
