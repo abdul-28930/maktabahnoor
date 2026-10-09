@@ -86,3 +86,30 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Failed to save.' }, { status: 500 });
   }
 }
+
+// Admin-only — reorder an entire list (e.g. categories)
+export async function PUT(req) {
+  try {
+    const { password, field, values } = await req.json();
+    if (password !== process.env.ADMIN_PASSWORD)
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    if (!FIELDS.includes(field))
+      return NextResponse.json({ error: 'Invalid field.' }, { status: 400 });
+    if (!Array.isArray(values))
+      return NextResponse.json({ error: 'Values must be an array.' }, { status: 400 });
+
+    const stored = normalizeTaxonomy(await redis.get(TAXONOMY_KEY));
+    // Keep all unique non-empty strings
+    const unique = [...new Set(values.map(v => String(v || '').trim()).filter(Boolean))];
+    stored[field] = unique;
+
+    await redis.set(TAXONOMY_KEY, stored);
+    revalidatePath('/');
+    revalidatePath('/books');
+    revalidatePath('/admin');
+    return NextResponse.json({ success: true, taxonomy: stored });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: 'Failed to save order.' }, { status: 500 });
+  }
+}
