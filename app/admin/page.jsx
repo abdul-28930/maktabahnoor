@@ -2810,21 +2810,29 @@ export default function AdminPage() {
           <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',overflow:'hidden',marginTop:20}}>
             {coupons.length===0 ? (
               <div style={{textAlign:'center',padding:'40px 24px',color:'#a09890',fontSize:13}}>No coupons yet.</div>
-            ) : coupons.map((c,i)=>(
-              <div key={c.code} style={{display:'flex',alignItems:'center',gap:16,padding:'14px 24px',borderBottom:i<coupons.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:15,color:'#1a1712',fontWeight:600,letterSpacing:.5}}>{c.code}</div>
-                  <div style={{fontSize:12,color:'#a09890'}}>
-                    {c.type==='percent' ? `${c.value}% off` : `₹${c.value} off`}
-                    {c.minOrder>0 && ` · Min ₹${c.minOrder}`}
-                    {c.expiresAt && ` · Expires ${c.expiresAt}`}
-                    {` · Used ${c.usedCount||0}x`}
+            ) : coupons.map((c,i)=>{
+              const expDate = c.expiresAt ? new Date(c.expiresAt) : null;
+              const isExpired = Boolean(expDate && !isNaN(expDate.getTime()) && expDate < new Date());
+              return (
+                <div key={c.code} style={{display:'flex',alignItems:'center',gap:16,padding:'14px 24px',borderBottom:i<coupons.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:15,color:'#1a1712',fontWeight:600,letterSpacing:.5}}>{c.code}</div>
+                    <div style={{fontSize:12,color:'#a09890'}}>
+                      {c.type==='percent' ? `${c.value}% off` : `₹${c.value} off`}
+                      {c.minOrder>0 && ` · Min ₹${c.minOrder}`}
+                      {c.expiresAt && ` · ${isExpired ? 'Expired' : 'Expires'} ${c.expiresAt}`}
+                      {` · Used ${c.usedCount||0}x`}
+                    </div>
                   </div>
+                  {isExpired ? (
+                    <span style={{padding:'5px 12px',borderRadius:20,border:'1.5px solid rgba(220,38,38,0.3)',background:'rgba(220,38,38,0.08)',color:'#dc2626',fontSize:10,fontWeight:500}}>Expired</span>
+                  ) : (
+                    <button onClick={()=>toggleCouponActive(c.code,c.active===false)} style={{padding:'5px 12px',borderRadius:20,border:`1.5px solid ${c.active!==false?'rgba(45,106,79,0.3)':'rgba(27,67,50,0.15)'}`,background:c.active!==false?'rgba(45,106,79,0.07)':'transparent',color:c.active!==false?'#2d6a4f':'#6b6460',fontSize:10,cursor:'pointer'}}>{c.active!==false?'Active':'Inactive'}</button>
+                  )}
+                  <button onClick={()=>delCoupon(c.code)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',cursor:'pointer'}}>✕</button>
                 </div>
-                <button onClick={()=>toggleCouponActive(c.code,c.active===false)} style={{padding:'5px 12px',borderRadius:20,border:`1.5px solid ${c.active!==false?'rgba(45,106,79,0.3)':'rgba(27,67,50,0.15)'}`,background:c.active!==false?'rgba(45,106,79,0.07)':'transparent',color:c.active!==false?'#2d6a4f':'#6b6460',fontSize:10,cursor:'pointer'}}>{c.active!==false?'Active':'Inactive'}</button>
-                <button onClick={()=>delCoupon(c.code)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',cursor:'pointer'}}>✕</button>
-              </div>
-            ))}
+              );
+            })}
           </div>
           </>
         )}
