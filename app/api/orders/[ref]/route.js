@@ -8,7 +8,7 @@ export async function GET(req, { params }) {
       return NextResponse.json({ error: 'Order reference required.' }, { status: 400 });
     }
 
-    const order = await redis.hget('mn_orders', ref);
+    const order = await redis.get(`mn_order:${ref}`);
     if (!order) {
       return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
     }

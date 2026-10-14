@@ -13,9 +13,8 @@ export async function GET(req) {
     }
 
     const index = await redis.get('mn_orders_index') || [];
-    const map = await redis.hgetall('mn_orders') || {};
-    const orders = index
-      .map(ref => map[ref])
+    const allOrders = await Promise.all(index.map(ref => redis.get(`mn_order:${ref}`)));
+    const orders = allOrders
       .filter(order => order && order.userId === user.id)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
