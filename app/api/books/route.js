@@ -8,6 +8,7 @@ const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', l
 
 function missingMandatoryFields(data) {
   return MANDATORY_BOOK_FIELDS.filter(k => {
+    if (data.comingSoon && (k === 'price' || k === 'stockCount')) return false;
     if (k === 'category') {
       const cats = getBookCategories(data);
       return cats.length === 0;
@@ -34,27 +35,33 @@ export async function GET(req) {
   try {
     const meta = await redis.get('mn_books_meta') || [];
     let list = isAdmin ? meta : meta.filter(b => b.visible !== false);
-    if (!all) list = list.filter(b => (b.stockCount ?? (b.inStock ? 1 : 0)) > 0);
+    if (!all) list = list.filter(b => b.comingSoon || (b.stockCount ?? (b.inStock ? 1 : 0)) > 0);
     if (category) list = list.filter(b => getBookCategories(b).includes(category));
     if (language)  list = list.filter(b => b.language === language);
     if (tag)       list = list.filter(b => b.tags?.includes(tag));
     if (author)    list = list.filter(b => splitAuthors(b.author).some(a => nameSlug(a) === nameSlug(author)));
     if (publisher) list = list.filter(b => nameSlug(b.publisher) === nameSlug(publisher));
     if (translator) list = list.filter(b => splitTranslators(b.translator).some(t => nameSlug(t) === nameSlug(translator)));
-    // Out-of-stock books sink to the bottom by default; newest-first within
-    // each group. Pages that want a different order (e.g. the /books
-    // listing's sort dropdown) re-sort this on the client.
+    // Out-of-stock books sink to the bottom by default; coming soon & in-stock
+    // follow custom order (b.order) or newest-first.
     list = list.sort((a, b) => {
-      const aOut = (a.stockCount ?? (a.inStock ? 1 : 0)) <= 0 ? 1 : 0;
-      const bOut = (b.stockCount ?? (b.inStock ? 1 : 0)) <= 0 ? 1 : 0;
+      const aOut = ((a.stockCount ?? (a.inStock ? 1 : 0)) <= 0 && !a.comingSoon) ? 1 : 0;
+      const bOut = ((b.stockCount ?? (b.inStock ? 1 : 0)) <= 0 && !b.comingSoon) ? 1 : 0;
       if (aOut !== bOut) return aOut - bOut;
-      return new Date(b.createdAt) - new Date(a.createdAt);
+      const aOrd = a.order ?? new Date(a.createdAt).getTime();
+      const bOrd = b.order ?? new Date(b.createdAt).getTime();
+      return aOrd - bOrd;
     });
-    // Normalize: ensure every book has a proper stockCount integer and inStock bool.
-    // Old records may have undefined stockCount — treat those as 0 (out of stock).
+    // Normalize: ensure every book has proper stockCount, inStock and comingSoon bool.
     list = list.map(b => {
+      const isComingSoon = Boolean(b.comingSoon);
       const sc = b.stockCount ?? (b.inStock ? 1 : 0);
-      return { ...b, stockCount: Number(sc), inStock: Number(sc) > 0 };
+      return {
+        ...b,
+        comingSoon: isComingSoon,
+        stockCount: isComingSoon ? 0 : Number(sc),
+        inStock: isComingSoon ? false : Number(sc) > 0,
+      };
     });
     return NextResponse.json(
       { books: list },
@@ -77,9 +84,10 @@ export async function POST(req) {
     if (missing.length)
       return NextResponse.json({ error: `Required field${missing.length > 1 ? 's' : ''} missing: ${missing.join(', ')}.` }, { status: 400 });
 
+    const comingSoon = Boolean(data.comingSoon);
     const slug = slugify(data.title, data.author || '');
     const now  = new Date().toISOString();
-    const stockCount = Math.max(0, parseInt(data.stockCount) || 0);
+    const stockCount = comingSoon ? 0 : Math.max(0, parseInt(data.stockCount) || 0);
     const categories = getBookCategories(data);
     const primaryCategory = categories[0] || 'General';
     const book = {
@@ -96,13 +104,14 @@ export async function POST(req) {
       volumes:     data.volumes ? parseInt(data.volumes) : null,
       binding:     data.binding || '',
       pages:       parseInt(data.pages) || 0,
-      mrp:         parseFloat(data.mrp) || 0,
-      price:       parseFloat(data.price) || 0,
-      offerType:   data.offerType || '',
+      mrp:         comingSoon ? 0 : (parseFloat(data.mrp) || 0),
+      price:       comingSoon ? 0 : (parseFloat(data.price) || 0),
+      offerType:   comingSoon ? '' : (data.offerType || ''),
       stockCount,
-      inStock:     stockCount > 0,
+      inStock:     !comingSoon && stockCount > 0,
+      comingSoon,
       visible:     data.visible !== false,
-      order:       Date.now(),
+      order:       (data.order !== undefined && data.order !== null) ? Number(data.order) : Date.now(),
       tags:        data.tags || [],
       coverUrl:    data.coverUrl || '',
       coverThumb:  await ensureThumbnail(data.coverThumb, data.coverUrl),
@@ -119,12 +128,13 @@ export async function POST(req) {
     const m = { slug, sku: book.sku, title: book.title, author: book.author, translator: book.translator, publisher: book.publisher,
                 category: book.category, categories: book.categories, language: book.language, binding: book.binding,
                 volumes: book.volumes, pages: book.pages, mrp: book.mrp, price: book.price,
-                offerType: book.offerType, stockCount, inStock: book.inStock, visible: book.visible, order: book.order,
+                offerType: book.offerType, stockCount, inStock: book.inStock, comingSoon, visible: book.visible, order: book.order,
                 tags: book.tags, coverUrl: metaCoverUrl, createdAt: now };
     const idx = meta.findIndex(b => b.slug === slug);
     if (idx >= 0) meta[idx] = m; else meta.unshift(m);
     await redis.set('mn_books_meta', meta);
     revalidatePath('/');
+    revalidatePath('/books');
     return NextResponse.json({ success: true, slug });
   } catch (e) {
     console.error(e);

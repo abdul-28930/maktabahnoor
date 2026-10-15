@@ -47,11 +47,21 @@ export default function WishlistPage() {
                 <div style={{flex:1,minWidth:0}}>
                   <Link href={`/book/${book.slug}`} style={{textDecoration:'none',color:'#1a1712',fontSize:15,display:'block',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{book.title}</Link>
                   <div style={{fontSize:12,color:'#a09890',marginBottom:4}}>{book.author}</div>
-                  {(book.price || book.mrp) && <div style={{fontSize:14,color:'#1b4332',fontWeight:500}}>₹{Number(book.price || book.mrp).toLocaleString('en-IN')}</div>}
-                  {!book.inStock && <div style={{fontSize:11,color:'#b44',fontWeight:500,marginTop:2}}>Out of Stock</div>}
+                  {book.comingSoon ? (
+                    <div style={{fontSize:13,color:'#b8965a',fontWeight:600,fontStyle:'italic',marginTop:2}}>Coming Soon</div>
+                  ) : (
+                    <>
+                      {(book.price || book.mrp) && <div style={{fontSize:14,color:'#1b4332',fontWeight:500}}>₹{Number(book.price || book.mrp).toLocaleString('en-IN')}</div>}
+                      {!book.inStock && <div style={{fontSize:11,color:'#b44',fontWeight:500,marginTop:2}}>Out of Stock</div>}
+                    </>
+                  )}
                 </div>
                 <div style={{display:'flex',flexDirection:'column',gap:8,alignItems:'flex-end',flexShrink:0}}>
-                  {book.inStock !== false ? (
+                  {book.comingSoon ? (
+                    <button onClick={() => notifyMe(book)} style={{padding:'8px 16px',borderRadius:20,border:'1.5px solid rgba(184,150,90,0.4)',background:'rgba(184,150,90,0.08)',color:'#b8965a',fontSize:11,fontWeight:500,letterSpacing:.5,textTransform:'uppercase',cursor:'pointer'}}>
+                      Inquire / Notify
+                    </button>
+                  ) : book.inStock !== false ? (
                     <button onClick={() => addToCart(book)} style={{padding:'8px 16px',borderRadius:20,border:'none',fontSize:11,fontWeight:500,letterSpacing:.5,textTransform:'uppercase',cursor:'pointer',
                       background: isInCart(book.slug) ? 'rgba(27,67,50,0.08)' : '#1b4332', color: isInCart(book.slug) ? '#1b4332' : '#fff'}}>
                       {isInCart(book.slug) ? '✓ In Cart' : 'Add to Cart'}

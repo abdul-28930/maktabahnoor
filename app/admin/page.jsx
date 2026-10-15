@@ -10,7 +10,7 @@ const EMPTY_BOOK = {
   title:'',author:'',translator:'',publisher:'',sku:'',language:'Arabic',category:'Aqeedah',categories:['Aqeedah'],
   description:'',volumes:'',binding:'Hardcover',pages:'',
   mrp:'',price:'',offerType:'',stockCount:'',
-  inStock:true,visible:true,tags:[],coverUrl:'',coverThumb:'',gallery:[],
+  inStock:true,comingSoon:false,visible:true,tags:[],coverUrl:'',coverThumb:'',gallery:[],
 };
 
 // Labels shown next to the field + used to build the "please fill these in"
@@ -845,7 +845,7 @@ export default function AdminPage() {
           category:cats[0]||'Aqeedah',categories:cats.length?cats:['Aqeedah'],description:d.book.description||'',
           volumes:d.book.volumes??'',binding:d.book.binding||'Hardcover',pages:d.book.pages||'',
           mrp:d.book.mrp||'',price:d.book.price||'',offerType:d.book.offerType||'',
-          stockCount:d.book.stockCount??'',inStock:d.book.inStock!==false,visible:d.book.visible!==false,
+          stockCount:d.book.stockCount??'',inStock:d.book.inStock!==false,comingSoon:Boolean(d.book.comingSoon),visible:d.book.visible!==false,
           tags:d.book.tags||[],coverUrl:d.book.coverUrl||'',coverThumb:d.book.coverThumb||'',gallery:d.book.gallery||[],
         });
         const orig = { author:d.book.author||'', translator:d.book.translator||'', publisher:d.book.publisher||'' };
@@ -1017,6 +1017,7 @@ export default function AdminPage() {
 
   function missingBookFields() {
     return MANDATORY_BOOK_FIELDS.filter(k => {
+      if (form.comingSoon && (k === 'price' || k === 'stockCount')) return false;
       if (k === 'category') {
         const cats = getBookCategories(form);
         return cats.length === 0;
@@ -1510,22 +1511,48 @@ export default function AdminPage() {
             })()}
           </Card>
         )}
-        <Card title="Pricing">
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
-            <div><Label hint="Optional · original / MRP">Actual Price (₹)</Label><FInput type="number" value={form.mrp} onChange={e=>f('mrp',e.target.value)} placeholder="350" prefix="₹"/></div>
-            <div><Label>Sale Price (₹) *</Label><FInput type="number" value={form.price} onChange={e=>f('price',e.target.value)} placeholder="299" prefix="₹"/></div>
-            <div><Label hint="Optional">Offer Type</Label>
-              <TaxonomySelect value={form.offerType} onChange={e=>f('offerType',e.target.value)} options={taxonomy.offerTypes} placeholder="None" onAddOption={v=>addTaxonomyOption('offerTypes',v)}/>
+        <Card title="Pricing & Availability">
+          <div style={{marginBottom:18,padding:'14px 18px',background:form.comingSoon?'rgba(184,150,90,0.09)':'rgba(27,67,50,0.03)',borderRadius:12,border:`1.5px solid ${form.comingSoon?'rgba(184,150,90,0.35)':'rgba(27,67,50,0.1)'}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+            <div style={{maxWidth:520}}>
+              <div style={{fontSize:13,fontWeight:600,color:form.comingSoon?'#b8965a':'#1b4332',display:'flex',alignItems:'center',gap:8}}>
+                <span>✦</span> Coming Soon Book
+              </div>
+              <div style={{fontSize:12,color:'#6b6460',marginTop:3,lineHeight:1.5}}>
+                Mark this as an upcoming release. <b>No price or stock required.</b> It will be displayed with a &ldquo;Coming Soon&rdquo; badge on the storefront, and you can place it anywhere in the collection via Reorder.
+              </div>
             </div>
-            <div><Label hint="Exact pieces available">Stock Count *</Label><FInput type="number" min="0" value={form.stockCount} onChange={e=>f('stockCount',e.target.value)} placeholder="50"/></div>
+            <label onClick={()=>f('comingSoon',!form.comingSoon)} style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',userSelect:'none'}}>
+              <div style={{width:46,height:26,borderRadius:13,background:form.comingSoon?'#b8965a':'rgba(27,67,50,0.18)',position:'relative',transition:'background .25s',flexShrink:0}}>
+                <div style={{position:'absolute',top:3,left:form.comingSoon?23:3,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left .25s',boxShadow:'0 1px 4px rgba(0,0,0,.2)'}}/>
+              </div>
+              <span style={{fontSize:12,fontWeight:600,color:form.comingSoon?'#b8965a':'#6b6460'}}>{form.comingSoon?'Coming Soon ON':'Coming Soon OFF'}</span>
+            </label>
           </div>
-          {(form.mrp || form.price) && (
-            <div style={{padding:'14px 16px',background:'rgba(27,67,50,0.04)',borderRadius:10,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
-              <span style={{fontSize:12,color:'#6b6460'}}>Preview:</span>
-              {form.mrp && form.price && form.mrp > form.price && <span style={{fontSize:14,color:'#a09890',textDecoration:'line-through'}}>₹{Number(form.mrp).toLocaleString('en-IN')}</span>}
-              {form.price && <span style={{fontSize:18,fontWeight:600,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif"}}>₹{Number(form.price||form.mrp).toLocaleString('en-IN')}</span>}
-              {form.mrp && form.price && form.mrp > form.price && <span style={{fontSize:12,color:'#2d6a4f',background:'rgba(45,106,79,0.1)',padding:'3px 10px',borderRadius:10}}>{Math.round((1-form.price/form.mrp)*100)}% off</span>}
-              {form.offerType && <OfferBadge type={form.offerType}/>}
+
+          {!form.comingSoon ? (
+            <>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
+                <div><Label hint="Optional · original / MRP">Actual Price (₹)</Label><FInput type="number" value={form.mrp} onChange={e=>f('mrp',e.target.value)} placeholder="350" prefix="₹"/></div>
+                <div><Label>Sale Price (₹) *</Label><FInput type="number" value={form.price} onChange={e=>f('price',e.target.value)} placeholder="299" prefix="₹"/></div>
+                <div><Label hint="Optional">Offer Type</Label>
+                  <TaxonomySelect value={form.offerType} onChange={e=>f('offerType',e.target.value)} options={taxonomy.offerTypes} placeholder="None" onAddOption={v=>addTaxonomyOption('offerTypes',v)}/>
+                </div>
+                <div><Label hint="Exact pieces available">Stock Count *</Label><FInput type="number" min="0" value={form.stockCount} onChange={e=>f('stockCount',e.target.value)} placeholder="50"/></div>
+              </div>
+              {(form.mrp || form.price) && (
+                <div style={{padding:'14px 16px',background:'rgba(27,67,50,0.04)',borderRadius:10,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+                  <span style={{fontSize:12,color:'#6b6460'}}>Preview:</span>
+                  {form.mrp && form.price && form.mrp > form.price && <span style={{fontSize:14,color:'#a09890',textDecoration:'line-through'}}>₹{Number(form.mrp).toLocaleString('en-IN')}</span>}
+                  {form.price && <span style={{fontSize:18,fontWeight:600,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif"}}>₹{Number(form.price||form.mrp).toLocaleString('en-IN')}</span>}
+                  {form.mrp && form.price && form.mrp > form.price && <span style={{fontSize:12,color:'#2d6a4f',background:'rgba(45,106,79,0.1)',padding:'3px 10px',borderRadius:10}}>{Math.round((1-form.price/form.mrp)*100)}% off</span>}
+                  {form.offerType && <OfferBadge type={form.offerType}/>}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{padding:'14px 16px',background:'rgba(184,150,90,0.06)',borderRadius:10,border:'1px dashed rgba(184,150,90,0.3)',fontSize:12,color:'#6b6460',display:'flex',alignItems:'center',gap:10}}>
+              <span style={{color:'#b8965a',fontSize:16}}>✦</span>
+              <span>This book will not display any price or add-to-cart button. Visitors will see &ldquo;Coming Soon&rdquo; and can inquire via WhatsApp.</span>
             </div>
           )}
         </Card>
@@ -2185,7 +2212,7 @@ export default function AdminPage() {
       : 'Reorder Clothing';
 
     const hint = reorderType === 'books'
-      ? 'Drag rows to set this as "Our Order" — the default sort on the Books page. Note: Featured books always show first and out-of-stock books always show last on the site regardless of where you place them here.'
+      ? 'Drag rows to set this as "Our Order" — the default sort on the Books page. Coming soon and in-stock books display exactly where you place them. Out-of-stock books sink to the bottom on the site.'
       : reorderType === 'bundles'
       ? 'Drag rows to set the display order for bundle deals on the /bundles page.'
       : reorderType === 'accessories'
@@ -2211,7 +2238,7 @@ export default function AdminPage() {
               const key = item.slug || item.id;
               const name = item.title || item.name;
               const imgUrl = item.coverUrl || (item.bookSlugs?.length ? books.find(bk => bk.slug === item.bookSlugs[0])?.coverUrl : null);
-              const isOut = item.inStock === false || item.stockCount <= 0;
+              const isOut = !item.comingSoon && (item.inStock === false || item.stockCount <= 0);
 
               return (
                 <div key={key} draggable
@@ -2229,6 +2256,7 @@ export default function AdminPage() {
                     </div>
                   )}
                   <span style={{flex:1,fontSize:13,color:'#1a1712',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>
+                  {item.comingSoon && <span style={{fontSize:9,color:'#b8965a',background:'rgba(184,150,90,0.12)',border:'1px solid rgba(184,150,90,0.3)',padding:'2px 8px',borderRadius:8,flexShrink:0,fontWeight:600}}>Coming Soon</span>}
                   {item.tags?.includes('Featured') && <span style={{fontSize:9,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,flexShrink:0}}>Featured</span>}
                   {isOut && <span style={{fontSize:9,color:'#b44',background:'rgba(180,60,60,0.07)',padding:'2px 8px',borderRadius:8,flexShrink:0}}>Out of Stock</span>}
                 </div>
@@ -2373,6 +2401,7 @@ export default function AdminPage() {
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
                         <span style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:240}}>{b.title}</span>
+                        {b.comingSoon && <span style={{fontSize:9,color:'#fff',background:'#b8965a',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase',fontWeight:600}}>Coming Soon</span>}
                         {b.sku && <span style={{fontSize:9,color:'#a09890',background:'rgba(27,67,50,0.05)',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase'}}>{b.sku}</span>}
                         {b.offerType && <OfferBadge type={b.offerType}/>}
                         {b.visible === false && <span style={{fontSize:9,color:'#a09890',background:'rgba(0,0,0,0.06)',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase'}}>Hidden</span>}
@@ -2387,12 +2416,24 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div style={{textAlign:'right',flexShrink:0,minWidth:100}}>
-                      {b.mrp && b.price && b.mrp > b.price && <div style={{fontSize:11,color:'#a09890',textDecoration:'line-through'}}>₹{Number(b.mrp).toLocaleString('en-IN')}</div>}
-                      {(b.price||b.mrp) && <div style={{fontSize:14,color:'#1b4332',fontWeight:500}}>₹{Number(b.price||b.mrp).toLocaleString('en-IN')}</div>}
+                      {b.comingSoon ? (
+                        <div style={{fontSize:13,color:'#b8965a',fontWeight:600}}>Coming Soon</div>
+                      ) : (
+                        <>
+                          {b.mrp && b.price && b.mrp > b.price && <div style={{fontSize:11,color:'#a09890',textDecoration:'line-through'}}>₹{Number(b.mrp).toLocaleString('en-IN')}</div>}
+                          {(b.price||b.mrp) && <div style={{fontSize:14,color:'#1b4332',fontWeight:500}}>₹{Number(b.price||b.mrp).toLocaleString('en-IN')}</div>}
+                        </>
+                      )}
                     </div>
                     <div style={{flexShrink:0}}>
-                      <div style={{fontSize:11,fontWeight:500,color:b.inStock?'#2d6a4f':'#b44',marginBottom:2}}>{b.inStock?'In Stock':'Out'}</div>
-                      {b.stockCount !== undefined && <div style={{fontSize:10,color:'#a09890'}}>{b.stockCount} units</div>}
+                      {b.comingSoon ? (
+                        <div style={{fontSize:11,fontWeight:500,color:'#b8965a',marginBottom:2}}>Coming Soon</div>
+                      ) : (
+                        <>
+                          <div style={{fontSize:11,fontWeight:500,color:b.inStock?'#2d6a4f':'#b44',marginBottom:2}}>{b.inStock?'In Stock':'Out'}</div>
+                          {b.stockCount !== undefined && <div style={{fontSize:10,color:'#a09890'}}>{b.stockCount} units</div>}
+                        </>
+                      )}
                       {views[b.slug] > 0 && <div style={{fontSize:10,color:'#a09890',marginTop:2}}>👁 {views[b.slug]} views</div>}
                     </div>
                     <div style={{display:'flex',gap:6,flexShrink:0}}>
@@ -3262,6 +3303,7 @@ function BookPicker({ title, hint, max, selected, books, onChange }) {
             <div key={slug} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:'rgba(27,67,50,0.04)'}}>
               <span style={{fontSize:11,color:'#a09890',width:14,flexShrink:0}}>{i+1}.</span>
               <span style={{flex:1,fontSize:12.5,color:'#1a1712',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{bySlug[slug]?.title || slug}</span>
+              {bySlug[slug]?.comingSoon && <span style={{fontSize:9,color:'#b8965a',background:'rgba(184,150,90,0.12)',border:'1px solid rgba(184,150,90,0.25)',padding:'1px 6px',borderRadius:6,flexShrink:0,fontWeight:600}}>Coming Soon</span>}
               <button onClick={()=>move(slug,-1)} disabled={i===0} style={{...smallBtn,color:i===0?'#d8d3cb':'#6b6460'}}>▲</button>
               <button onClick={()=>move(slug,1)} disabled={i===selected.length-1} style={{...smallBtn,color:i===selected.length-1?'#d8d3cb':'#6b6460'}}>▼</button>
               <button onClick={()=>toggle(slug)} style={smallBtn}>✕</button>
@@ -3282,6 +3324,7 @@ function BookPicker({ title, hint, max, selected, books, onChange }) {
                 {sel && <svg width="8" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
               </span>
               <span style={{flex:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</span>
+              {b.comingSoon && <span style={{fontSize:9,color:'#b8965a',background:'rgba(184,150,90,0.12)',border:'1px solid rgba(184,150,90,0.25)',padding:'1px 6px',borderRadius:6,flexShrink:0,fontWeight:600}}>Coming Soon</span>}
               <span style={{fontSize:11,color:'#a09890',flexShrink:0}}>{b.author}</span>
             </div>
           );

@@ -8,6 +8,7 @@ const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', l
 
 function missingMandatoryFields(data) {
   return MANDATORY_BOOK_FIELDS.filter(k => {
+    if (data.comingSoon && (k === 'price' || k === 'stockCount')) return false;
     if (k === 'category') {
       const cats = getBookCategories(data);
       return cats.length === 0;
@@ -22,7 +23,10 @@ export async function GET(_, { params }) {
     const book = await redis.get(`mn_book:${params.slug}`);
     if (!book) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
     const liveStock = await redis.get(`mn_stock:book:${params.slug}`);
-    if (liveStock !== null && liveStock !== undefined) {
+    if (book.comingSoon) {
+      book.stockCount = 0;
+      book.inStock = false;
+    } else if (liveStock !== null && liveStock !== undefined) {
       book.stockCount = liveStock;
       book.inStock = liveStock > 0;
     }
@@ -41,7 +45,8 @@ export async function PUT(req, { params }) {
     const missing = missingMandatoryFields(merged);
     if (missing.length)
       return NextResponse.json({ error: `Required field${missing.length > 1 ? 's' : ''} missing: ${missing.join(', ')}.` }, { status: 400 });
-    const stockCount = Math.max(0, parseInt(updates.stockCount ?? existing.stockCount) || 0);
+    const comingSoon = updates.comingSoon !== undefined ? Boolean(updates.comingSoon) : Boolean(existing.comingSoon);
+    const stockCount = comingSoon ? 0 : Math.max(0, parseInt(updates.stockCount ?? existing.stockCount) || 0);
     const categories = getBookCategories(merged);
     const primaryCategory = categories[0] || 'General';
     const thumb = await ensureThumbnail(updates.coverThumb ?? existing.coverThumb, updates.coverUrl ?? existing.coverUrl);
@@ -49,13 +54,15 @@ export async function PUT(req, { params }) {
       ? (existing.coverUrl || '')
       : (updates.coverUrl !== undefined ? updates.coverUrl : existing.coverUrl);
     const updated = { ...existing, ...updates,
+      comingSoon,
       coverUrl: fullCover,
       category: primaryCategory,
       categories,
-      stockCount, inStock: stockCount > 0,
+      stockCount, inStock: !comingSoon && stockCount > 0,
       coverThumb: thumb,
-      mrp: parseFloat(updates.mrp ?? existing.mrp) || 0,
-      price: parseFloat(updates.price ?? existing.price) || 0,
+      mrp: comingSoon ? 0 : (parseFloat(updates.mrp ?? existing.mrp) || 0),
+      price: comingSoon ? 0 : (parseFloat(updates.price ?? existing.price) || 0),
+      offerType: comingSoon ? '' : (updates.offerType ?? existing.offerType ?? ''),
       updatedAt: new Date().toISOString() };
     await redis.set(`mn_book:${params.slug}`, updated);
     await redis.set(`mn_stock:book:${params.slug}`, stockCount);
@@ -69,11 +76,12 @@ export async function PUT(req, { params }) {
         author: updated.author, category: updated.category, categories: updated.categories, language: updated.language,
         binding: updated.binding, volumes: updated.volumes, pages: updated.pages,
         mrp: updated.mrp, price: updated.price, offerType: updated.offerType,
-        stockCount, inStock: updated.inStock, visible: updated.visible !== false, tags: updated.tags,
+        stockCount, inStock: updated.inStock, comingSoon, visible: updated.visible !== false, tags: updated.tags,
         coverUrl: metaCoverUrl,
         gallery: updated.gallery };
       await redis.set('mn_books_meta', meta);
       revalidatePath('/');
+      revalidatePath('/books');
     }
     return NextResponse.json({ success: true });
   } catch (e) { console.error('PUT /api/books/[slug]:', e); return NextResponse.json({ error: e?.message || 'Failed.' }, { status: 500 }); }

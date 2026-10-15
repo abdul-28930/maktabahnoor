@@ -70,46 +70,61 @@ function GridCard({ book, idx }) {
             </div>
         }
         <span style={{position:'absolute',top:10,left:10,background:'rgba(27,67,50,0.88)',backdropFilter:'blur(4px)',color:'#fff',fontSize:9,letterSpacing:1.2,textTransform:'uppercase',padding:'4px 10px',borderRadius:20,maxWidth:'80%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cats.join(' · ') || primaryCat}</span>
-        {tag==='Bestseller' && (
+        {book.comingSoon ? (
+          <div style={{position:'absolute',top:16,right:-34,width:130,transform:'rotate(45deg)',background:'#b8965a',color:'#fff',fontSize:9,fontWeight:600,letterSpacing:1.2,textTransform:'uppercase',textAlign:'center',padding:'4px 0',boxShadow:'0 2px 6px rgba(0,0,0,0.2)',zIndex:2}}>Coming Soon</div>
+        ) : tag==='Bestseller' ? (
           <div style={{position:'absolute',top:16,right:-34,width:130,transform:'rotate(45deg)',background:'#b8965a',color:'#fff',fontSize:9,fontWeight:600,letterSpacing:1.2,textTransform:'uppercase',textAlign:'center',padding:'4px 0',boxShadow:'0 2px 6px rgba(0,0,0,0.2)',zIndex:2}}>Bestseller</div>
-        )}
-        {tag==='New Arrival' && (
-          <div style={{position:'absolute',top:16,right:-34,width:130,transform:'rotate(45deg)',background:'#b8965a',color:'#fff',fontSize:9,fontWeight:600,letterSpacing:1.2,textTransform:'uppercase',textAlign:'center',padding:'4px 0',boxShadow:'0 2px 6px rgba(0,0,0,0.2)',zIndex:2}}>New Arrival</div>
-        )}
-        {(book.stockCount ?? (book.inStock ? 1 : 0)) <= 0 && <div style={{position:'absolute',inset:0,background:'rgba(250,249,245,0.65)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{padding:'6px 14px',background:'#1a1712',color:'#fff',fontSize:9,letterSpacing:1.5,textTransform:'uppercase',borderRadius:20}}>Out of Stock</span></div>}
+        ) : tag==='New Arrival' ? (
+          <div style={{position:'absolute',top:16,right:-34,width:130,transform:'rotate(45deg)',background:'#2d6a4f',color:'#fff',fontSize:9,fontWeight:600,letterSpacing:1.2,textTransform:'uppercase',textAlign:'center',padding:'4px 0',boxShadow:'0 2px 6px rgba(0,0,0,0.2)',zIndex:2}}>New Arrival</div>
+        ) : null}
+        {!book.comingSoon && (book.stockCount ?? (book.inStock ? 1 : 0)) <= 0 && <div style={{position:'absolute',inset:0,background:'rgba(250,249,245,0.65)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{padding:'6px 14px',background:'#1a1712',color:'#fff',fontSize:9,letterSpacing:1.5,textTransform:'uppercase',borderRadius:20}}>Out of Stock</span></div>}
       </div>
 
       <div style={{padding:'18px 20px 20px',display:'flex',flexDirection:'column',flex:1}}>
         <div style={{fontSize:11,fontWeight:700,color:'#b8965a',letterSpacing:1.2,textTransform:'uppercase',marginBottom:6}}>{book.language}</div>
         <h3 style={{margin:'0 0 6px',fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:18,color:'#1a1712',lineHeight:1.25,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',minHeight:45}}>{book.title}</h3>
         <div style={{fontSize:12,color:'#6b6460',fontWeight:300,marginBottom:12,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{book.author}</div>
-        <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:14,flexWrap:'wrap'}}>
-          {book.price != null && <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
-          {book.mrp > book.price && (
+        <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:14,flexWrap:'wrap',minHeight:26}}>
+          {book.comingSoon ? (
+            <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#b8965a',fontStyle:'italic'}}>Coming Soon</span>
+          ) : (
             <>
-              <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
-              <span style={{fontSize:11,fontWeight:700,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 7px',borderRadius:8}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+              {book.price != null && <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
+              {book.mrp > book.price && (
+                <>
+                  <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
+                  <span style={{fontSize:11,fontWeight:700,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 7px',borderRadius:8}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+                </>
+              )}
+              <OfferBadge type={book.offerType}/>
             </>
           )}
-          <OfferBadge type={book.offerType}/>
         </div>
         <div style={{marginTop:'auto',display:'flex',flexDirection:'column',gap:6}}>
-          {(book.stockCount > 0 && book.stockCount <= 5) && (
-            <div style={{fontSize:11,fontWeight:700,color:'#c0392b',letterSpacing:.2}}>Only <strong>{book.stockCount}</strong> left</div>
-          )}
-          {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
-            <button
-              className={`book-add-to-cart${inCart ? ' book-add-to-cart--in' : ''}`}
-              onClick={handleAddToCart}
-              style={{marginTop:0,width:'100%',padding:'6px 10px',fontSize:11,height:32}}
-              aria-label={inCart ? 'Already in cart' : `Add ${book.title} to cart`}
-            >
-              {inCart ? (
-                <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added</>
-              ) : (
-                <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
+          {book.comingSoon ? (
+            <div style={{padding:'6px 10px',borderRadius:20,background:'rgba(184,150,90,0.1)',border:'1px solid rgba(184,150,90,0.3)',color:'#b8965a',fontSize:11,fontWeight:600,textAlign:'center',letterSpacing:.5,textTransform:'uppercase',height:32,display:'flex',alignItems:'center',justifyContent:'center'}}>
+              Coming Soon
+            </div>
+          ) : (
+            <>
+              {(book.stockCount > 0 && book.stockCount <= 5) && (
+                <div style={{fontSize:11,fontWeight:700,color:'#c0392b',letterSpacing:.2}}>Only <strong>{book.stockCount}</strong> left</div>
               )}
-            </button>
+              {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
+                <button
+                  className={`book-add-to-cart${inCart ? ' book-add-to-cart--in' : ''}`}
+                  onClick={handleAddToCart}
+                  style={{marginTop:0,width:'100%',padding:'6px 10px',fontSize:11,height:32}}
+                  aria-label={inCart ? 'Already in cart' : `Add ${book.title} to cart`}
+                >
+                  {inCart ? (
+                    <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added</>
+                  ) : (
+                    <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
+                  )}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -139,6 +154,7 @@ function ListCard({ book }) {
             <span key={c} style={{padding:'2px 10px',background:'rgba(27,67,50,0.07)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#1b4332'}}>{c}</span>
           ))}
           <span style={{fontSize:11,fontWeight:700,color:'#b8965a',letterSpacing:1,textTransform:'uppercase'}}>{book.language}</span>
+          {book.comingSoon && <span style={{padding:'2px 10px',background:'rgba(184,150,90,0.12)',border:'1px solid rgba(184,150,90,0.3)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#b8965a',fontWeight:600}}>Coming Soon</span>}
           {book.tags?.includes('New Arrival') && <span style={{padding:'2px 10px',background:'rgba(45,106,79,0.1)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#2d6a4f'}}>New Arrival</span>}
           {book.tags?.includes('Bestseller') && <span style={{padding:'2px 10px',background:'rgba(184,150,90,0.1)',borderRadius:10,fontSize:9,letterSpacing:1,textTransform:'uppercase',color:'#b8965a'}}>Bestseller</span>}
         </div>
@@ -147,24 +163,30 @@ function ListCard({ book }) {
       </div>
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,flexShrink:0}}>
         <div style={{display:'flex',alignItems:'baseline',gap:6,flexWrap:'wrap'}}>
-          {book.price != null && <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
-          {book.mrp > book.price && (
+          {book.comingSoon ? (
+            <span style={{fontSize:15,fontWeight:600,color:'#b8965a',fontStyle:'italic'}}>Coming Soon</span>
+          ) : (
             <>
-              <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
-              <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+              {book.price != null && <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
+              {book.mrp > book.price && (
+                <>
+                  <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+                </>
+              )}
+              <OfferBadge type={book.offerType}/>
             </>
           )}
-          <OfferBadge type={book.offerType}/>
         </div>
-        {(book.stockCount ?? (book.inStock ? 1 : 0)) <= 0 && (
+        {!book.comingSoon && (book.stockCount ?? (book.inStock ? 1 : 0)) <= 0 && (
           <span style={{padding:'3px 10px',borderRadius:20,fontSize:9,fontWeight:500,letterSpacing:.8,textTransform:'uppercase',background:'rgba(180,60,60,0.07)',color:'#b44',border:'1px solid rgba(180,60,60,0.15)'}}>
             Out of Stock
           </span>
         )}
-        {(book.stockCount > 0 && book.stockCount <= 5) && (
+        {!book.comingSoon && (book.stockCount > 0 && book.stockCount <= 5) && (
           <span style={{fontSize:11,fontWeight:700,color:'#c0392b'}}>Only <strong>{book.stockCount}</strong> left</span>
         )}
-        {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
+        {!book.comingSoon && (book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
           <AddToCartListBtn book={book}/>
         )}
       </div>
@@ -232,6 +254,7 @@ function BooksContent() {
   const [search, setSearch]       = useState(searchParams.get('q') || '');
   const [selCat, setSelCat]       = useState(searchParams.get('category') || '');
   const [selLang, setSelLang]     = useState(searchParams.get('language') || '');
+  const [selTag, setSelTag]       = useState(searchParams.get('tag') || '');
   const [selStock, setSelStock]   = useState(searchParams.get('stock') || '');
   const [sortBy, setSortBy]       = useState(searchParams.get('sort') || 'custom');
   const [view, setView]           = useState('3col');
@@ -257,10 +280,11 @@ function BooksContent() {
     if (search)   p.set('q', search);
     if (selCat)   p.set('category', selCat);
     if (selLang)  p.set('language', selLang);
+    if (selTag)   p.set('tag', selTag);
     if (selStock) p.set('stock', selStock);
     if (sortBy !== 'newest') p.set('sort', sortBy);
     router.replace(`/books${p.toString() ? '?' + p.toString() : ''}`, { scroll: false });
-  }, [search, selCat, selLang, selStock, sortBy]);
+  }, [search, selCat, selLang, selTag, selStock, sortBy]);
 
   useEffect(() => {
     if (drawerRef.current)   drawerRef.current.style.transform   = drawerOpen ? 'translateX(0)' : 'translateX(-100%)';
@@ -293,6 +317,14 @@ function BooksContent() {
     return counts;
   }, [allBooks]);
 
+  const stockCounts = useMemo(() => {
+    return {
+      'In Stock': allBooks.filter(b => b.inStock && !b.comingSoon).length,
+      'Coming Soon': allBooks.filter(b => b.comingSoon).length,
+      'Out of Stock': allBooks.filter(b => !b.inStock && !b.comingSoon).length,
+    };
+  }, [allBooks]);
+
   // Filter + sort
   const filtered = useMemo(() => {
     let list = allBooks.filter(b => {
@@ -300,21 +332,30 @@ function BooksContent() {
       return (!q || b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q) || b.translator?.toLowerCase().includes(q))
           && (!selCat  || getBookCategories(b).includes(selCat))
           && (!selLang || b.language === selLang)
-          && (!selStock|| (selStock === 'in' ? b.inStock : !b.inStock));
+          && (!selTag  || b.tags?.includes(selTag))
+          && (!selStock
+              || (selStock === 'in' && b.inStock && !b.comingSoon)
+              || (selStock === 'comingSoon' && b.comingSoon)
+              || (selStock === 'out' && !b.inStock && !b.comingSoon));
     });
 
-    // Sort — out-of-stock books always sink to the very bottom, even if
-    // Featured. Within the in-stock group, Featured floats to the top.
-    // The chosen sort criterion orders within each remaining group.
+    // Sort — out-of-stock books always sink to the very bottom.
+    // In "Our Order" (custom), honor the admin reorder position directly.
     list = [...list].sort((a, b) => {
-      const aOut = a.inStock === false ? 1 : 0;
-      const bOut = b.inStock === false ? 1 : 0;
+      const aOut = (a.inStock === false && !a.comingSoon) ? 1 : 0;
+      const bOut = (b.inStock === false && !b.comingSoon) ? 1 : 0;
       if (aOut !== bOut) return aOut - bOut;
+
+      if (sortBy === 'custom') {
+        const aOrd = a.order ?? new Date(a.createdAt).getTime();
+        const bOrd = b.order ?? new Date(b.createdAt).getTime();
+        return aOrd - bOrd;
+      }
+
       const aFeat = a.tags?.includes('Featured') ? 0 : 1;
       const bFeat = b.tags?.includes('Featured') ? 0 : 1;
       if (aFeat !== bFeat) return aFeat - bFeat;
       switch (sortBy) {
-        case 'custom':     return (a.order ?? new Date(a.createdAt).getTime()) - (b.order ?? new Date(b.createdAt).getTime());
         case 'newest':     return new Date(b.createdAt) - new Date(a.createdAt);
         case 'oldest':     return new Date(a.createdAt) - new Date(b.createdAt);
         case 'title-az':   return (a.title||'').localeCompare(b.title||'');
@@ -329,13 +370,14 @@ function BooksContent() {
       }
     });
     return list;
-  }, [allBooks, search, selCat, selLang, selStock, sortBy]);
+  }, [allBooks, search, selCat, selLang, selTag, selStock, sortBy]);
 
-  const hasFilters = selCat || selLang || selStock || search;
+  const hasFilters = selCat || selLang || selTag || selStock || search;
   const activeFilters = [
     selCat   && { label: selCat,    clear: () => setSelCat('') },
     selLang  && { label: selLang,   clear: () => setSelLang('') },
-    selStock && { label: selStock === 'in' ? 'In Stock' : 'Out of Stock', clear: () => setSelStock('') },
+    selTag   && { label: selTag,    clear: () => setSelTag('') },
+    selStock && { label: selStock === 'in' ? 'In Stock' : selStock === 'comingSoon' ? 'Coming Soon' : 'Out of Stock', clear: () => setSelStock('') },
     search   && { label: `"${search}"`, clear: () => setSearch('') },
   ].filter(Boolean);
 
@@ -359,7 +401,7 @@ function BooksContent() {
               </span>
               {opt}
             </div>
-            {counts && counts[opt] && <span style={{fontSize:10,color:value===opt?'#1b4332':'#c0b8b0',background:'rgba(27,67,50,0.06)',padding:'1px 7px',borderRadius:10}}>{counts[opt]}</span>}
+            {counts && counts[opt] !== undefined && <span style={{fontSize:10,color:value===opt?'#1b4332':'#c0b8b0',background:'rgba(27,67,50,0.06)',padding:'1px 7px',borderRadius:10}}>{counts[opt]}</span>}
           </label>
         ))}
       </div>
@@ -377,8 +419,13 @@ function BooksContent() {
       <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>
       <FilterSection title="Language"     options={languages}  value={selLang}  onSet={setSelLang}  counts={langCounts}/>
       <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>
-      <FilterSection title="Availability" options={['In Stock','Out of Stock']} value={selStock==='in'?'In Stock':selStock==='out'?'Out of Stock':''}
-        onSet={v => setSelStock(v==='In Stock'?'in':v==='Out of Stock'?'out':'')}/>
+      <FilterSection
+        title="Availability"
+        options={['In Stock', 'Coming Soon', 'Out of Stock']}
+        value={selStock==='in'?'In Stock':selStock==='comingSoon'?'Coming Soon':selStock==='out'?'Out of Stock':''}
+        onSet={v => setSelStock(v==='In Stock'?'in':v==='Coming Soon'?'comingSoon':v==='Out of Stock'?'out':'')}
+        counts={stockCounts}
+      />
     </div>
   );
 

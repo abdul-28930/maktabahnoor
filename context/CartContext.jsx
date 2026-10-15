@@ -68,6 +68,7 @@ export function CartProvider({ children }) {
 
   /* ── Actions ── */
   const addToCart = useCallback((book, qty = 1) => {
+    if (book?.comingSoon) return;
     const cap = book.stockCount > 0 ? book.stockCount : Infinity;
     setItems(prev => {
       const exists = prev.find(i => i.slug === book.slug);
