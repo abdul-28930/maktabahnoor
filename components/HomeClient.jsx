@@ -33,8 +33,8 @@ const PLACEHOLDER_BOOKS = [
 function BookCard({ book, idx }) {
   const bg = COVER_BKGS[idx % COVER_BKGS.length];
   const ar = book.ar || CAT_AR[book.category] || 'كتاب';
-  const ribbon = book.tags?.includes('Bestseller') ? 'Bestseller' : book.tags?.includes('New Arrival') ? 'New Arrival' : null;
-  const ribbonBg = ribbon === 'Bestseller' ? '#b8965a' : '#2d6a4f';
+  const ribbon = book.comingSoon ? 'Coming Soon' : book.tags?.includes('Bestseller') ? 'Bestseller' : book.tags?.includes('New Arrival') ? 'New Arrival' : null;
+  const ribbonBg = book.comingSoon ? '#b8965a' : ribbon === 'Bestseller' ? '#b8965a' : '#2d6a4f';
   const meta = book.meta || [book.binding, book.volumes > 1 ? `${book.volumes} Vols` : '1 Vol'].filter(Boolean).join(' · ');
   const isReal = book.slug !== '#';
 
@@ -368,7 +368,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
       </div>
 
       {/* FEATURED */}
-      <section id="collection" style={{position:'relative',zIndex:1,padding:'96px clamp(20px,5vw,72px)'}}>
+      <section id="collection" style={{position:'relative',zIndex:1,padding:'96px clamp(20px,5vw,72px) 64px'}}>
         <div className="hp-reveal" style={{textAlign:'center',marginBottom:54}}>
           <div style={{color:'#b8965a',fontSize:12,letterSpacing:'3.5px',textTransform:'uppercase',marginBottom:14}}>✦ Hand-Picked</div>
           <h2 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(40px,5vw,60px)',color:'#1b4332'}}>Featured Books</h2>
@@ -378,6 +378,20 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
         </div>
         <div style={{textAlign:'center',marginTop:36}}>
           <Link href="/books" className="hp-glow-cta" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,border:'1px solid rgba(27,67,50,0.25)',color:'#1b4332',padding:'14px 30px',borderRadius:40,fontSize:13,letterSpacing:.5}}>View All Books →</Link>
+        </div>
+      </section>
+
+      {/* NEW ARRIVALS */}
+      <section id="new-arrivals" style={{position:'relative',zIndex:1,padding:'32px clamp(20px,5vw,72px) 96px'}}>
+        <div className="hp-reveal" style={{textAlign:'center',marginBottom:54}}>
+          <div style={{color:'#b8965a',fontSize:12,letterSpacing:'3.5px',textTransform:'uppercase',marginBottom:14}}>✦ Fresh Arrivals</div>
+          <h2 style={{margin:0,fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(40px,5vw,60px)',color:'#1b4332'}}>New Arrivals</h2>
+        </div>
+        <div className="hp-four-grid" style={{maxWidth:1240,margin:'0 auto',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:26}}>
+          {displayNew.map((b,i) => <BookCard key={b.slug||i} book={b} idx={i}/>)}
+        </div>
+        <div style={{textAlign:'center',marginTop:36}}>
+          <Link href="/books?tag=New+Arrival" className="hp-glow-cta" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,border:'1px solid rgba(27,67,50,0.25)',color:'#1b4332',padding:'14px 30px',borderRadius:40,fontSize:13,letterSpacing:.5}}>View All New Arrivals →</Link>
         </div>
       </section>
 

@@ -30,9 +30,14 @@ function BookTile({ book }) {
       <div style={{aspectRatio:'3/4',background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
         {book.coverUrl ? <img src={book.coverUrl} alt={book.title} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
           : <span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:26,color:'#d4ab70'}}>{CAT_AR[primaryCat]||'كتاب'}</span>}
-        {!book.inStock && (
+        {!book.inStock && !book.comingSoon && (
           <div style={{position:'absolute',inset:0,background:'rgba(26,23,18,0.5)',display:'flex',alignItems:'center',justifyContent:'center'}}>
             <span style={{color:'#fff',fontSize:10,fontWeight:500,letterSpacing:1,textTransform:'uppercase',border:'1px solid rgba(255,255,255,0.4)',padding:'4px 10px',borderRadius:16}}>Out of Stock</span>
+          </div>
+        )}
+        {book.comingSoon && (
+          <div style={{position:'absolute',top:10,left:10,background:'linear-gradient(135deg,#c49a45,#d4af37)',color:'#1a1712',fontSize:10,fontWeight:700,letterSpacing:.5,textTransform:'uppercase',padding:'4px 8px',borderRadius:6,boxShadow:'0 2px 6px rgba(0,0,0,0.2)'}}>
+            Coming Soon
           </div>
         )}
       </div>
@@ -40,16 +45,22 @@ function BookTile({ book }) {
         <div style={{fontSize:9,color:'#a09890',letterSpacing:.6,textTransform:'uppercase',marginBottom:4}}>{cats.join(' · ') || primaryCat}</div>
         <div style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',marginBottom:8}}>{book.title}</div>
         <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:10,flexWrap:'wrap'}}>
-          {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{Number(book.price).toLocaleString('en-IN')}</span>}
-          {book.mrp > book.price && (
+          {book.comingSoon ? (
+            <span style={{fontSize:13,fontWeight:600,color:'#b8965a',fontStyle:'italic'}}>Coming Soon</span>
+          ) : (
             <>
-              <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{Number(book.mrp).toLocaleString('en-IN')}</span>
-              <span style={{fontSize:13,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1 - book.price/book.mrp)*100)}% off</span>
+              {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{Number(book.price).toLocaleString('en-IN')}</span>}
+              {book.mrp > book.price && (
+                <>
+                  <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{Number(book.mrp).toLocaleString('en-IN')}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1 - book.price/book.mrp)*100)}% off</span>
+                </>
+              )}
+              <OfferBadge type={book.offerType}/>
             </>
           )}
-          <OfferBadge type={book.offerType}/>
         </div>
-        {book.inStock !== false && (
+        {!book.comingSoon && book.inStock !== false && (
           <button onClick={handleAdd} style={{width:'100%',padding:'9px',borderRadius:20,border:'none',fontSize:11,fontWeight:500,letterSpacing:.5,textTransform:'uppercase',cursor:'pointer',
             background: inCart ? 'rgba(27,67,50,0.08)' : '#1b4332', color: inCart ? '#1b4332' : '#fff'}}>
             {inCart ? '✓ Added' : 'Add to Cart'}
@@ -73,7 +84,12 @@ export default function AuthorPage() {
     fetch(`/api/books?author=${encodeURIComponent(slugParam)}&all=1`)
       .then(r => r.json())
       .then(d => {
-        const list = [...(d.books || [])].sort((a, b) => (a.inStock===false?1:0) - (b.inStock===false?1:0));
+        const list = [...(d.books || [])].sort((a, b) => {
+          const aOut = !a.comingSoon && a.inStock === false;
+          const bOut = !b.comingSoon && b.inStock === false;
+          if (aOut !== bOut) return aOut ? 1 : -1;
+          return 0;
+        });
         // Match specific author from splitAuthors if book has multiple authors
         let matched = '';
         for (const b of list) {

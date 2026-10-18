@@ -38,11 +38,11 @@ async function getFeaturedAndNewArrivals() {
   try {
     const meta = await redis.get('mn_books_meta') || [];
     const visible = meta.filter(b => b.visible !== false);
-    // Out-of-stock books sink to the bottom, newest-first within each group,
-    // so the homepage doesn't spotlight something a visitor can't buy.
+    // Out-of-stock books sink to the bottom, newest-first within each group.
+    // Coming soon books are not considered out of stock.
     const sorted = [...visible].sort((a, b) => {
-      const aOut = a.inStock === false ? 1 : 0;
-      const bOut = b.inStock === false ? 1 : 0;
+      const aOut = (a.inStock === false && !a.comingSoon) ? 1 : 0;
+      const bOut = (b.inStock === false && !b.comingSoon) ? 1 : 0;
       if (aOut !== bOut) return aOut - bOut;
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
@@ -56,7 +56,7 @@ async function getFeaturedAndNewArrivals() {
 
     featuredBooks = picks.featured?.length
       ? picks.featured.map(slug => bySlug[slug]).filter(Boolean).slice(0, 4)
-      : sorted.filter(b => b.tags?.includes('Featured')).slice(0, 4);
+      : sorted.filter(b => b.tags?.includes('Featured') || b.comingSoon).slice(0, 4);
 
     newArrivals = picks.newArrivals?.length
       ? picks.newArrivals.map(slug => bySlug[slug]).filter(Boolean).slice(0, 4)

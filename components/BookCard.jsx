@@ -44,7 +44,14 @@ export default function BookCard({ book }) {
             <span>مكتبة النور</span>
           </div>
         )}
-        {(book.stockCount ?? (book.inStock ? 1 : 0)) <= 0 && (
+        {book.comingSoon ? (
+          <div style={{position:'absolute',top:14,right:-34,width:120,transform:'rotate(45deg)',background:'#b8965a',color:'#fff',fontSize:8.5,fontWeight:600,letterSpacing:1.2,textTransform:'uppercase',textAlign:'center',padding:'3px 0',boxShadow:'0 2px 6px rgba(0,0,0,0.2)',zIndex:2}}>
+            Coming Soon
+          </div>
+        ) : topTag && (
+          <span className={`book-badge ${TAG_STYLES[topTag]}`}>{topTag}</span>
+        )}
+        {!book.comingSoon && (book.stockCount ?? (book.inStock ? 1 : 0)) <= 0 && (
           <div className="out-of-stock-overlay">
             <span className="out-of-stock-label">Out of Stock</span>
           </div>
@@ -66,22 +73,28 @@ export default function BookCard({ book }) {
         </div>
         <div className="book-title">{book.title}</div>
         <div className="book-author">{book.author}</div>
-        <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:4,flexWrap:'wrap'}}>
-          {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
-          {book.mrp > book.price && (
+        <div style={{display:'flex',alignItems:'baseline',gap:7,marginTop:4,flexWrap:'wrap',minHeight:22}}>
+          {book.comingSoon ? (
+            <span style={{fontSize:13,fontWeight:600,color:'#b8965a',fontStyle:'italic'}}>Coming Soon</span>
+          ) : (
             <>
-              <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
-              <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+              {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
+              {book.mrp > book.price && (
+                <>
+                  <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
+                </>
+              )}
+              <OfferBadge type={book.offerType}/>
             </>
           )}
-          <OfferBadge type={book.offerType}/>
         </div>
-        {book.stockCount > 0 && book.stockCount <= 5 && (
+        {!book.comingSoon && book.stockCount > 0 && book.stockCount <= 5 && (
           <div style={{fontSize:11,fontWeight:700,color:'#c0392b',letterSpacing:.2,marginTop:2}}>Only <strong>{book.stockCount}</strong> left</div>
         )}
 
         {/* Add to Cart button */}
-        {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
+        {!book.comingSoon && (book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
           <button
             className={`book-add-to-cart${inCart ? ' book-add-to-cart--in' : ''}`}
             onClick={handleAddToCart}
