@@ -8,6 +8,7 @@ import PageBackground from '@/components/PageBackground';
 import Navbar from '@/components/Navbar';
 import { renderDescription } from '@/components/FormattedDescription';
 import ReviewSection from '@/components/ReviewSection';
+import ProductRatingSummary from '@/components/ProductRatingSummary';
 
 export default function ClothingPageClient() {
   const { slug } = useParams();
@@ -230,6 +231,8 @@ export default function ClothingPageClient() {
             <span style={{flex:1,height:1,background:'linear-gradient(90deg,rgba(27,67,50,0.2),transparent)'}}/>
             <span style={{color:'#b8965a',fontSize:12}}>✦</span>
           </div>
+
+          <ProductRatingSummary itemId={`clothing:${item.id}`} />
 
           {/* Pricing */}
           <div style={{marginBottom:24,padding:'20px 24px',background:'linear-gradient(135deg,rgba(27,67,50,0.04),rgba(184,150,90,0.04))',borderRadius:16,border:'1px solid rgba(27,67,50,0.08)'}}>
