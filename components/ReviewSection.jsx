@@ -105,6 +105,9 @@ export default function ReviewSection({ itemId, itemType }) {
         const d2 = await r2.json();
         setReviews(d2.reviews || []);
       }
+      try {
+        window.dispatchEvent(new CustomEvent('mn-review-added', { detail: { itemId } }));
+      } catch {}
     } catch (err) {
       setSubmitMsg({ text: err.message, type: 'error' });
     } finally {
@@ -128,7 +131,7 @@ export default function ReviewSection({ itemId, itemType }) {
   };
 
   return (
-    <div style={S.section}>
+    <div id="reviews" style={S.section}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
         <div>

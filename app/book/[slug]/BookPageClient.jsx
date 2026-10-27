@@ -10,6 +10,7 @@ import PageBackground from '@/components/PageBackground';
 import Navbar from '@/components/Navbar';
 import { renderDescription } from '@/components/FormattedDescription';
 import ReviewSection from '@/components/ReviewSection';
+import ProductRatingSummary from '@/components/ProductRatingSummary';
 
 
 const CAT_AR = {
@@ -228,6 +229,8 @@ export default function BookPageClient() {
             <span style={{flex:1,height:1,background:'linear-gradient(90deg,rgba(27,67,50,0.2),transparent)'}}/>
             <span style={{color:'#b8965a',fontSize:12}}>✦</span>
           </div>
+
+          <ProductRatingSummary itemId={`book:${book.slug}`} />
 
           {/* SKU */}
           {book.sku && (
