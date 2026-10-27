@@ -95,6 +95,7 @@ export async function POST(req) {
       review: trimmedReview,
       purchaseDate: user ? null : purchaseDate,
       status: reviewStatus,
+      isAutoApproved: Boolean(user),
       createdAt: now,
     };
 
