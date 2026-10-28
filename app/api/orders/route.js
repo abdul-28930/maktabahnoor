@@ -36,14 +36,34 @@ export async function GET(req) {
 
 export async function PUT(req) {
   try {
-    const { password, orderRef, fulfilled } = await req.json();
+    const body = await req.json();
+    const { password, orderRef, fulfilled, status, adminNote, note } = body;
     if (password !== process.env.ADMIN_PASSWORD)
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    if (!orderRef)
+      return NextResponse.json({ error: 'Missing orderRef.' }, { status: 400 });
+
     const existing = await redis.get(`mn_order:${orderRef}`);
     if (!existing) return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
-    const updated = { ...existing, fulfilled: !!fulfilled };
+
+    const updated = { ...existing };
+
+    if (status !== undefined) {
+      updated.status = status;
+      updated.fulfilled = (status === 'fulfilled');
+    } else if (fulfilled !== undefined) {
+      updated.fulfilled = !!fulfilled;
+      updated.status = fulfilled ? 'fulfilled' : 'pending';
+    }
+
+    if (adminNote !== undefined) {
+      updated.adminNote = typeof adminNote === 'string' ? adminNote.trim() : '';
+    } else if (note !== undefined) {
+      updated.adminNote = typeof note === 'string' ? note.trim() : '';
+    }
+
     await redis.set(`mn_order:${orderRef}`, updated);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, order: updated });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Failed.' }, { status: 500 });
