@@ -338,6 +338,10 @@ export default function AdminPage() {
   const [books, setBooks]         = useState([]);
   const [bundles, setBundles]     = useState([]);
   const [orders, setOrders]       = useState([]);
+  const [orderFilter, setOrderFilter] = useState('all');
+  const [orderSearch, setOrderSearch] = useState('');
+  const [editingNoteRef, setEditingNoteRef] = useState(null);
+  const [noteInput, setNoteInput] = useState('');
   const [users, setUsers]         = useState([]);
   const [categoryDemand, setCategoryDemand] = useState([]);
   const [views, setViews]         = useState({});
@@ -887,11 +891,48 @@ export default function AdminPage() {
       setCategorySaving(false);
     }
   }
-  async function toggleOrderFulfilled(orderRef, fulfilled) {
+  function getOrderStatus(o) {
+    if (o.status) return o.status;
+    return o.fulfilled ? 'fulfilled' : 'pending';
+  }
+
+  async function updateOrderStatus(orderRef, status) {
     try {
-      await fetch('/api/orders',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,orderRef,fulfilled})});
-      await loadOrders(); showToast(fulfilled?'Marked fulfilled.':'Marked pending.','success');
-    } catch { showToast('Failed.','error'); }
+      const r = await fetch('/api/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: session, orderRef, status }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed');
+      const label = status === 'fulfilled' ? 'fulfilled' : status === 'cancelled' ? 'cancelled' : 'pending';
+      showToast(`Order marked as ${label}.`, 'success');
+      await loadOrders();
+    } catch (e) {
+      showToast(e.message || 'Failed.', 'error');
+    }
+  }
+
+  async function toggleOrderFulfilled(orderRef, fulfilled) {
+    return updateOrderStatus(orderRef, fulfilled ? 'fulfilled' : 'pending');
+  }
+
+  async function saveOrderNote(orderRef, adminNote) {
+    try {
+      const r = await fetch('/api/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: session, orderRef, adminNote }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed');
+      showToast('Order note saved.', 'success');
+      setEditingNoteRef(null);
+      setNoteInput('');
+      await loadOrders();
+    } catch (e) {
+      showToast(e.message || 'Failed to save note.', 'error');
+    }
   }
   async function delOrder(orderRef) {
     if (!confirm('Delete this order record?')) return;
@@ -1464,7 +1505,7 @@ export default function AdminPage() {
   const stats = useMemo(()=>({
     total:books.length,inStock:books.filter(b=>b.inStock).length,
     out:books.filter(b=>!b.inStock).length,cats:[...new Set(books.flatMap(b=>getBookCategories(b)))].length,
-    bundles:bundles.length,pendingOrders:orders.filter(o=>!o.fulfilled).length,
+    bundles:bundles.length,pendingOrders:orders.filter(o=>getOrderStatus(o)==='pending').length,
   }),[books,bundles,orders]);
 
   const Btn = ({children,onClick,disabled,variant='primary',small,style:sx={}}) => {
@@ -2412,7 +2453,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content',flexWrap:'wrap'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length})`},{id:'reviews',label:`Reviews (${reviews.length}${pendingReviews.length>0?` · ${pendingReviews.length} pending`:''})`},{id:'users',label:`Customers & Interests (${users.length})`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length}${orders.filter(o=>getOrderStatus(o)==='pending').length>0?` · ${orders.filter(o=>getOrderStatus(o)==='pending').length} pending`:''})`},{id:'reviews',label:`Reviews (${reviews.length}${pendingReviews.length>0?` · ${pendingReviews.length} pending`:''})`},{id:'users',label:`Customers & Interests (${users.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif"}}>
               {t.label}
             </button>
@@ -2948,61 +2989,370 @@ export default function AdminPage() {
         )}
 
         {/* ORDERS LIST */}
-        {tab==='orders' && (
-          <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
-            <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:'#1b4332'}}>WhatsApp Orders</div>
-              <button onClick={()=>loadOrders()} style={{padding:'7px 16px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#1b4332',fontSize:11,cursor:'pointer',letterSpacing:.5,textTransform:'uppercase'}}>Refresh</button>
-            </div>
-            {orders.length===0 ? (
-              <div style={{textAlign:'center',padding:'60px 24px'}}>
-                <div style={{fontSize:44,marginBottom:12,opacity:.2}}>🧾</div>
-                <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:0}}>No orders logged yet.</p>
-                <p style={{fontSize:12,color:'#a09890',marginTop:8}}>Orders are recorded automatically when a customer sends their cart via WhatsApp.</p>
-              </div>
-            ) : (
-              <div>
-                {orders.map((o,i)=>(
-                  <div key={o.orderRef} style={{padding:'16px 24px',borderBottom:i<orders.length-1?'1px solid rgba(27,67,50,0.05)':'none'}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:8,flexWrap:'wrap'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-                        <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:600,color:'#1b4332'}}>{o.orderRef}</span>
-                        {o.username && <span style={{fontSize:11,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>👤 {o.username}</span>}
-                        {/* New: show name from delivery details */}
-                        {o.name && <span style={{fontSize:11,color:'#6b6460',background:'#f3f1ea',padding:'2px 8px',borderRadius:8}}>🪪 {o.name}</span>}
-                        {o.phone && <span style={{fontSize:11,color:'#6b6460',background:'#f3f1ea',padding:'2px 8px',borderRadius:8}}>📞 {o.phone}</span>}
-                        {o.pincode && <span style={{fontSize:10,color:'#1b4332',background:'rgba(27,67,50,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>📍 {o.pincode}</span>}
-                        <span style={{fontSize:11,color:'#a09890'}}>{new Date(o.createdAt).toLocaleString('en-IN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
-                      </div>
-                      <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <span style={{fontSize:14,fontWeight:500,color:'#1b4332'}}>{o.total > 0 ? `₹${Number(o.total).toLocaleString('en-IN')}` : ''}</span>
-                        <button onClick={()=>toggleOrderFulfilled(o.orderRef,!o.fulfilled)}
-                          style={{padding:'5px 14px',borderRadius:20,border:`1.5px solid ${o.fulfilled?'rgba(45,106,79,0.3)':'rgba(184,150,90,0.35)'}`,background:o.fulfilled?'rgba(45,106,79,0.07)':'rgba(184,150,90,0.08)',color:o.fulfilled?'#2d6a4f':'#b8965a',fontSize:10,cursor:'pointer',letterSpacing:.6,textTransform:'uppercase'}}>
-                          {o.fulfilled?'Fulfilled':'Pending'}
-                        </button>
-                        <button onClick={()=>delOrder(o.orderRef)} style={{width:28,height:28,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',color:'#6b6460',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
-                        </button>
-                      </div>
-                    </div>
-                    {/* Delivery address block */}
-                    {(o.address || o.city || o.state || o.country) && (
-                      <div style={{fontSize:11,color:'#6b6460',background:'rgba(27,67,50,0.03)',border:'1px solid rgba(27,67,50,0.07)',borderRadius:8,padding:'6px 10px',marginBottom:6,lineHeight:1.6}}>
-                        📦 {[o.address, o.city, o.state, o.pincode, o.country].filter(Boolean).join(', ')}
-                        {o.coupon && <span style={{marginLeft:10,color:'#2d6a4f',fontWeight:500}}>🏷 {o.coupon.code} (−₹{o.coupon.discount})</span>}
-                      </div>
-                    )}
-                    <div style={{fontSize:12,color:'#6b6460',lineHeight:1.7}}>
-                      {(o.items||[]).map((it,idx)=>(
-                        <span key={idx}>{it.title}{it.qty>1?` × ${it.qty}`:''}{idx<o.items.length-1?', ':''}</span>
-                      ))}
-                    </div>
+        {tab === 'orders' && (() => {
+          const pendingCount = orders.filter(o => getOrderStatus(o) === 'pending').length;
+          const fulfilledCount = orders.filter(o => getOrderStatus(o) === 'fulfilled').length;
+          const cancelledCount = orders.filter(o => getOrderStatus(o) === 'cancelled').length;
+
+          const filteredOrders = orders.filter(o => {
+            const st = getOrderStatus(o);
+            if (orderFilter === 'pending' && st !== 'pending') return false;
+            if (orderFilter === 'fulfilled' && st !== 'fulfilled') return false;
+            if (orderFilter === 'cancelled' && st !== 'cancelled') return false;
+
+            if (orderSearch.trim()) {
+              const q = orderSearch.trim().toLowerCase();
+              const refMatch = (o.orderRef || '').toLowerCase().includes(q);
+              const nameMatch = (o.name || o.username || '').toLowerCase().includes(q);
+              const phoneMatch = (o.phone || '').toLowerCase().includes(q);
+              const noteMatch = (o.adminNote || '').toLowerCase().includes(q);
+              const addrMatch = [o.address, o.city, o.state, o.pincode].filter(Boolean).join(' ').toLowerCase().includes(q);
+              const itemsMatch = (o.items || []).some(it => (it.title || '').toLowerCase().includes(q));
+              return refMatch || nameMatch || phoneMatch || noteMatch || addrMatch || itemsMatch;
+            }
+            return true;
+          });
+
+          return (
+            <div style={{display:'flex',flexDirection:'column',gap:20}}>
+              {/* Header & Stats Card */}
+              <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',padding:'24px 28px'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:16,marginBottom:20}}>
+                  <div>
+                    <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,color:'#1b4332',margin:0}}>Orders Management</h2>
+                    <p style={{fontSize:12,color:'#a09890',margin:'4px 0 0'}}>
+                      Orders recorded automatically via WhatsApp — filter by status, change fulfillment, and manage order notes.
+                    </p>
                   </div>
-                ))}
+                  <button onClick={()=>loadOrders()} style={{padding:'8px 18px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:'#1b4332',fontSize:12,cursor:'pointer',letterSpacing:.5,fontWeight:500,display:'flex',alignItems:'center',gap:6}}>
+                    ↻ Refresh
+                  </button>
+                </div>
+
+                {/* Stats overview */}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))',gap:12,marginBottom:20}}>
+                  <div style={{background:'#faf9f5',borderRadius:12,border:'1px solid rgba(27,67,50,0.08)',padding:'12px 16px'}}>
+                    <div style={{fontSize:11,color:'#8c827a',textTransform:'uppercase',letterSpacing:.5}}>Total Orders</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,color:'#1b4332',marginTop:2}}>{orders.length}</div>
+                  </div>
+                  <div style={{background:pendingCount>0?'rgba(245,158,11,0.08)':'#faf9f5',borderRadius:12,border:pendingCount>0?'1px solid rgba(245,158,11,0.3)':'1px solid rgba(27,67,50,0.08)',padding:'12px 16px'}}>
+                    <div style={{fontSize:11,color:pendingCount>0?'#b45309':'#8c827a',textTransform:'uppercase',letterSpacing:.5}}>⏳ Pending</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,color:pendingCount>0?'#b45309':'#1b4332',marginTop:2}}>{pendingCount}</div>
+                  </div>
+                  <div style={{background:'#faf9f5',borderRadius:12,border:'1px solid rgba(27,67,50,0.08)',padding:'12px 16px'}}>
+                    <div style={{fontSize:11,color:'#15803d',textTransform:'uppercase',letterSpacing:.5}}>✓ Fulfilled</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,color:'#15803d',marginTop:2}}>{fulfilledCount}</div>
+                  </div>
+                  <div style={{background:'#faf9f5',borderRadius:12,border:'1px solid rgba(27,67,50,0.08)',padding:'12px 16px'}}>
+                    <div style={{fontSize:11,color:'#b91c1c',textTransform:'uppercase',letterSpacing:.5}}>✕ Cancelled</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,color:'#b91c1c',marginTop:2}}>{cancelledCount}</div>
+                  </div>
+                </div>
+
+                {/* Filters & Search Toolbar */}
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12,borderTop:'1px solid rgba(27,67,50,0.07)',paddingTop:18}}>
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+                    {[
+                      { id: 'all', label: `All (${orders.length})` },
+                      { id: 'pending', label: `Pending (${pendingCount})`, highlight: pendingCount > 0 },
+                      { id: 'fulfilled', label: `Fulfilled (${fulfilledCount})` },
+                      { id: 'cancelled', label: `Cancelled (${cancelledCount})` },
+                    ].map(flt => (
+                      <button
+                        key={flt.id}
+                        onClick={() => setOrderFilter(flt.id)}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: 20,
+                          border: orderFilter === flt.id ? '1px solid #1b4332' : '1px solid rgba(27,67,50,0.12)',
+                          background: orderFilter === flt.id ? '#1b4332' : flt.highlight ? 'rgba(245,158,11,0.1)' : 'transparent',
+                          color: orderFilter === flt.id ? '#fff' : flt.highlight ? '#b45309' : '#4a453f',
+                          fontSize: 11.5,
+                          fontWeight: orderFilter === flt.id ? 600 : 400,
+                          cursor: 'pointer',
+                          transition: 'all .15s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        {flt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{position:'relative',minWidth:240,flex:1,maxWidth:380}}>
+                    <input
+                      type="text"
+                      value={orderSearch}
+                      onChange={e => setOrderSearch(e.target.value)}
+                      placeholder="Search order ref, customer, phone, item, note…"
+                      style={{
+                        width:'100%',
+                        padding:'8px 30px 8px 12px',
+                        borderRadius:20,
+                        border:'1px solid rgba(27,67,50,0.15)',
+                        background:'#faf9f5',
+                        fontSize:12,
+                        color:'#1a1712',
+                        outline:'none',
+                        boxSizing:'border-box',
+                        fontFamily:"'DM Sans',sans-serif"
+                      }}
+                    />
+                    {orderSearch && (
+                      <button
+                        onClick={() => setOrderSearch('')}
+                        style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',fontSize:12,color:'#8c827a'}}
+                      >✕</button>
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Orders List Card */}
+              <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
+                {orders.length === 0 ? (
+                  <div style={{textAlign:'center',padding:'60px 24px'}}>
+                    <div style={{fontSize:44,marginBottom:12,opacity:.2}}>🧾</div>
+                    <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:0}}>No orders logged yet.</p>
+                    <p style={{fontSize:12,color:'#a09890',marginTop:8}}>Orders are recorded automatically when a customer sends their cart via WhatsApp.</p>
+                  </div>
+                ) : filteredOrders.length === 0 ? (
+                  <div style={{textAlign:'center',padding:'50px 24px'}}>
+                    <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,color:'#6b6460',margin:0}}>No orders match the selected filter/search.</p>
+                    <button onClick={()=>{setOrderFilter('all');setOrderSearch('');}} style={{marginTop:12,padding:'6px 14px',borderRadius:20,border:'1px solid rgba(27,67,50,0.2)',background:'transparent',color:'#1b4332',fontSize:11,cursor:'pointer'}}>
+                      Clear Filters
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    {filteredOrders.map((o, i) => {
+                      const st = getOrderStatus(o);
+                      const isEditingThisNote = editingNoteRef === o.orderRef;
+
+                      const statusColors = {
+                        pending: {
+                          bg: 'rgba(245,158,11,0.09)',
+                          border: 'rgba(245,158,11,0.3)',
+                          text: '#b45309'
+                        },
+                        fulfilled: {
+                          bg: 'rgba(45,106,79,0.08)',
+                          border: 'rgba(45,106,79,0.3)',
+                          text: '#2d6a4f'
+                        },
+                        cancelled: {
+                          bg: 'rgba(220,38,38,0.08)',
+                          border: 'rgba(220,38,38,0.3)',
+                          text: '#b91c1c'
+                        }
+                      }[st] || { bg: 'transparent', border: '#ddd', text: '#666' };
+
+                      return (
+                        <div key={o.orderRef} style={{padding:'20px 24px',borderBottom:i<filteredOrders.length-1?'1px solid rgba(27,67,50,0.06)':'none'}}>
+                          {/* Order header row */}
+                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:10,flexWrap:'wrap'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                              <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332'}}>{o.orderRef}</span>
+                              {o.username && <span style={{fontSize:11,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>👤 {o.username}</span>}
+                              {o.name && <span style={{fontSize:11,color:'#6b6460',background:'#f3f1ea',padding:'2px 8px',borderRadius:8}}>🪪 {o.name}</span>}
+                              {o.phone && <span style={{fontSize:11,color:'#6b6460',background:'#f3f1ea',padding:'2px 8px',borderRadius:8}}>📞 {o.phone}</span>}
+                              {o.pincode && <span style={{fontSize:10,color:'#1b4332',background:'rgba(27,67,50,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>📍 {o.pincode}</span>}
+                              <span style={{fontSize:11,color:'#a09890'}}>{new Date(o.createdAt).toLocaleString('en-IN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+                            </div>
+
+                            {/* Total & Status Dropdown & Delete */}
+                            <div style={{display:'flex',alignItems:'center',gap:10}}>
+                              <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>
+                                {o.total > 0 ? `₹${Number(o.total).toLocaleString('en-IN')}` : ''}
+                              </span>
+
+                              {/* Status Dropdown */}
+                              <select
+                                value={st}
+                                onChange={e => updateOrderStatus(o.orderRef, e.target.value)}
+                                style={{
+                                  padding: '5px 12px',
+                                  borderRadius: 20,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  outline: 'none',
+                                  border: `1.5px solid ${statusColors.border}`,
+                                  background: statusColors.bg,
+                                  color: statusColors.text,
+                                  fontFamily: "'DM Sans',sans-serif",
+                                  letterSpacing: .3,
+                                  transition: 'all .15s'
+                                }}
+                              >
+                                <option value="pending" style={{background:'#fff',color:'#b45309'}}>⏳ Pending</option>
+                                <option value="fulfilled" style={{background:'#fff',color:'#2d6a4f'}}>✓ Fulfilled</option>
+                                <option value="cancelled" style={{background:'#fff',color:'#b91c1c'}}>✕ Cancelled</option>
+                              </select>
+
+                              {/* Delete button */}
+                              <button
+                                onClick={()=>delOrder(o.orderRef)}
+                                title="Delete order record"
+                                style={{
+                                  width:30,
+                                  height:30,
+                                  borderRadius:8,
+                                  border:'1.5px solid rgba(27,67,50,0.12)',
+                                  background:'transparent',
+                                  color:'#8c827a',
+                                  display:'flex',
+                                  alignItems:'center',
+                                  justifyContent:'center',
+                                  cursor:'pointer',
+                                  transition:'all .15s'
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.borderColor = 'rgba(220,38,38,0.3)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = '#8c827a'; e.currentTarget.style.borderColor = 'rgba(27,67,50,0.12)'; }}
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Delivery address & coupon info */}
+                          {(o.address || o.city || o.state || o.country) && (
+                            <div style={{fontSize:11.5,color:'#5a534e',background:'rgba(27,67,50,0.03)',border:'1px solid rgba(27,67,50,0.07)',borderRadius:8,padding:'7px 12px',marginBottom:8,lineHeight:1.6}}>
+                              📦 {[o.address, o.city, o.state, o.pincode, o.country].filter(Boolean).join(', ')}
+                              {o.coupon && <span style={{marginLeft:10,color:'#2d6a4f',fontWeight:600}}>🏷 {o.coupon.code} (−₹{o.coupon.discount})</span>}
+                            </div>
+                          )}
+
+                          {/* Items list */}
+                          <div style={{fontSize:12.5,color:'#6b6460',lineHeight:1.7,marginBottom:6}}>
+                            {(o.items||[]).map((it,idx)=>(
+                              <span key={idx}>
+                                <strong style={{color:'#2a2520'}}>{it.title}</strong>
+                                {it.qty>1 ? <span style={{color:'#b8965a',fontWeight:600}}>{` × ${it.qty}`}</span> : ''}
+                                {idx < (o.items.length-1) ? ', ' : ''}
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* ADMIN NOTE SECTION */}
+                          <div style={{marginTop:8}}>
+                            {isEditingThisNote ? (
+                              <div style={{background:'#faf9f5',border:'1px solid rgba(27,67,50,0.15)',borderRadius:10,padding:'10px 14px',display:'flex',flexDirection:'column',gap:8}}>
+                                <div style={{fontSize:11,fontWeight:600,color:'#1b4332',display:'flex',alignItems:'center',gap:6}}>
+                                  <span>📝</span> Admin Note for {o.orderRef}:
+                                </div>
+                                <textarea
+                                  value={noteInput}
+                                  onChange={e => setNoteInput(e.target.value)}
+                                  placeholder="Write a note (e.g., reason for cancellation, customer asked via WhatsApp, courier tracking ID)..."
+                                  rows={2}
+                                  style={{
+                                    width:'100%',
+                                    padding:'8px 10px',
+                                    borderRadius:8,
+                                    border:'1px solid rgba(27,67,50,0.15)',
+                                    fontSize:12,
+                                    color:'#1a1712',
+                                    fontFamily:"'DM Sans',sans-serif",
+                                    outline:'none',
+                                    boxSizing:'border-box',
+                                    resize:'vertical'
+                                  }}
+                                  autoFocus
+                                />
+                                <div style={{display:'flex',alignItems:'center',gap:8,justifyContent:'flex-end'}}>
+                                  <button
+                                    onClick={() => { setEditingNoteRef(null); setNoteInput(''); }}
+                                    style={{padding:'5px 12px',borderRadius:16,border:'1px solid rgba(27,67,50,0.2)',background:'transparent',color:'#6b6460',fontSize:11,cursor:'pointer'}}
+                                  >
+                                    Cancel
+                                  </button>
+                                  {o.adminNote && (
+                                    <button
+                                      onClick={() => saveOrderNote(o.orderRef, '')}
+                                      style={{padding:'5px 12px',borderRadius:16,border:'1px solid rgba(220,38,38,0.25)',background:'rgba(220,38,38,0.06)',color:'#dc2626',fontSize:11,cursor:'pointer'}}
+                                    >
+                                      Remove Note
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => saveOrderNote(o.orderRef, noteInput)}
+                                    style={{padding:'5px 14px',borderRadius:16,border:'none',background:'#1b4332',color:'#fff',fontSize:11,fontWeight:500,cursor:'pointer'}}
+                                  >
+                                    Save Note
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                {o.adminNote ? (
+                                  <div style={{
+                                    display:'flex',
+                                    alignItems:'flex-start',
+                                    justifyContent:'space-between',
+                                    gap:12,
+                                    background:'rgba(184,150,90,0.07)',
+                                    border:'1px solid rgba(184,150,90,0.22)',
+                                    borderRadius:8,
+                                    padding:'8px 12px'
+                                  }}>
+                                    <div style={{fontSize:12,color:'#3a3530',lineHeight:1.6}}>
+                                      <span style={{fontWeight:600,color:'#1b4332',marginRight:6}}>📝 Note:</span>
+                                      <span style={{whiteSpace:'pre-wrap'}}>{o.adminNote}</span>
+                                    </div>
+                                    <button
+                                      onClick={() => { setEditingNoteRef(o.orderRef); setNoteInput(o.adminNote); }}
+                                      style={{
+                                        background:'transparent',
+                                        border:'none',
+                                        color:'#b8965a',
+                                        fontSize:11,
+                                        fontWeight:600,
+                                        cursor:'pointer',
+                                        flexShrink:0,
+                                        padding:'2px 6px',
+                                        textDecoration:'underline'
+                                      }}
+                                    >
+                                      Edit Note
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => { setEditingNoteRef(o.orderRef); setNoteInput(''); }}
+                                    style={{
+                                      background:'transparent',
+                                      border:'1px dashed rgba(27,67,50,0.2)',
+                                      borderRadius:14,
+                                      padding:'4px 12px',
+                                      fontSize:11,
+                                      color:'#6b6460',
+                                      cursor:'pointer',
+                                      display:'inline-flex',
+                                      alignItems:'center',
+                                      gap:4,
+                                      transition:'all .15s'
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#1b4332'; e.currentTarget.style.color = '#1b4332'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(27,67,50,0.2)'; e.currentTarget.style.color = '#6b6460'; }}
+                                  >
+                                    <span>+</span> Add Note
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* REVIEWS MANAGEMENT */}
         {tab === 'reviews' && (
