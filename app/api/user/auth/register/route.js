@@ -41,6 +41,7 @@ export async function POST(req) {
       salt: salt,
       phone: '',
       whatsapp: '',
+      email: '',
       interestedCategories: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

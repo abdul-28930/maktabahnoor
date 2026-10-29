@@ -115,7 +115,23 @@ export default function Navbar({ active = '' }) {
             }}
           />
 
-          {/* 4. Bundles */}
+          {/* 4. E-Books */}
+          <Link
+            href="/ebooks"
+            className="hp-nlink"
+            style={{
+              textDecoration: 'none',
+              color: active === 'ebooks' ? '#1b4332' : '#6b6460',
+              fontSize: 14,
+              letterSpacing: '.3px',
+              fontWeight: active === 'ebooks' ? 500 : 400,
+              transition: 'color .2s ease',
+            }}
+          >
+            E-Books
+          </Link>
+
+          {/* 5. Bundles */}
           <Link
             href="/bundles"
             className="hp-nlink"
@@ -328,6 +344,19 @@ export default function Navbar({ active = '' }) {
             }}
           >
             Books
+          </Link>
+          <Link
+            href="/ebooks"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{
+              textDecoration: 'none',
+              color: '#1b4332',
+              fontSize: 15,
+              padding: '10px 4px',
+              borderBottom: '1px solid rgba(27,67,50,0.06)',
+            }}
+          >
+            E-Books
           </Link>
           <Link
             href="/bundles"

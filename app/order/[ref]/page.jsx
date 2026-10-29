@@ -27,13 +27,14 @@ export default function OrderPage({ params }) {
   const delivery = {
     name:    order?.name    || '',
     phone:   order?.phone   || '',
+    email:   order?.email   || '',
     address: order?.address || '',
     city:    order?.city    || '',
     state:   order?.state   || '',
     country: order?.country || '',
     pincode: order?.pincode || '',
   };
-  const hasDelivery = delivery.name || delivery.address || delivery.city || delivery.pincode;
+  const hasDelivery = delivery.name || delivery.email || delivery.address || delivery.city || delivery.pincode;
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: '#faf9f5', fontFamily: "'DM Sans', sans-serif" }}>
@@ -125,6 +126,7 @@ export default function OrderPage({ params }) {
                     <div style={{ fontWeight: 500, color: '#1b4332', marginBottom: 4 }}>Delivery to</div>
                     {delivery.name    && <div>{delivery.name}</div>}
                     {delivery.phone   && <div>{delivery.phone}</div>}
+                    {delivery.email   && <div>{delivery.email}</div>}
                     {delivery.address && <div>{delivery.address}</div>}
                     {(delivery.city || delivery.state || delivery.pincode) && (
                       <div>{[delivery.city, delivery.state, delivery.pincode].filter(Boolean).join(', ')}</div>
