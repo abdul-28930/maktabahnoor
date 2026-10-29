@@ -12,6 +12,12 @@ const EMPTY_BOOK = {
   mrp:'',price:'',offerType:'',stockCount:'',
   inStock:true,comingSoon:false,visible:true,tags:[],coverUrl:'',coverThumb:'',gallery:[],
 };
+const EMPTY_EBOOK = {
+  title:'',author:'',translator:'',publisher:'',sku:'',language:'Arabic',category:'Aqeedah',categories:['Aqeedah'],
+  description:'',volumes:'',binding:'Hardcover',pages:'',
+  mrp:'',price:'',offerType:'',stockCount:'',
+  inStock:true,comingSoon:false,visible:true,tags:[],coverUrl:'',coverThumb:'',gallery:[],
+};
 
 // Labels shown next to the field + used to build the "please fill these in"
 // validation message. Must match MANDATORY_BOOK_FIELDS keys in lib/constants.js.
@@ -332,7 +338,7 @@ export default function AdminPage() {
     try { stored = localStorage.getItem('mn_admin_session'); } catch {}
     if (!stored) return;
     setSession(stored); setView('dashboard');
-    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadUsers(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts(); loadHomeCats(); loadReviews(stored);
+    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadUsers(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts(); loadHomeCats(); loadReviews(stored); loadEbooks(stored);
   }, []);
 
   const [books, setBooks]         = useState([]);
@@ -420,6 +426,20 @@ export default function AdminPage() {
   const clothGalleryFileRef = useRef(null);
   const [clothGalleryImgMode, setClothGalleryImgMode] = useState('upload');
   const [clothGalleryInput, setClothGalleryInput] = useState('');
+
+  // E-Books state
+  const [ebooks, setEbooks] = useState([]);
+  const [editEbookSlug, setEditEbookSlug] = useState(null);
+  const [ebookForm, setEbookForm] = useState(EMPTY_EBOOK);
+  const [ebookSlugInput, setEbookSlugInput] = useState('');
+  const [ebookSlugSaving, setEbookSlugSaving] = useState(false);
+  const [ebookImgMode, setEbookImgMode] = useState('url');
+  const ebookFileRef = useRef(null);
+  const ebookGalleryFileRef = useRef(null);
+  const [ebookGalleryImgMode, setEbookGalleryImgMode] = useState('upload');
+  const [ebookGalleryInput, setEbookGalleryInput] = useState('');
+  const [ebookSearch, setEbookSearch] = useState('');
+  const [ebookPage, setEbookPage] = useState(1);
 
   function f(k,v)  { setForm(p=>({...p,[k]:v})); }
   function bf(k,v) { setBundleForm(p=>({...p,[k]:v})); }
@@ -701,6 +721,122 @@ export default function AdminPage() {
   function updClothVariant(id,k,v) { setClothForm(p=>({...p,variants:p.variants.map(x=>x.id===id?{...x,[k]:v}:x)})); }
   function rmClothVariant(id) { setClothForm(p=>({...p,variants:p.variants.filter(x=>x.id!==id)})); }
 
+  // ── E-BOOK FUNCTIONS ──
+  async function loadEbooks(s=session) {
+    try { const r=await fetch(`/api/ebooks?all=1&password=${encodeURIComponent(s)}`); const d=await r.json(); setEbooks(d.ebooks||[]); } catch {}
+  }
+  function ef(k,v) { setEbookForm(p=>({...p,[k]:v})); }
+  function addEbookGalleryUrl(url) {
+    if (!url?.trim()) return;
+    ef('gallery', [...(ebookForm.gallery||[]), url.trim()]);
+  }
+  function removeEbookGalleryUrl(idx) {
+    ef('gallery', (ebookForm.gallery||[]).filter((_,i) => i !== idx));
+  }
+  function moveEbookGalleryUrl(fromIdx, toIdx) {
+    const list = [...(ebookForm.gallery || [])];
+    if (toIdx < 0 || toIdx >= list.length) return;
+    const [item] = list.splice(fromIdx, 1);
+    list.splice(toIdx, 0, item);
+    ef('gallery', list);
+  }
+  async function handleEbookGalleryFiles(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    e.target.value = '';
+    for (const file of files) {
+      await new Promise(resolve => {
+        readImgFile(file, (full) => {
+          if (full) { setEbookForm(p => ({ ...p, gallery: [...(p.gallery || []), full] })); }
+          resolve();
+        });
+      });
+    }
+  }
+  function handleEbookImg(e) {
+    const file=e.target.files?.[0];
+    readImgFile(file, d=>ef('coverUrl',d));
+  }
+  function toggleEbookTag(t) { ef('tags', ebookForm.tags.includes(t)?ebookForm.tags.filter(x=>x!==t):[...ebookForm.tags,t]); }
+  async function saveEbook() {
+    const missing = MANDATORY_BOOK_FIELDS.filter(k => {
+      if (ebookForm.comingSoon && (k==='price'||k==='stockCount')) return false;
+      if (k==='category') return getBookCategories(ebookForm).length===0;
+      return !String(ebookForm[k]??'').trim();
+    }).map(k=>FIELD_LABELS[k]||k);
+    if (missing.length) { showToast(`Please fill in: ${missing.join(', ')}.`,'error'); return; }
+    setLoading(true);
+    try {
+      const r = editEbookSlug
+        ? await fetch(`/api/ebooks/${editEbookSlug}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...ebookForm})})
+        : await fetch('/api/ebooks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...ebookForm})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed');
+      showToast(editEbookSlug?'✓ E-Book updated!':'✓ E-Book added!','success');
+      await loadEbooks(); setView('dashboard'); setTab('ebooks');
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setLoading(false); }
+  }
+  async function delEbook(slug) {
+    if (!confirm('Delete this e-book?')) return;
+    try { await fetch(`/api/ebooks/${slug}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session})}); showToast('E-Book deleted.'); await loadEbooks(); } catch { showToast('Failed.','error'); }
+  }
+  async function toggleEbookVisible(slug, visible) {
+    try { await fetch(`/api/ebooks/${slug}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,visible})}); await loadEbooks(); showToast(visible?'Shown on site.':'Hidden from site.','success'); } catch { showToast('Failed.','error'); }
+  }
+  async function openEditEbook(slug) {
+    setLoading(true);
+    try {
+      const r=await fetch(`/api/ebooks/${slug}`); const d=await r.json();
+      if (d.ebook) {
+        setEditEbookSlug(slug);
+        const cats = getBookCategories(d.ebook);
+        setEbookForm({
+          title:d.ebook.title||'',author:d.ebook.author||'',translator:d.ebook.translator||'',publisher:d.ebook.publisher||'',
+          sku:d.ebook.sku||'',language:d.ebook.language||'Arabic',
+          category:cats[0]||'Aqeedah',categories:cats.length?cats:['Aqeedah'],description:d.ebook.description||'',
+          volumes:d.ebook.volumes??'',binding:d.ebook.binding||'Hardcover',pages:d.ebook.pages||'',
+          mrp:d.ebook.mrp||'',price:d.ebook.price||'',offerType:d.ebook.offerType||'',
+          stockCount:d.ebook.stockCount??'',inStock:d.ebook.inStock!==false,comingSoon:Boolean(d.ebook.comingSoon),visible:d.ebook.visible!==false,
+          tags:d.ebook.tags||[],coverUrl:d.ebook.coverUrl||'',coverThumb:d.ebook.coverThumb||'',gallery:d.ebook.gallery||[],
+        });
+        setEbookImgMode('url'); setEbookGalleryImgMode('upload'); setEbookGalleryInput(''); setEbookSlugInput(slug); setView('ebookEditor');
+      }
+    } catch { showToast('Failed to load.','error'); }
+    finally { setLoading(false); }
+  }
+  async function renameEbookSlug() {
+    if (!ebookSlugInput.trim() || ebookSlugInput === editEbookSlug) return;
+    setEbookSlugSaving(true);
+    try {
+      const r = await fetch(`/api/ebooks/${editEbookSlug}/rename`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,newSlug:ebookSlugInput})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed to rename.');
+      showToast(`✓ URL changed to /ebook/${d.newSlug}`,'success');
+      setEditEbookSlug(d.newSlug); setEditEbookSlugInput(d.newSlug);
+      await loadEbooks();
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setEbookSlugSaving(false); }
+  }
+  function copyBookToEbook(book) {
+    const cats = getBookCategories(book);
+    setEbookForm({
+      title:book.title||'',author:book.author||'',translator:book.translator||'',publisher:book.publisher||'',
+      sku:book.sku||'',language:book.language||'Arabic',
+      category:cats[0]||'Aqeedah',categories:cats.length?cats:['Aqeedah'],description:book.description||'',
+      volumes:book.volumes??'',binding:book.binding||'Hardcover',pages:book.pages||'',
+      mrp:book.mrp||'',price:book.price||'',offerType:book.offerType||'',
+      stockCount:book.stockCount??'',inStock:book.inStock!==false,comingSoon:Boolean(book.comingSoon),visible:book.visible!==false,
+      tags:book.tags||[],coverUrl:book.coverUrl||'',coverThumb:book.coverThumb||'',gallery:book.gallery||[],
+    });
+    setEditEbookSlug(null);
+    setEbookImgMode('url');
+    setEbookGalleryImgMode('upload');
+    setEbookGalleryInput('');
+    setView('ebookEditor');
+    showToast('Book data copied — review and save as E-Book.','success');
+  }
+
   function showToast(msg,type='') {
     setToast({msg,type,show:true});
     clearTimeout(timer.current);
@@ -716,7 +852,7 @@ export default function AdminPage() {
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
       setSession(pw); setView('dashboard'); setPw('');
       try { localStorage.setItem('mn_admin_session', pw); } catch {}
-      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadUsers(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts(); loadHomeCats(); loadReviews(pw);
+      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadUsers(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts(); loadHomeCats(); loadReviews(pw); loadEbooks(pw);
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -983,6 +1119,9 @@ export default function AdminPage() {
       setReorderList([...accessories]);
     } else if (type === 'clothing') {
       setReorderList([...clothing]);
+    } else if (type === 'ebooks') {
+      const sorted = [...ebooks].sort((a,b)=>(a.order ?? new Date(a.createdAt).getTime()) - (b.order ?? new Date(b.createdAt).getTime()));
+      setReorderList(sorted);
     }
     setView('reorderView');
   }
@@ -1012,6 +1151,10 @@ export default function AdminPage() {
         const r = await fetch('/api/clothing/reorder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,ids:reorderList.map(c=>c.id)})});
         if (!r.ok) throw new Error((await r.json()).error||'Failed');
         showToast('✓ Clothing order saved!','success'); await loadClothing(); setView('dashboard'); setTab('clothing');
+      } else if (reorderType === 'ebooks') {
+        const r = await fetch('/api/ebooks/reorder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,slugs:reorderList.map(b=>b.slug)})});
+        if (!r.ok) throw new Error((await r.json()).error||'Failed');
+        showToast('✓ E-Book order saved!','success'); await loadEbooks(); setView('dashboard'); setTab('ebooks');
       }
     } catch(e) { showToast(e.message,'error'); }
     finally { setReorderSaving(false); }
@@ -1792,6 +1935,233 @@ export default function AdminPage() {
     </div>
   );
 
+  /* ── EBOOK EDITOR ── */
+  if (view==='ebookEditor') return (
+    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
+      <PageBackground subtle/>
+      <header style={{position:'sticky',top:0,zIndex:40,height:68,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,5vw,48px)',background:'rgba(250,249,245,0.92)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:14}}>
+          <Image src="/logo.png" alt="Logo" width={36} height={36} style={{height:36,width:'auto'}}/>
+          <div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332'}}>{editEbookSlug?'Edit E-Book':'Add New E-Book'}</div>
+            <div style={{fontSize:10,color:'#b8965a',letterSpacing:'1.5px',textTransform:'uppercase'}}>Admin Panel</div>
+          </div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <Btn variant="ghost" onClick={()=>setView('dashboard')}>← Dashboard</Btn>
+          <Btn onClick={saveEbook} disabled={loading}>{loading?'Saving…':editEbookSlug?'Save Changes':'Add E-Book'}</Btn>
+        </div>
+      </header>
+      <div style={{position:'relative',zIndex:1,maxWidth:900,margin:'0 auto',padding:'40px clamp(20px,5vw,48px) 80px',display:'flex',flexDirection:'column',gap:20}}>
+
+        {/* E-Book Information */}
+        <Card title="E-Book Information">
+          <div style={{marginBottom:16}}>
+            <Label>Title *</Label>
+            <FInput value={ebookForm.title} onChange={e=>ef('title',e.target.value)} placeholder="e.g. Sahih Al-Bukhari"/>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
+            <div><Label hint="Type name and press Enter or comma">Author(s)</Label><MultiTagInput value={ebookForm.author} onChange={val=>ef('author',val)} placeholder="e.g. Imam Al-Bukhari"/></div>
+            <div><Label hint="Type name and press Enter or comma">Translator(s)</Label><MultiTagInput value={ebookForm.translator} onChange={val=>ef('translator',val)} placeholder="e.g. Muhsin Khan"/></div>
+            <div><Label hint="Optional">Publisher</Label><FInput value={ebookForm.publisher} onChange={e=>ef('publisher',e.target.value)} placeholder="e.g. Darussalam"/></div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+            <div><Label hint="Optional · unique product code">SKU / Book Code</Label><FInput value={ebookForm.sku} onChange={e=>ef('sku',e.target.value)} placeholder="e.g. EPUB-001"/></div>
+            <div><Label>Language *</Label><TaxonomySelect value={ebookForm.language} onChange={e=>ef('language',e.target.value)} options={taxonomy.languages} onAddOption={v=>addTaxonomyOption('languages',v)}/></div>
+          </div>
+          <div>
+            <Label hint="Select one or more categories">Categories *</Label>
+            <TaxonomyMultiSelect
+              selected={ebookForm.categories || (ebookForm.category ? [ebookForm.category] : [])}
+              onChange={cats => {
+                setEbookForm(p => ({ ...p, categories: cats, category: cats[0] || '' }));
+              }}
+              options={taxonomy.categories}
+              onAddOption={v => addTaxonomyOption('categories', v)}
+            />
+          </div>
+        </Card>
+
+        {editEbookSlug && (
+          <Card title="URL Slug">
+            <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
+              This is the e-book's web address: yoursite.com/ebook/<b>{editEbookSlug}</b>. Changing it updates every link on the site automatically — but any old link already shared will stop working.
+            </p>
+            <div style={{display:'flex',gap:8}}>
+              <div style={{flex:1}}><FInput value={ebookSlugInput} onChange={e=>setEbookSlugInput(e.target.value.toLowerCase())} placeholder="ebook-slug"/></div>
+              <Btn onClick={renameEbookSlug} disabled={ebookSlugSaving || !ebookSlugInput.trim() || ebookSlugInput===editEbookSlug}>{ebookSlugSaving?'Saving…':'Change URL'}</Btn>
+            </div>
+          </Card>
+        )}
+
+        <Card title="Pricing & Availability">
+          <div style={{marginBottom:18,padding:'14px 18px',background:ebookForm.comingSoon?'rgba(184,150,90,0.09)':'rgba(27,67,50,0.03)',borderRadius:12,border:`1.5px solid ${ebookForm.comingSoon?'rgba(184,150,90,0.35)':'rgba(27,67,50,0.1)'}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+            <div style={{maxWidth:520}}>
+              <div style={{fontSize:13,fontWeight:600,color:ebookForm.comingSoon?'#b8965a':'#1b4332',display:'flex',alignItems:'center',gap:8}}>
+                <span>✦</span> Coming Soon E-Book
+              </div>
+              <div style={{fontSize:12,color:'#6b6460',marginTop:3,lineHeight:1.5}}>
+                Mark this as an upcoming release. <b>No price or stock required.</b> It will display with a "Coming Soon" badge.
+              </div>
+            </div>
+            <label onClick={()=>ef('comingSoon',!ebookForm.comingSoon)} style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',userSelect:'none'}}>
+              <div style={{width:46,height:26,borderRadius:13,background:ebookForm.comingSoon?'#b8965a':'rgba(27,67,50,0.18)',position:'relative',transition:'background .25s',flexShrink:0}}>
+                <div style={{position:'absolute',top:3,left:ebookForm.comingSoon?23:3,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left .25s',boxShadow:'0 1px 4px rgba(0,0,0,.2)'}}/>
+              </div>
+              <span style={{fontSize:12,fontWeight:600,color:ebookForm.comingSoon?'#b8965a':'#6b6460'}}>{ebookForm.comingSoon?'Coming Soon ON':'Coming Soon OFF'}</span>
+            </label>
+          </div>
+
+          {!ebookForm.comingSoon ? (
+            <>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
+                <div><Label hint="Optional · original / MRP">Actual Price (₹)</Label><FInput type="number" value={ebookForm.mrp} onChange={e=>ef('mrp',e.target.value)} placeholder="350" prefix="₹"/></div>
+                <div><Label>Sale Price (₹) *</Label><FInput type="number" value={ebookForm.price} onChange={e=>ef('price',e.target.value)} placeholder="299" prefix="₹"/></div>
+                <div><Label hint="Optional">Offer Type</Label>
+                  <TaxonomySelect value={ebookForm.offerType} onChange={e=>ef('offerType',e.target.value)} options={taxonomy.offerTypes} placeholder="None" onAddOption={v=>addTaxonomyOption('offerTypes',v)}/>
+                </div>
+                <div><Label hint="Exact pieces available">Stock Count *</Label><FInput type="number" min="0" value={ebookForm.stockCount} onChange={e=>ef('stockCount',e.target.value)} placeholder="50"/></div>
+              </div>
+              {(ebookForm.mrp || ebookForm.price) && (
+                <div style={{padding:'14px 16px',background:'rgba(27,67,50,0.04)',borderRadius:10,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+                  <span style={{fontSize:12,color:'#6b6460'}}>Preview:</span>
+                  {ebookForm.mrp && ebookForm.price && ebookForm.mrp > ebookForm.price && <span style={{fontSize:14,color:'#a09890',textDecoration:'line-through'}}>₹{Number(ebookForm.mrp).toLocaleString('en-IN')}</span>}
+                  {ebookForm.price && <span style={{fontSize:18,fontWeight:600,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif"}}>₹{Number(ebookForm.price||ebookForm.mrp).toLocaleString('en-IN')}</span>}
+                  {ebookForm.mrp && ebookForm.price && ebookForm.mrp > ebookForm.price && <span style={{fontSize:12,color:'#2d6a4f',background:'rgba(45,106,79,0.1)',padding:'3px 10px',borderRadius:10}}>{Math.round((1-ebookForm.price/ebookForm.mrp)*100)}% off</span>}
+                  {ebookForm.offerType && <OfferBadge type={ebookForm.offerType}/>}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{padding:'14px 16px',background:'rgba(184,150,90,0.06)',borderRadius:10,border:'1px dashed rgba(184,150,90,0.3)',fontSize:12,color:'#6b6460',display:'flex',alignItems:'center',gap:10}}>
+              <span style={{color:'#b8965a',fontSize:16}}>✦</span>
+              <span>This e-book will not display any price or add-to-cart button. Visitors will see "Coming Soon".</span>
+            </div>
+          )}
+        </Card>
+
+        <Card title="E-Book Details">
+          <div style={{marginBottom:16}}>
+            <Label hint="Optional · separate paragraphs with a blank line · **bold** and *italic* supported">Short Description</Label>
+            <textarea value={ebookForm.description} onChange={e=>ef('description',e.target.value)} placeholder="2–3 lines about what this e-book covers…" rows={3}
+              style={{width:'100%',padding:'12px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',resize:'vertical',lineHeight:1.65,transition:'border-color .2s'}}
+              onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
+            {ebookForm.description && ebookForm.description.trim() ? (
+              <div style={{marginTop:10,padding:'12px 14px',background:'rgba(27,67,50,0.03)',borderRadius:10,border:'1px solid rgba(27,67,50,0.1)'}}>
+                <div style={{fontSize:10,letterSpacing:'1.5px',textTransform:'uppercase',color:'#b8965a',fontWeight:600,marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+                  <span>✦</span> Formatted Preview
+                </div>
+                {renderDescription(ebookForm.description, { fontSize: 14.5, lineHeight: 1.6 })}
+              </div>
+            ) : null}
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
+            <div><Label>Binding *</Label><FSelect value={ebookForm.binding} onChange={e=>ef('binding',e.target.value)} options={BINDINGS} placeholder="— Select —"/></div>
+            <div><Label hint="Optional">Volumes</Label><FInput type="number" value={ebookForm.volumes} onChange={e=>ef('volumes',e.target.value)}/></div>
+            <div><Label hint="Optional">Pages</Label><FInput type="number" value={ebookForm.pages} onChange={e=>ef('pages',e.target.value)} placeholder="480"/></div>
+          </div>
+        </Card>
+
+        <Card title="Cover Image">
+          <div style={{display:'flex',gap:8,marginBottom:14}}>
+            {['url','upload'].map(m=>(
+              <button key={m} onClick={()=>setEbookImgMode(m)} style={{padding:'7px 18px',borderRadius:20,border:`1.5px solid ${ebookImgMode===m?'#1b4332':'rgba(27,67,50,0.15)'}`,background:ebookImgMode===m?'rgba(27,67,50,0.07)':'transparent',color:ebookImgMode===m?'#1b4332':'#6b6460',fontSize:12,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+                {m==='url'?'Paste URL':'Upload Image'}
+              </button>
+            ))}
+          </div>
+          {ebookImgMode==='url'
+            ? <FInput value={ebookForm.coverUrl.startsWith('data:')?'':ebookForm.coverUrl} onChange={e=>{ef('coverUrl',e.target.value); ef('coverThumb','');}} placeholder="https://… (image URL)"/>
+            : (
+              <div onClick={()=>ebookFileRef.current?.click()} style={{border:`2px dashed rgba(27,67,50,0.15)`,borderRadius:12,padding:ebookForm.coverUrl?0:32,textAlign:'center',cursor:'pointer',overflow:'hidden',background:'#faf9f5'}} onMouseEnter={e=>e.currentTarget.style.borderColor='#1b4332'} onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(27,67,50,0.15)'}>
+                {ebookForm.coverUrl?<img src={ebookForm.coverUrl} alt="Preview" style={{width:'100%',maxHeight:240,objectFit:'contain',borderRadius:10}} loading="lazy"/>:<><div style={{fontSize:13,color:'#6b6460',marginBottom:6}}>Click to upload cover image</div><div style={{fontSize:11,color:'#a09890'}}>JPG or PNG</div></>}
+                <input ref={ebookFileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleEbookImg}/>
+              </div>
+            )
+          }
+          {ebookForm.coverUrl && <button onClick={()=>{ef('coverUrl',''); ef('coverThumb','');}} style={{marginTop:8,fontSize:11,color:'#a09890',background:'none',border:'none',cursor:'pointer',padding:0}}>✕ Remove image</button>}
+        </Card>
+
+        <Card title={`Additional Images (${(ebookForm.gallery || []).length})`}>
+          <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 16px',lineHeight:1.6}}>
+            Upload multiple photos. These will show as clickable preview thumbnails on the product page.
+          </p>
+          <div style={{display:'flex',gap:8,marginBottom:14}}>
+            {['upload','url'].map(m=>(
+              <button key={m} onClick={()=>setEbookGalleryImgMode(m)} style={{padding:'7px 18px',borderRadius:20,border:`1.5px solid ${ebookGalleryImgMode===m?'#1b4332':'rgba(27,67,50,0.15)'}`,background:ebookGalleryImgMode===m?'rgba(27,67,50,0.07)':'transparent',color:ebookGalleryImgMode===m?'#1b4332':'#6b6460',fontSize:12,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+                {m==='upload'?'Upload Photos (Multiple)':'Paste Image URL'}
+              </button>
+            ))}
+          </div>
+
+          {ebookGalleryImgMode==='upload' ? (
+            <div onClick={()=>ebookGalleryFileRef.current?.click()} style={{border:'2px dashed rgba(27,67,50,0.18)',borderRadius:12,padding:'28px 20px',textAlign:'center',cursor:'pointer',background:'#faf9f5',transition:'border-color .2s'}} onMouseEnter={e=>e.currentTarget.style.borderColor='#1b4332'} onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(27,67,50,0.18)'}>
+              <div style={{fontSize:24,color:'#1b4332',marginBottom:6}}>📸</div>
+              <div style={{fontSize:13,fontWeight:500,color:'#1b4332',marginBottom:4}}>Click to upload multiple images</div>
+              <div style={{fontSize:11,color:'#a09890'}}>Select 1 or more images (JPG or PNG)</div>
+              <input ref={ebookGalleryFileRef} type="file" accept="image/*" multiple style={{display:'none'}} onChange={handleEbookGalleryFiles}/>
+            </div>
+          ) : (
+            <div style={{display:'flex',gap:8,marginBottom:8}}>
+              <div style={{flex:1}}>
+                <FInput value={ebookGalleryInput} onChange={e=>setEbookGalleryInput(e.target.value)} placeholder="https://… (additional image URL)"/>
+              </div>
+              <button onClick={()=>{addEbookGalleryUrl(ebookGalleryInput);setEbookGalleryInput('');}} style={{padding:'0 20px',borderRadius:10,border:'none',background:'#1b4332',color:'#fff',fontSize:12,cursor:'pointer',flexShrink:0}}>+ Add</button>
+            </div>
+          )}
+
+          {ebookForm.gallery?.length > 0 && (
+            <div style={{marginTop:20}}>
+              <Label hint="Drag or use arrows to adjust order.">Uploaded Photos ({ebookForm.gallery.length})</Label>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(110px,1fr))',gap:12,marginTop:8}}>
+                {ebookForm.gallery.map((url,idx) => (
+                  <div key={idx} style={{position:'relative',borderRadius:10,overflow:'hidden',border:'1.5px solid rgba(27,67,50,0.15)',background:'#f3f1ea',aspectRatio:'3/4',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+                    <img src={url} alt={`Photo ${idx+1}`} style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>
+                    <span style={{position:'absolute',top:4,left:4,background:'rgba(27,67,50,0.85)',color:'#fff',fontSize:10,fontWeight:600,padding:'2px 6px',borderRadius:6}}>#{idx+1}</span>
+                    <button onClick={()=>removeEbookGalleryUrl(idx)} title="Delete photo" style={{position:'absolute',top:4,right:4,width:22,height:22,borderRadius:'50%',border:'none',background:'rgba(180,40,40,0.85)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                    <div style={{position:'absolute',bottom:4,right:4,display:'flex',gap:4}}>
+                      <button onClick={()=>moveEbookGalleryUrl(idx,idx-1)} disabled={idx===0} title="Move left" style={{width:20,height:20,borderRadius:4,border:'none',background:'rgba(0,0,0,0.65)',color:idx===0?'#888':'#fff',fontSize:10,cursor:idx===0?'default':'pointer'}}>◀</button>
+                      <button onClick={()=>moveEbookGalleryUrl(idx,idx+1)} disabled={idx===ebookForm.gallery.length-1} title="Move right" style={{width:20,height:20,borderRadius:4,border:'none',background:'rgba(0,0,0,0.65)',color:idx===ebookForm.gallery.length-1?'#888':'#fff',fontSize:10,cursor:idx===ebookForm.gallery.length-1?'default':'pointer'}}>▶</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+
+        <Card title="Tags & Visibility">
+          <div style={{marginBottom:20}}>
+            <Label>Tags</Label>
+            <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:4}}>
+              {TAGS.map(t=>(
+                <label key={t} onClick={()=>toggleEbookTag(t)} style={{padding:'7px 16px',borderRadius:20,border:`1.5px solid ${ebookForm.tags.includes(t)?'#1b4332':'rgba(27,67,50,0.15)'}`,background:ebookForm.tags.includes(t)?'rgba(27,67,50,0.07)':'transparent',color:ebookForm.tags.includes(t)?'#1b4332':'#6b6460',fontSize:12,cursor:'pointer',userSelect:'none'}}>
+                  {t}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div style={{paddingTop:16,borderTop:'1px solid rgba(27,67,50,0.07)'}}>
+            <Label hint="Hidden e-books stay in your catalog but won't appear in the storefront's collection or search.">Storefront Visibility</Label>
+            <label onClick={()=>ef('visible',!ebookForm.visible)} style={{display:'flex',alignItems:'center',gap:12,cursor:'pointer',width:'fit-content',marginTop:6}}>
+              <div style={{width:44,height:26,borderRadius:13,background:ebookForm.visible?'#1b4332':'rgba(27,67,50,0.15)',position:'relative',transition:'background .25s',flexShrink:0}}>
+                <div style={{position:'absolute',top:3,left:ebookForm.visible?20:3,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left .25s',boxShadow:'0 1px 4px rgba(0,0,0,.2)'}}/>
+              </div>
+              <span style={{fontSize:14,color:ebookForm.visible?'#1b4332':'#6b6460'}}>{ebookForm.visible?'Visible (shown on site)':'Hidden (unlisted)'}</span>
+            </label>
+          </div>
+        </Card>
+
+        <div style={{display:'flex',gap:10,paddingTop:8}}>
+          <Btn variant="ghost" onClick={()=>setView('dashboard')}>Cancel</Btn>
+          <Btn onClick={saveEbook} disabled={loading}>{loading?'Saving…':editEbookSlug?'Save Changes':'Add E-Book'}</Btn>
+        </div>
+      </div>
+      <Toast t={toast}/>
+    </div>
+  );
+
+
   /* ── BUNDLE EDITOR ── */
   if (view==='bundleEditor') return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
@@ -2419,9 +2789,12 @@ export default function AdminPage() {
           {tab==='bundles' && <Btn variant="ghost" onClick={()=>openReorder('bundles')}>⠿ Reorder</Btn>}
           {tab==='accessories' && <Btn variant="ghost" onClick={()=>openReorder('accessories')}>⠿ Reorder</Btn>}
           {tab==='clothing' && <Btn variant="ghost" onClick={()=>openReorder('clothing')}>⠿ Reorder</Btn>}
+          {tab==='ebooks' && <Btn variant="ghost" onClick={()=>openReorder('ebooks')}>⠿ Reorder</Btn>}
           {tab==='books'
             ? <Btn onClick={()=>{setEditSlug(null);setForm(EMPTY_BOOK);setImgMode('url');setView('bookEditor');}}>+ Add Book</Btn>
-            : tab==='bundles'
+            : tab==='ebooks'
+              ? <Btn onClick={()=>{setEditEbookSlug(null);setEbookForm(EMPTY_EBOOK);setEbookImgMode('url');setEbookGalleryImgMode('upload');setEbookGalleryInput('');setView('ebookEditor');}}>+ Add E-Book</Btn>
+              : tab==='bundles'
               ? <Btn onClick={()=>{setEditBundleId(null);setBundleForm(EMPTY_BUNDLE);setBundleBookSearch('');setBundleBookPage(1);setView('bundleEditor');}}>+ Create Bundle</Btn>
               : tab==='slides'
                 ? <Btn onClick={()=>{setEditSlideId(null);setSlideForm(EMPTY_SLIDE);setSlideImgMode('url');setView('slideEditor');}}>+ Add Slide</Btn>
@@ -2453,7 +2826,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content',flexWrap:'wrap'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length}${orders.filter(o=>getOrderStatus(o)==='pending').length>0?` · ${orders.filter(o=>getOrderStatus(o)==='pending').length} pending`:''})`},{id:'reviews',label:`Reviews (${reviews.length}${pendingReviews.length>0?` · ${pendingReviews.length} pending`:''})`},{id:'users',label:`Customers & Interests (${users.length})`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'ebooks',label:`E-Books (${ebooks.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length}${orders.filter(o=>getOrderStatus(o)==='pending').length>0?` · ${orders.filter(o=>getOrderStatus(o)==='pending').length} pending`:''})`},{id:'reviews',label:`Reviews (${reviews.length}${pendingReviews.length>0?` · ${pendingReviews.length} pending`:''})`},{id:'users',label:`Customers & Interests (${users.length})`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif"}}>
               {t.label}
             </button>
@@ -2546,7 +2919,10 @@ export default function AdminPage() {
                       )}
                       {views[b.slug] > 0 && <div style={{fontSize:10,color:'#a09890',marginTop:2}}>👁 {views[b.slug]} views</div>}
                     </div>
-                    <div style={{display:'flex',gap:6,flexShrink:0}}>
+                    <div style={{display:'flex',gap:6,flexShrink:0,flexWrap:'wrap',alignItems:'center'}}>
+                      <button onClick={()=>copyBookToEbook(b)} style={{padding:'5px 10px',borderRadius:20,border:'1.5px solid rgba(184,150,90,0.3)',background:'rgba(184,150,90,0.07)',color:'#b8965a',fontSize:10,cursor:'pointer',letterSpacing:.5,textTransform:'uppercase',transition:'all .2s',flexShrink:0,whiteSpace:'nowrap'}} title="Copy all details to a new E-Book">
+                        Copy to E-Book
+                      </button>
                       <button onClick={()=>toggleBookVisible(b.slug,b.visible===false)} style={{padding:'5px 12px',borderRadius:20,border:`1.5px solid ${b.visible!==false?'rgba(45,106,79,0.3)':'rgba(27,67,50,0.15)'}`,background:b.visible!==false?'rgba(45,106,79,0.07)':'transparent',color:b.visible!==false?'#2d6a4f':'#6b6460',fontSize:10,cursor:'pointer',letterSpacing:.8,textTransform:'uppercase',transition:'all .2s',flexShrink:0}}>
                         {b.visible!==false?'Visible':'Hidden'}
                       </button>
@@ -2572,6 +2948,102 @@ export default function AdminPage() {
             )}
           </div>
         )}
+
+        {/* E-BOOKS LIST */}
+        {tab==='ebooks' && (
+          <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
+            <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap'}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:'#1b4332'}}>E-Book Collection</div>
+              <div style={{position:'relative',maxWidth:260}}>
+                <svg style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',width:14,height:14,color:'#a09890'}} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input type="text" placeholder="Search e-books…" value={ebookSearch} onChange={e=>{setEbookSearch(e.target.value);setEbookPage(1);}}
+                  style={{width:'100%',padding:'8px 14px 8px 36px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.1)',borderRadius:30,fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'#1a1712',outline:'none'}}/>
+              </div>
+            </div>
+            {ebooks.length===0 ? (
+              <div style={{textAlign:'center',padding:'60px 24px'}}>
+                <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:56,color:'rgba(27,67,50,0.08)',marginBottom:12}}>الكتب</div>
+                <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:'0 0 20px'}}>No e-books yet.</p>
+                <Btn onClick={()=>{setEditEbookSlug(null);setEbookForm(EMPTY_EBOOK);setEbookImgMode('url');setEbookGalleryImgMode('upload');setEbookGalleryInput('');setView('ebookEditor');}}>+ Add First E-Book</Btn>
+              </div>
+            ) : (() => {
+              const q = ebookSearch.trim().toLowerCase();
+              const filtered = q ? ebooks.filter(b=>b.title?.toLowerCase().includes(q)||b.author?.toLowerCase().includes(q)) : ebooks;
+              const EBOOK_PAGE_SIZE = 20;
+              const totalEbookPages = Math.max(1,Math.ceil(filtered.length/EBOOK_PAGE_SIZE));
+              const pagedEbooks = filtered.slice((ebookPage-1)*EBOOK_PAGE_SIZE, ebookPage*EBOOK_PAGE_SIZE);
+              return (
+                <div>
+                  {pagedEbooks.map((b,i)=>(
+                    <div key={b.slug} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 24px',borderBottom:i<pagedEbooks.length-1?'1px solid rgba(27,67,50,0.05)':'none',transition:'background .15s'}}
+                      onMouseEnter={e=>e.currentTarget.style.background='rgba(27,67,50,0.02)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <div style={{width:40,height:54,borderRadius:5,overflow:'hidden',flexShrink:0,background:'linear-gradient(155deg,#2d6a4f,#1b4332)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        {b.coverUrl?<img src={b.coverUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} loading="lazy"/>:<span style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:16,color:'#d4ab70'}}>ك</span>}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,flexWrap:'wrap'}}>
+                          <span style={{fontSize:14,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:240}}>{b.title}</span>
+                          {b.comingSoon && <span style={{fontSize:9,color:'#fff',background:'#b8965a',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase',fontWeight:600}}>Coming Soon</span>}
+                          {b.sku && <span style={{fontSize:9,color:'#a09890',background:'rgba(27,67,50,0.05)',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase'}}>{b.sku}</span>}
+                          {b.offerType && <OfferBadge type={b.offerType}/>}
+                          {b.visible === false && <span style={{fontSize:9,color:'#a09890',background:'rgba(0,0,0,0.06)',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase'}}>Hidden</span>}
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                          {getBookCategories(b).map(c=>(
+                            <span key={c} style={{padding:'2px 10px',background:'rgba(27,67,50,0.07)',borderRadius:10,fontSize:9,color:'#1b4332',fontWeight:500,letterSpacing:.8,textTransform:'uppercase'}}>{c}</span>
+                          ))}
+                          <span style={{fontSize:11,color:'#a09890'}}>{b.language}</span>
+                          {b.author && <span style={{fontSize:11,color:'#a09890'}}>{b.author}</span>}
+                        </div>
+                      </div>
+                      <div style={{textAlign:'right',flexShrink:0,minWidth:100}}>
+                        {b.comingSoon ? (
+                          <div style={{fontSize:13,color:'#b8965a',fontWeight:600}}>Coming Soon</div>
+                        ) : (
+                          <>
+                            {b.mrp && b.price && b.mrp > b.price && <div style={{fontSize:11,color:'#a09890',textDecoration:'line-through'}}>₹{Number(b.mrp).toLocaleString('en-IN')}</div>}
+                            {(b.price||b.mrp) && <div style={{fontSize:14,color:'#1b4332',fontWeight:500}}>₹{Number(b.price||b.mrp).toLocaleString('en-IN')}</div>}
+                          </>
+                        )}
+                      </div>
+                      <div style={{flexShrink:0}}>
+                        {b.comingSoon ? (
+                          <div style={{fontSize:11,fontWeight:500,color:'#b8965a',marginBottom:2}}>Coming Soon</div>
+                        ) : (
+                          <>
+                            <div style={{fontSize:11,fontWeight:500,color:b.inStock?'#2d6a4f':'#b44',marginBottom:2}}>{b.inStock?'In Stock':'Out'}</div>
+                            {b.stockCount !== undefined && <div style={{fontSize:10,color:'#a09890'}}>{b.stockCount} units</div>}
+                          </>
+                        )}
+                      </div>
+                      <div style={{display:'flex',gap:6,flexShrink:0}}>
+                        <button onClick={()=>toggleEbookVisible(b.slug,b.visible===false)} style={{padding:'5px 12px',borderRadius:20,border:`1.5px solid ${b.visible!==false?'rgba(45,106,79,0.3)':'rgba(27,67,50,0.15)'}`,background:b.visible!==false?'rgba(45,106,79,0.07)':'transparent',color:b.visible!==false?'#2d6a4f':'#6b6460',fontSize:10,cursor:'pointer',letterSpacing:.8,textTransform:'uppercase',transition:'all .2s',flexShrink:0}}>
+                          {b.visible!==false?'Visible':'Hidden'}
+                        </button>
+                        <button onClick={()=>openEditEbook(b.slug)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',color:'#6b6460',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .2s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(27,67,50,0.07)';e.currentTarget.style.color='#1b4332';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#6b6460';}}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
+                        </button>
+                        <button onClick={()=>delEbook(b.slug)} style={{width:32,height:32,borderRadius:8,border:'1.5px solid rgba(27,67,50,0.12)',background:'transparent',color:'#6b6460',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .2s'}} onMouseEnter={e=>{e.currentTarget.style.background='rgba(180,60,60,0.07)';e.currentTarget.style.color='#b44';}} onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.color='#6b6460';}}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {totalEbookPages > 1 && (
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'18px 24px'}}>
+                      <button onClick={()=>setEbookPage(p=>Math.max(1,p-1))} disabled={ebookPage===1}
+                        style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:ebookPage===1?'#c9c4be':'#1b4332',fontSize:12,cursor:ebookPage===1?'default':'pointer'}}>← Prev</button>
+                      <span style={{fontSize:12,color:'#6b6460'}}>Page {ebookPage} of {totalEbookPages}</span>
+                      <button onClick={()=>setEbookPage(p=>Math.min(totalEbookPages,p+1))} disabled={ebookPage===totalEbookPages}
+                        style={{padding:'6px 14px',borderRadius:20,border:'1.5px solid rgba(27,67,50,0.15)',background:'transparent',color:ebookPage===totalEbookPages?'#c9c4be':'#1b4332',fontSize:12,cursor:ebookPage===totalEbookPages?'default':'pointer'}}>Next →</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
 
         {/* BUNDLES LIST */}
         {tab==='bundles' && (
@@ -3005,10 +3477,11 @@ export default function AdminPage() {
               const refMatch = (o.orderRef || '').toLowerCase().includes(q);
               const nameMatch = (o.name || o.username || '').toLowerCase().includes(q);
               const phoneMatch = (o.phone || '').toLowerCase().includes(q);
+              const emailMatch = (o.email || '').toLowerCase().includes(q);
               const noteMatch = (o.adminNote || '').toLowerCase().includes(q);
               const addrMatch = [o.address, o.city, o.state, o.pincode].filter(Boolean).join(' ').toLowerCase().includes(q);
               const itemsMatch = (o.items || []).some(it => (it.title || '').toLowerCase().includes(q));
-              return refMatch || nameMatch || phoneMatch || noteMatch || addrMatch || itemsMatch;
+              return refMatch || nameMatch || phoneMatch || emailMatch || noteMatch || addrMatch || itemsMatch;
             }
             return true;
           });
@@ -3158,6 +3631,7 @@ export default function AdminPage() {
                               {o.username && <span style={{fontSize:11,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>👤 {o.username}</span>}
                               {o.name && <span style={{fontSize:11,color:'#6b6460',background:'#f3f1ea',padding:'2px 8px',borderRadius:8}}>🪪 {o.name}</span>}
                               {o.phone && <span style={{fontSize:11,color:'#6b6460',background:'#f3f1ea',padding:'2px 8px',borderRadius:8}}>📞 {o.phone}</span>}
+                              {o.email && <span style={{fontSize:11,color:'#6b6460',background:'#f3f1ea',padding:'2px 8px',borderRadius:8}}>✉️ {o.email}</span>}
                               {o.pincode && <span style={{fontSize:10,color:'#1b4332',background:'rgba(27,67,50,0.08)',padding:'2px 8px',borderRadius:8,fontWeight:500}}>📍 {o.pincode}</span>}
                               <span style={{fontSize:11,color:'#a09890'}}>{new Date(o.createdAt).toLocaleString('en-IN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
                             </div>
@@ -3876,6 +4350,7 @@ export default function AdminPage() {
                               {u.name && <span>👤 Name: <b style={{color:'#1a1712'}}>{u.name}</b></span>}
                               {u.phone && <span>📞 Phone: <b style={{color:'#1a1712'}}>{u.phone}</b></span>}
                               {u.whatsapp && <span>💬 WhatsApp: <b style={{color:'#1a1712'}}>{u.whatsapp}</b></span>}
+                              {u.email && <span>✉️ Email: <b style={{color:'#1a1712'}}>{u.email}</b></span>}
                               <span>Registered: {new Date(u.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                             </div>
                             {u.address && (

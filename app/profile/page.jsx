@@ -16,6 +16,7 @@ export default function ProfilePage() {
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [email, setEmail] = useState('');
   const [selectedCats, setSelectedCats] = useState([]);
   const [availableCats, setAvailableCats] = useState(DEFAULT_CATEGORIES);
 
@@ -46,6 +47,7 @@ export default function ProfilePage() {
       setAddress(user.address || '');
       setPhone(user.phone || '');
       setWhatsapp(user.whatsapp || '');
+      setEmail(user.email || '');
       setSelectedCats(user.interestedCategories || []);
     }
   }, [user]);
@@ -88,6 +90,7 @@ export default function ProfilePage() {
         address: address.trim(),
         phone: phone.trim(),
         whatsapp: whatsapp.trim(),
+        email: email.trim(),
         interestedCategories: selectedCats,
       });
       setProfileMsg({ text: 'Profile updated successfully!', type: 'success' });
@@ -297,6 +300,29 @@ export default function ProfilePage() {
                   value={whatsapp}
                   onChange={e => setWhatsapp(e.target.value)}
                   placeholder="e.g. +91 98765 43210"
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    background: '#faf9f5',
+                    border: '1.5px solid rgba(27,67,50,0.12)',
+                    borderRadius: 10,
+                    fontSize: 14,
+                    color: '#1a1712',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#1b4332', marginBottom: 6 }}>
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="e.g. yourname@example.com"
                   style={{
                     width: '100%',
                     padding: '11px 14px',

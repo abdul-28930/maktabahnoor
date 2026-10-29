@@ -31,6 +31,7 @@ function buildWhatsAppMessage(items, orderRef, coupon, delivery) {
     `\n*Delivery Details:*\n` +
     `Name: ${delivery.name}\n` +
     `Phone: ${delivery.phone}\n` +
+    `Email: ${delivery.email}\n` +
     `Address: ${delivery.address}\n` +
     `City: ${delivery.city}\n` +
     `State: ${delivery.state}\n` +
@@ -69,6 +70,7 @@ export default function CartPage() {
   // Delivery fields
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [country, setCountry] = useState('India');
   const [state, setState] = useState('');
@@ -83,6 +85,7 @@ export default function CartPage() {
     if (user) {
       if (user.name)     setName(user.name);
       if (user.phone)    setPhone(user.phone);
+      if (user.email)    setEmail(user.email);
       if (user.address)  setAddress(user.address);
       if (user.country)  setCountry(user.country);
       if (user.state)    setState(user.state);
@@ -115,6 +118,8 @@ export default function CartPage() {
     const errors = {};
     if (!name.trim())    errors.name    = 'Full name is required.';
     if (!phone.trim())   errors.phone   = 'Phone number is required.';
+    if (!email.trim())   errors.email   = 'Email address is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errors.email = 'Please enter a valid email address.';
     if (!address.trim()) errors.address = 'Address is required.';
     if (!country.trim()) errors.country = 'Country is required.';
     if (!state.trim())   errors.state   = 'State is required.';
@@ -131,6 +136,7 @@ export default function CartPage() {
     const delivery = {
       name: name.trim(),
       phone: phone.trim(),
+      email: email.trim(),
       address: address.trim(),
       country: country.trim(),
       state: state.trim(),
@@ -149,6 +155,7 @@ export default function CartPage() {
         await updateProfile({
           name:    delivery.name,
           phone:   delivery.phone,
+          email:   delivery.email,
           address: delivery.address,
           country: delivery.country,
           state:   delivery.state,
@@ -384,6 +391,13 @@ export default function CartPage() {
                     <input type="tel" value={phone} onChange={e => { setPhone(e.target.value); setFieldErrors(p => ({ ...p, phone: '' })); }}
                       placeholder="e.g. +91 98765 43210" style={fieldStyle('phone')} />
                     {fieldErrors.phone && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.phone}</div>}
+                  </div>
+
+                  <div>
+                    <label style={label}>Email Address <span style={{ color: '#dc2626' }}>*</span></label>
+                    <input type="email" value={email} onChange={e => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: '' })); }}
+                      placeholder="e.g. yourname@example.com" style={fieldStyle('email')} />
+                    {fieldErrors.email && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.email}</div>}
                   </div>
 
                   <div>
