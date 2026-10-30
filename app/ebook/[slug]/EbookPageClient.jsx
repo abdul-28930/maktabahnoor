@@ -84,7 +84,6 @@ export default function EbookPageClient() {
   const ar = CAT_AR[primaryCat] || 'كتاب';
   const specs = [
     ebook.binding    && { label:'Binding',    val:ebook.binding },
-    ebook.volumes    && { label:'Volumes',    val:ebook.volumes===1?'Single Volume':`${ebook.volumes} Volumes` },
     ebook.pages > 0  && { label:'Pages',      val:ebook.pages },
     ebook.language   && { label:'Language',   val:ebook.language },
     cats.length > 0  && { label: cats.length > 1 ? 'Categories' : 'Category', val: cats.join(', ') },
@@ -262,31 +261,23 @@ export default function EbookPageClient() {
             </div>
           ) : null}
 
-          {/* Stock badge */}
-          {(() => {
-            if (ebook.comingSoon) {
-              return (
-                <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 20px',borderRadius:30,marginBottom:28,
-                  background:'rgba(184,150,90,0.1)',border:'1px solid rgba(184,150,90,0.3)',
-                  color:'#b8965a',fontSize:12,fontWeight:600,letterSpacing:1,textTransform:'uppercase'}}>
-                  <span style={{width:7,height:7,borderRadius:'50%',background:'currentColor'}}/>
-                  Coming Soon
-                </div>
-              );
-            }
-            const isOut = ebook.stockCount !== undefined && ebook.stockCount !== null ? ebook.stockCount <= 0 : !ebook.inStock;
-            const isLow = !isOut && ebook.stockCount !== undefined && ebook.stockCount !== null && ebook.stockCount <= 5;
-            const urgent = isOut || isLow;
-            return (
-              <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 20px',borderRadius:30,marginBottom:28,
-                background:urgent?'rgba(192,57,43,0.08)':'rgba(27,67,50,0.08)',
-                border:`1px solid ${urgent?'rgba(192,57,43,0.25)':'rgba(27,67,50,0.2)'}`,
-                color:urgent?'#c0392b':'#1b4332',fontSize:12,fontWeight:600,letterSpacing:1,textTransform:'uppercase'}}>
-                <span style={{width:7,height:7,borderRadius:'50%',background:'currentColor'}}/>
-                {isOut ? 'Out of Stock' : isLow ? `Only ${ebook.stockCount} left!` : 'In Stock'}
-              </div>
-            );
-          })()}
+          {/* Badge */}
+          {ebook.comingSoon ? (
+            <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 20px',borderRadius:30,marginBottom:28,
+              background:'rgba(184,150,90,0.1)',border:'1px solid rgba(184,150,90,0.3)',
+              color:'#b8965a',fontSize:12,fontWeight:600,letterSpacing:1,textTransform:'uppercase'}}>
+              <span style={{width:7,height:7,borderRadius:'50%',background:'currentColor'}}/>
+              Coming Soon
+            </div>
+          ) : (
+            <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 20px',borderRadius:30,marginBottom:28,
+              background:'rgba(27,67,50,0.08)',
+              border:'1px solid rgba(27,67,50,0.2)',
+              color:'#1b4332',fontSize:12,fontWeight:600,letterSpacing:1,textTransform:'uppercase'}}>
+              <span style={{width:7,height:7,borderRadius:'50%',background:'currentColor'}}/>
+              Digital E-Book
+            </div>
+          )}
 
           {ebook.description && (
             <div style={{marginBottom:36,paddingBottom:36,borderBottom:'1px solid rgba(27,67,50,0.08)'}}>
@@ -331,31 +322,16 @@ export default function EbookPageClient() {
                 Inquire / Notify Me on WhatsApp
               </a>
             ) : (
-              <>
-                {/* Quantity stepper */}
-                {ebook.inStock !== false && !isInCart(ebook.slug) && (
-                  <div style={{display:'flex',alignItems:'center',border:'1.5px solid rgba(27,67,50,0.15)',borderRadius:40,overflow:'hidden'}}>
-                    <button onClick={()=>setQty(q=>Math.max(1,q-1))} aria-label="Decrease quantity"
-                      style={{width:40,height:48,border:'none',background:'transparent',color:'#1b4332',fontSize:18,cursor:'pointer'}}>−</button>
-                    <span style={{minWidth:32,textAlign:'center',fontSize:15,color:'#1a1712'}}>{qty}</span>
-                    <button onClick={()=>setQty(q=>ebook.stockCount>0?Math.min(ebook.stockCount,q+1):q+1)} aria-label="Increase quantity"
-                      style={{width:40,height:48,border:'none',background:'transparent',color:'#1b4332',fontSize:18,cursor:'pointer'}}>+</button>
-                  </div>
+              <button
+                className={`book-add-to-cart book-add-to-cart--lg${isInCart(ebook.slug)?' book-add-to-cart--in':''}`}
+                onClick={() => { addToCart({ ...ebook, itemType: 'ebook' }, 1); }}
+              >
+                {isInCart(ebook.slug) ? (
+                  <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added to Cart</>
+                ) : (
+                  <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
                 )}
-                {/* Add to Cart */}
-                {ebook.inStock !== false && (
-                  <button
-                    className={`book-add-to-cart book-add-to-cart--lg${isInCart(ebook.slug)?' book-add-to-cart--in':''}`}
-                    onClick={() => { addToCart({ ...ebook, itemType: 'ebook' }, qty); setQty(1); }}
-                  >
-                    {isInCart(ebook.slug) ? (
-                      <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added to Cart</>
-                    ) : (
-                      <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
-                    )}
-                  </button>
-                )}
-              </>
+              </button>
             )}
             <button
               onClick={() => toggleWishlist(ebook)}

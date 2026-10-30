@@ -78,7 +78,6 @@ function GridCard({ book, idx }) {
         ) : tag==='New Arrival' ? (
           <div style={{position:'absolute',top:16,right:-34,width:130,transform:'rotate(45deg)',background:'#1b4332',color:'#fff',fontSize:9,fontWeight:600,letterSpacing:1.2,textTransform:'uppercase',textAlign:'center',padding:'4px 0',boxShadow:'0 2px 6px rgba(0,0,0,0.2)',zIndex:2}}>New Arrival</div>
         ) : null}
-        {!book.comingSoon && (book.stockCount ?? (book.inStock ? 1 : 0)) <= 0 && <div style={{position:'absolute',inset:0,background:'rgba(250,249,245,0.65)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{padding:'6px 14px',background:'#1a1712',color:'#fff',fontSize:9,letterSpacing:1.5,textTransform:'uppercase',borderRadius:20}}>Out of Stock</span></div>}
       </div>
 
       <div style={{padding:'18px 20px 20px',display:'flex',flexDirection:'column',flex:1}}>
@@ -107,25 +106,18 @@ function GridCard({ book, idx }) {
               Coming Soon
             </div>
           ) : (
-            <>
-              {(book.stockCount > 0 && book.stockCount <= 5) && (
-                <div style={{fontSize:11,fontWeight:700,color:'#c0392b',letterSpacing:.2}}>Only <strong>{book.stockCount}</strong> left</div>
+            <button
+              className={`book-add-to-cart${inCart ? ' book-add-to-cart--in' : ''}`}
+              onClick={handleAddToCart}
+              style={{marginTop:0,width:'100%',padding:'6px 10px',fontSize:11,height:32}}
+              aria-label={inCart ? 'Already in cart' : `Add ${book.title} to cart`}
+            >
+              {inCart ? (
+                <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added</>
+              ) : (
+                <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
               )}
-              {(book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
-                <button
-                  className={`book-add-to-cart${inCart ? ' book-add-to-cart--in' : ''}`}
-                  onClick={handleAddToCart}
-                  style={{marginTop:0,width:'100%',padding:'6px 10px',fontSize:11,height:32}}
-                  aria-label={inCart ? 'Already in cart' : `Add ${book.title} to cart`}
-                >
-                  {inCart ? (
-                    <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added</>
-                  ) : (
-                    <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add to Cart</>
-                  )}
-                </button>
-              )}
-            </>
+            </button>
           )}
         </div>
       </div>
@@ -180,15 +172,7 @@ function ListCard({ book }) {
             </>
           )}
         </div>
-        {!book.comingSoon && (book.stockCount ?? (book.inStock ? 1 : 0)) <= 0 && (
-          <span style={{padding:'3px 10px',borderRadius:20,fontSize:9,fontWeight:500,letterSpacing:.8,textTransform:'uppercase',background:'rgba(180,60,60,0.07)',color:'#b44',border:'1px solid rgba(180,60,60,0.15)'}}>
-            Out of Stock
-          </span>
-        )}
-        {!book.comingSoon && (book.stockCount > 0 && book.stockCount <= 5) && (
-          <span style={{fontSize:11,fontWeight:700,color:'#c0392b'}}>Only <strong>{book.stockCount}</strong> left</span>
-        )}
-        {!book.comingSoon && (book.stockCount ?? (book.inStock ? 1 : 0)) > 0 && (
+        {!book.comingSoon && (
           <AddToCartListBtn book={book}/>
         )}
       </div>
@@ -321,9 +305,8 @@ function EbooksContent() {
 
   const stockCounts = useMemo(() => {
     return {
-      'In Stock': allEbooks.filter(b => b.inStock && !b.comingSoon).length,
+      'Available': allEbooks.filter(b => !b.comingSoon).length,
       'Coming Soon': allEbooks.filter(b => b.comingSoon).length,
-      'Out of Stock': allEbooks.filter(b => !b.inStock && !b.comingSoon).length,
     };
   }, [allEbooks]);
 
@@ -336,16 +319,11 @@ function EbooksContent() {
           && (!selLang || b.language === selLang)
           && (!selTag  || b.tags?.includes(selTag))
           && (!selStock
-              || (selStock === 'in' && b.inStock && !b.comingSoon)
-              || (selStock === 'comingSoon' && b.comingSoon)
-              || (selStock === 'out' && !b.inStock && !b.comingSoon));
+              || (selStock === 'in' && !b.comingSoon)
+              || (selStock === 'comingSoon' && b.comingSoon));
     });
 
     list = [...list].sort((a, b) => {
-      const aOut = (a.inStock === false && !a.comingSoon) ? 1 : 0;
-      const bOut = (b.inStock === false && !b.comingSoon) ? 1 : 0;
-      if (aOut !== bOut) return aOut - bOut;
-
       if (sortBy === 'custom') {
         const aOrd = a.order ?? new Date(a.createdAt).getTime();
         const bOrd = b.order ?? new Date(b.createdAt).getTime();
@@ -377,7 +355,7 @@ function EbooksContent() {
     selCat   && { label: selCat,    clear: () => setSelCat('') },
     selLang  && { label: selLang,   clear: () => setSelLang('') },
     selTag   && { label: selTag,    clear: () => setSelTag('') },
-    selStock && { label: selStock === 'in' ? 'In Stock' : selStock === 'comingSoon' ? 'Coming Soon' : 'Out of Stock', clear: () => setSelStock('') },
+    selStock && { label: selStock === 'in' ? 'Available' : 'Coming Soon', clear: () => setSelStock('') },
     search   && { label: `"${search}"`, clear: () => setSearch('') },
   ].filter(Boolean);
 
@@ -421,9 +399,9 @@ function EbooksContent() {
       <div style={{height:1,background:'rgba(27,67,50,0.07)',margin:'4px 0 20px'}}/>
       <FilterSection
         title="Availability"
-        options={['In Stock', 'Coming Soon', 'Out of Stock']}
-        value={selStock==='in'?'In Stock':selStock==='comingSoon'?'Coming Soon':selStock==='out'?'Out of Stock':''}
-        onSet={v => setSelStock(v==='In Stock'?'in':v==='Coming Soon'?'comingSoon':v==='Out of Stock'?'out':'')}
+        options={['Available', 'Coming Soon']}
+        value={selStock==='in'?'Available':selStock==='comingSoon'?'Coming Soon':''}
+        onSet={v => setSelStock(v==='Available'?'in':v==='Coming Soon'?'comingSoon':'')}
         counts={stockCounts}
       />
     </div>

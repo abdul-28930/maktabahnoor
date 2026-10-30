@@ -28,9 +28,14 @@ export async function POST(req) {
     const token = req.cookies.get('mn_user_token')?.value;
     const user = token ? await getUserFromSessionToken(token) : null;
 
-    const bookItems   = items.filter(i => i.type !== 'bundle' && i.slug);
+    const bookItems   = items.filter(i => i.type !== 'bundle' && i.type !== 'ebook' && i.type !== 'accessory' && i.type !== 'clothing' && i.slug);
     const bundleItems = items.filter(i => i.type === 'bundle');
+    const ebookItems  = items.filter(i => i.type === 'ebook');
     let total = 0;
+
+    for (const item of ebookItems) {
+      total += Number(item.price || item.mrp || 0) * (item.qty || 1);
+    }
 
     // Books: atomic decrement on dedicated key, then best-effort sync the
     // display copies (meta list + full record) so the storefront reflects it.
