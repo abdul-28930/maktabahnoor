@@ -14,8 +14,8 @@ const EMPTY_BOOK = {
 };
 const EMPTY_EBOOK = {
   title:'',author:'',translator:'',publisher:'',sku:'',language:'Arabic',category:'Aqeedah',categories:['Aqeedah'],
-  description:'',volumes:'',binding:'Hardcover',pages:'',
-  mrp:'',price:'',offerType:'',stockCount:'',
+  description:'',binding:'Hardcover',pages:'',
+  mrp:'',price:'',offerType:'',
   inStock:true,comingSoon:false,visible:true,tags:[],coverUrl:'',coverThumb:'',gallery:[],
 };
 
@@ -722,6 +722,7 @@ export default function AdminPage() {
   function rmClothVariant(id) { setClothForm(p=>({...p,variants:p.variants.filter(x=>x.id!==id)})); }
 
   // ── E-BOOK FUNCTIONS ──
+  const MANDATORY_EBOOK_FIELDS = ['title', 'category', 'language', 'price', 'binding'];
   async function loadEbooks(s=session) {
     try { const r=await fetch(`/api/ebooks?all=1&password=${encodeURIComponent(s)}`); const d=await r.json(); setEbooks(d.ebooks||[]); } catch {}
   }
@@ -759,8 +760,8 @@ export default function AdminPage() {
   }
   function toggleEbookTag(t) { ef('tags', ebookForm.tags.includes(t)?ebookForm.tags.filter(x=>x!==t):[...ebookForm.tags,t]); }
   async function saveEbook() {
-    const missing = MANDATORY_BOOK_FIELDS.filter(k => {
-      if (ebookForm.comingSoon && (k==='price'||k==='stockCount')) return false;
+    const missing = MANDATORY_EBOOK_FIELDS.filter(k => {
+      if (ebookForm.comingSoon && k==='price') return false;
       if (k==='category') return getBookCategories(ebookForm).length===0;
       return !String(ebookForm[k]??'').trim();
     }).map(k=>FIELD_LABELS[k]||k);
@@ -795,9 +796,9 @@ export default function AdminPage() {
           title:d.ebook.title||'',author:d.ebook.author||'',translator:d.ebook.translator||'',publisher:d.ebook.publisher||'',
           sku:d.ebook.sku||'',language:d.ebook.language||'Arabic',
           category:cats[0]||'Aqeedah',categories:cats.length?cats:['Aqeedah'],description:d.ebook.description||'',
-          volumes:d.ebook.volumes??'',binding:d.ebook.binding||'Hardcover',pages:d.ebook.pages||'',
+          binding:d.ebook.binding||'Hardcover',pages:d.ebook.pages||'',
           mrp:d.ebook.mrp||'',price:d.ebook.price||'',offerType:d.ebook.offerType||'',
-          stockCount:d.ebook.stockCount??'',inStock:d.ebook.inStock!==false,comingSoon:Boolean(d.ebook.comingSoon),visible:d.ebook.visible!==false,
+          inStock:d.ebook.inStock!==false,comingSoon:Boolean(d.ebook.comingSoon),visible:d.ebook.visible!==false,
           tags:d.ebook.tags||[],coverUrl:d.ebook.coverUrl||'',coverThumb:d.ebook.coverThumb||'',gallery:d.ebook.gallery||[],
         });
         setEbookImgMode('url'); setEbookGalleryImgMode('upload'); setEbookGalleryInput(''); setEbookSlugInput(slug); setView('ebookEditor');
@@ -824,9 +825,9 @@ export default function AdminPage() {
       title:book.title||'',author:book.author||'',translator:book.translator||'',publisher:book.publisher||'',
       sku:book.sku||'',language:book.language||'Arabic',
       category:cats[0]||'Aqeedah',categories:cats.length?cats:['Aqeedah'],description:book.description||'',
-      volumes:book.volumes??'',binding:book.binding||'Hardcover',pages:book.pages||'',
+      binding:book.binding||'Hardcover',pages:book.pages||'',
       mrp:book.mrp||'',price:book.price||'',offerType:book.offerType||'',
-      stockCount:book.stockCount??'',inStock:book.inStock!==false,comingSoon:Boolean(book.comingSoon),visible:book.visible!==false,
+      inStock:true,comingSoon:Boolean(book.comingSoon),visible:book.visible!==false,
       tags:book.tags||[],coverUrl:book.coverUrl||'',coverThumb:book.coverThumb||'',gallery:book.gallery||[],
     });
     setEditEbookSlug(null);
@@ -2014,13 +2015,12 @@ export default function AdminPage() {
 
           {!ebookForm.comingSoon ? (
             <>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
                 <div><Label hint="Optional · original / MRP">Actual Price (₹)</Label><FInput type="number" value={ebookForm.mrp} onChange={e=>ef('mrp',e.target.value)} placeholder="350" prefix="₹"/></div>
                 <div><Label>Sale Price (₹) *</Label><FInput type="number" value={ebookForm.price} onChange={e=>ef('price',e.target.value)} placeholder="299" prefix="₹"/></div>
                 <div><Label hint="Optional">Offer Type</Label>
                   <TaxonomySelect value={ebookForm.offerType} onChange={e=>ef('offerType',e.target.value)} options={taxonomy.offerTypes} placeholder="None" onAddOption={v=>addTaxonomyOption('offerTypes',v)}/>
                 </div>
-                <div><Label hint="Exact pieces available">Stock Count *</Label><FInput type="number" min="0" value={ebookForm.stockCount} onChange={e=>ef('stockCount',e.target.value)} placeholder="50"/></div>
               </div>
               {(ebookForm.mrp || ebookForm.price) && (
                 <div style={{padding:'14px 16px',background:'rgba(27,67,50,0.04)',borderRadius:10,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
@@ -2055,9 +2055,8 @@ export default function AdminPage() {
               </div>
             ) : null}
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
             <div><Label>Binding *</Label><FSelect value={ebookForm.binding} onChange={e=>ef('binding',e.target.value)} options={BINDINGS} placeholder="— Select —"/></div>
-            <div><Label hint="Optional">Volumes</Label><FInput type="number" value={ebookForm.volumes} onChange={e=>ef('volumes',e.target.value)}/></div>
             <div><Label hint="Optional">Pages</Label><FInput type="number" value={ebookForm.pages} onChange={e=>ef('pages',e.target.value)} placeholder="480"/></div>
           </div>
         </Card>
@@ -3010,10 +3009,7 @@ export default function AdminPage() {
                         {b.comingSoon ? (
                           <div style={{fontSize:11,fontWeight:500,color:'#b8965a',marginBottom:2}}>Coming Soon</div>
                         ) : (
-                          <>
-                            <div style={{fontSize:11,fontWeight:500,color:b.inStock?'#2d6a4f':'#b44',marginBottom:2}}>{b.inStock?'In Stock':'Out'}</div>
-                            {b.stockCount !== undefined && <div style={{fontSize:10,color:'#a09890'}}>{b.stockCount} units</div>}
-                          </>
+                          <div style={{fontSize:11,fontWeight:500,color:'#2d6a4f',marginBottom:2}}>E-Book</div>
                         )}
                       </div>
                       <div style={{display:'flex',gap:6,flexShrink:0}}>
@@ -3703,6 +3699,9 @@ export default function AdminPage() {
                           <div style={{fontSize:12.5,color:'#6b6460',lineHeight:1.7,marginBottom:6}}>
                             {(o.items||[]).map((it,idx)=>(
                               <span key={idx}>
+                                {(it.type==='ebook'||it.itemType==='ebook') && (
+                                  <span style={{display:'inline-block',fontSize:9,fontWeight:700,letterSpacing:.8,textTransform:'uppercase',color:'#1b4332',background:'rgba(27,67,50,0.1)',border:'1px solid rgba(27,67,50,0.2)',borderRadius:5,padding:'1px 5px',marginRight:4,verticalAlign:'middle'}}>E-Book</span>
+                                )}
                                 <strong style={{color:'#2a2520'}}>{it.title}</strong>
                                 {it.qty>1 ? <span style={{color:'#b8965a',fontWeight:600}}>{` × ${it.qty}`}</span> : ''}
                                 {idx < (o.items.length-1) ? ', ' : ''}

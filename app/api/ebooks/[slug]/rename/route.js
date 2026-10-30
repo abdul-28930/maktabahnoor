@@ -38,14 +38,9 @@ export async function POST(req, { params }) {
       await redis.del(`mn_ebook:${oldSlug}`);
     }
 
-    // Migrate live stock counter
-    const liveStock = await redis.get(`mn_stock:ebook:${oldSlug}`);
-    if (liveStock !== null && liveStock !== undefined) {
-      await redis.set(`mn_stock:ebook:${newSlug}`, liveStock);
-      await redis.del(`mn_stock:ebook:${oldSlug}`);
-    } else if (ebook.stockCount !== undefined && (await redis.get(`mn_stock:ebook:${newSlug}`)) === null) {
-      await redis.set(`mn_stock:ebook:${newSlug}`, ebook.stockCount);
-    }
+    // Clean up any legacy stock counters
+    await redis.del(`mn_stock:ebook:${oldSlug}`);
+    await redis.del(`mn_stock:ebook:${newSlug}`);
 
     // Update meta list
     if (idx >= 0) {

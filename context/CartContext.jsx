@@ -35,7 +35,8 @@ export function CartProvider({ children }) {
             for (const item of prev) {
               if (map.has(item.slug)) {
                 const existing = map.get(item.slug);
-                map.set(item.slug, { ...existing, qty: Math.max(existing.qty || 1, item.qty || 1) });
+                const isEbook = existing.type === 'ebook' || item.type === 'ebook';
+                map.set(item.slug, { ...existing, qty: isEbook ? 1 : Math.max(existing.qty || 1, item.qty || 1) });
               } else {
                 map.set(item.slug, item);
               }
@@ -69,14 +70,16 @@ export function CartProvider({ children }) {
   /* ── Actions ── */
   const addToCart = useCallback((book, qty = 1) => {
     if (book?.comingSoon) return;
-    const cap = book.stockCount > 0 ? book.stockCount : Infinity;
+    const isEbook = book?.itemType === 'ebook' || book?.type === 'ebook';
+    const cap = isEbook ? 1 : (book.stockCount > 0 ? book.stockCount : Infinity);
     setItems(prev => {
       const exists = prev.find(i => i.slug === book.slug);
       if (exists) {
+        if (isEbook) return prev;
         return prev.map(i => i.slug === book.slug ? { ...i, qty: Math.min(cap, i.qty + qty) } : i);
       }
       return [...prev, {
-        type:     'book',
+        type:     isEbook ? 'ebook' : (book.type || 'book'),
         slug:     book.slug,
         title:    book.title,
         author:   book.author,
@@ -84,8 +87,8 @@ export function CartProvider({ children }) {
         coverUrl: book.coverUrl || '',
         price:    book.price    || null,
         mrp:      book.mrp      || null,
-        stockCount: book.stockCount ?? null,
-        qty: Math.min(cap, qty),
+        stockCount: isEbook ? null : (book.stockCount ?? null),
+        qty: isEbook ? 1 : Math.min(cap, qty),
       }];
     });
   }, []);
@@ -156,8 +159,9 @@ export function CartProvider({ children }) {
     if (qty < 1) return;
     setItems(prev => prev.map(i => {
       if (i.slug !== slug) return i;
-      const cap = i.stockCount > 0 ? i.stockCount : Infinity;
-      return { ...i, qty: Math.min(cap, qty) };
+      const isEbook = i.type === 'ebook' || i.itemType === 'ebook';
+      const cap = isEbook ? 1 : (i.stockCount > 0 ? i.stockCount : Infinity);
+      return { ...i, qty: isEbook ? 1 : Math.min(cap, qty) };
     }));
   }, []);
 

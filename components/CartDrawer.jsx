@@ -18,11 +18,19 @@ function buildOrderRef() {
 
 function buildWhatsAppMessage(items, orderRef, coupon, pincode) {
   const lines = items.map((item, i) =>
-    `${i + 1}. ${item.type === 'bundle' ? '📦 ' : ''}${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}`
+    `${i + 1}. ${item.type === 'bundle' ? '📦 ' : (item.type === 'ebook' || item.itemType === 'ebook') ? '📱 ' : ''}${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}`
   ).join('\n');
 
   const subtotal = items.reduce((sum, i) => sum + (Number(i.price || i.mrp || 0) * i.qty), 0);
   const total = coupon ? Math.max(0, subtotal - coupon.discount) : subtotal;
+  const hasPhysical = items.some(i => i.type !== 'ebook' && i.itemType !== 'ebook');
+
+  const deliveryInfo = hasPhysical && pincode ? `Delivery Pincode: *${pincode}*\n` : '';
+  const note = hasPhysical
+    ? `_Note: Shipping charges are applicable and will be calculated & confirmed via WhatsApp before payment._\n\n` +
+      `Please confirm availability, shipping charges, and total amount to pay. JazakAllahu Khairan! 📚`
+    : `_Note: Digital E-Book order. Access/download details will be provided via email & WhatsApp._\n\n` +
+      `Please confirm the order and total amount to pay. JazakAllahu Khairan! 📚`;
 
   return (
     `Assalamualaikum! 🌙\n\n` +
@@ -30,10 +38,9 @@ function buildWhatsAppMessage(items, orderRef, coupon, pincode) {
     `${lines}\n\n` +
     (subtotal > 0 ? `Subtotal: ₹${subtotal.toLocaleString('en-IN')}\n` : '') +
     (coupon ? `Coupon *${coupon.code}* applied: -₹${coupon.discount.toLocaleString('en-IN')}\nEstimated items total: ₹${total.toLocaleString('en-IN')}\n` : '') +
-    `Delivery Pincode: *${pincode}*\n` +
+    deliveryInfo +
     `Order ref: *${orderRef}*\n\n` +
-    `_Note: Shipping charges are applicable and will be calculated & confirmed via WhatsApp before payment._\n\n` +
-    `Please confirm availability, shipping charges, and total amount to pay. JazakAllahu Khairan! 📚`
+    note
   );
 }
 
@@ -78,15 +85,19 @@ export default function CartDrawer() {
   const [pincode, setPincode] = useState('');
   const [pincodeError, setPincodeError] = useState('');
 
+  const hasPhysicalItems = items.some(i => i.type !== 'ebook' && i.itemType !== 'ebook');
+
   const handleWhatsApp = () => {
     const cleanPin = pincode.trim();
-    if (!cleanPin) {
-      setPincodeError('Pincode is required to proceed with order.');
-      return;
-    }
-    if (!/^\d{6}$/.test(cleanPin)) {
-      setPincodeError('Please enter a valid 6-digit pincode.');
-      return;
+    if (hasPhysicalItems) {
+      if (!cleanPin) {
+        setPincodeError('Pincode is required to proceed with order.');
+        return;
+      }
+      if (!/^\d{6}$/.test(cleanPin)) {
+        setPincodeError('Please enter a valid 6-digit pincode.');
+        return;
+      }
     }
     setPincodeError('');
 
@@ -184,6 +195,11 @@ export default function CartDrawer() {
                             Bundle
                           </span>
                         )}
+                        {(item.type === 'ebook' || item.itemType === 'ebook') && (
+                          <span style={{fontSize:9,fontWeight:600,letterSpacing:1,textTransform:'uppercase',color:'#1b4332',background:'rgba(27,67,50,0.08)',border:'1px solid rgba(27,67,50,0.2)',borderRadius:8,padding:'2px 7px',marginRight:8,verticalAlign:'middle'}}>
+                            E-Book
+                          </span>
+                        )}
                         {item.title}
                       </div>
                       <div className="cart-item-author">{item.author}</div>
@@ -203,23 +219,29 @@ export default function CartDrawer() {
 
                       {/* Qty + Remove */}
                       <div className="cart-item-actions">
-                        <div className="cart-qty">
-                          <button
-                            className="cart-qty-btn"
-                            onClick={() => updateQty(item.slug, item.qty - 1)}
-                            disabled={item.qty <= 1}
-                            aria-label="Decrease quantity"
-                          >−</button>
-                          <span className="cart-qty-val">{item.qty}</span>
-                          <button
-                            className="cart-qty-btn"
-                            onClick={() => updateQty(item.slug, item.qty + 1)}
-                            disabled={item.stockCount > 0 && item.qty >= item.stockCount}
-                            title={item.stockCount > 0 && item.qty >= item.stockCount ? `Only ${item.stockCount} in stock` : undefined}
-                            aria-label="Increase quantity"
-                          >+</button>
-                        </div>
-                        {item.stockCount > 0 && item.qty >= item.stockCount && (
+                        {(item.type === 'ebook' || item.itemType === 'ebook') ? (
+                          <span style={{fontSize:11,color:'#6b6460',background:'rgba(27,67,50,0.06)',padding:'3px 8px',borderRadius:6}}>
+                            Qty: 1
+                          </span>
+                        ) : (
+                          <div className="cart-qty">
+                            <button
+                              className="cart-qty-btn"
+                              onClick={() => updateQty(item.slug, item.qty - 1)}
+                              disabled={item.qty <= 1}
+                              aria-label="Decrease quantity"
+                            >−</button>
+                            <span className="cart-qty-val">{item.qty}</span>
+                            <button
+                              className="cart-qty-btn"
+                              onClick={() => updateQty(item.slug, item.qty + 1)}
+                              disabled={item.stockCount > 0 && item.qty >= item.stockCount}
+                              title={item.stockCount > 0 && item.qty >= item.stockCount ? `Only ${item.stockCount} in stock` : undefined}
+                              aria-label="Increase quantity"
+                            >+</button>
+                          </div>
+                        )}
+                        {item.stockCount > 0 && item.qty >= item.stockCount && item.type !== 'ebook' && item.itemType !== 'ebook' && (
                           <div style={{fontSize:10,color:'#b8965a',marginTop:2}}>Max {item.stockCount} available</div>
                         )}
                         <button
@@ -283,58 +305,79 @@ export default function CartDrawer() {
                 </div>
               )}
 
-              {/* Mandatory Delivery Pincode */}
-              <div style={{marginBottom:14}}>
-                <label style={{display:'block',fontSize:12,fontWeight:500,color:'#1b4332',marginBottom:6}}>
-                  Delivery Pincode <span style={{color:'#dc2626'}}>*</span>
-                </label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={pincode}
-                  onChange={e => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    setPincode(val);
-                    if (pincodeError) setPincodeError('');
-                  }}
-                  placeholder="Enter 6-digit Pincode (e.g. 600001)"
-                  style={{
-                    width:'100%',
-                    padding:'10px 14px',
-                    border:`1.5px solid ${pincodeError ? '#dc2626' : 'rgba(27,67,50,0.18)'}`,
-                    borderRadius:10,
-                    fontSize:14,
-                    fontFamily:"'DM Sans',sans-serif",
-                    outline:'none',
-                    background:'#fff',
-                    boxSizing:'border-box',
-                    transition:'border-color .2s'
-                  }}
-                />
-                {pincodeError && (
-                  <div style={{fontSize:11,color:'#dc2626',marginTop:4,fontWeight:500}}>{pincodeError}</div>
-                )}
-              </div>
+              {/* Delivery Pincode & Shipping note (physical items only) */}
+              {hasPhysicalItems ? (
+                <>
+                  <div style={{marginBottom:14}}>
+                    <label style={{display:'block',fontSize:12,fontWeight:500,color:'#1b4332',marginBottom:6}}>
+                      Delivery Pincode <span style={{color:'#dc2626'}}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={pincode}
+                      onChange={e => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setPincode(val);
+                        if (pincodeError) setPincodeError('');
+                      }}
+                      placeholder="Enter 6-digit Pincode (e.g. 600001)"
+                      style={{
+                        width:'100%',
+                        padding:'10px 14px',
+                        border:`1.5px solid ${pincodeError ? '#dc2626' : 'rgba(27,67,50,0.18)'}`,
+                        borderRadius:10,
+                        fontSize:14,
+                        fontFamily:"'DM Sans',sans-serif",
+                        outline:'none',
+                        background:'#fff',
+                        boxSizing:'border-box',
+                        transition:'border-color .2s'
+                      }}
+                    />
+                    {pincodeError && (
+                      <div style={{fontSize:11,color:'#dc2626',marginTop:4,fontWeight:500}}>{pincodeError}</div>
+                    )}
+                  </div>
 
-              {/* Shipping note */}
-              <div style={{
-                display:'flex',
-                alignItems:'flex-start',
-                gap:8,
-                padding:'10px 12px',
-                background:'rgba(184,150,90,0.1)',
-                border:'1px solid rgba(184,150,90,0.25)',
-                borderRadius:10,
-                fontSize:12,
-                color:'#6b6460',
-                lineHeight:1.45,
-                marginBottom:14
-              }}>
-                <span style={{fontSize:15,flexShrink:0,marginTop:-1}}>🚚</span>
-                <span>
-                  <strong style={{color:'#1b4332'}}>Shipping charges applicable:</strong> Exact delivery charge depends on weight &amp; pincode, and will be shared via WhatsApp for your approval before making payment.
-                </span>
-              </div>
+                  {/* Shipping note */}
+                  <div style={{
+                    display:'flex',
+                    alignItems:'flex-start',
+                    gap:8,
+                    padding:'10px 12px',
+                    background:'rgba(184,150,90,0.1)',
+                    border:'1px solid rgba(184,150,90,0.25)',
+                    borderRadius:10,
+                    fontSize:12,
+                    color:'#6b6460',
+                    lineHeight:1.45,
+                    marginBottom:14
+                  }}>
+                    <span style={{fontSize:15,flexShrink:0,marginTop:-1}}>🚚</span>
+                    <span>
+                      <strong style={{color:'#1b4332'}}>Shipping charges applicable:</strong> Exact delivery charge depends on weight &amp; pincode, and will be shared via WhatsApp for your approval before making payment.
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div style={{
+                  display:'flex',
+                  alignItems:'center',
+                  gap:8,
+                  padding:'10px 12px',
+                  background:'rgba(27,67,50,0.06)',
+                  border:'1px solid rgba(27,67,50,0.15)',
+                  borderRadius:10,
+                  fontSize:12,
+                  color:'#1b4332',
+                  lineHeight:1.45,
+                  marginBottom:14
+                }}>
+                  <span>📱</span>
+                  <span><strong>Digital E-Book:</strong> No physical shipping address required.</span>
+                </div>
+              )}
 
               {/* Summary note */}
               <div className="cart-summary-note">

@@ -1,14 +1,15 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { MANDATORY_BOOK_FIELDS, metaSafeCoverUrl, getBookCategories } from '@/lib/constants';
+import { metaSafeCoverUrl, getBookCategories } from '@/lib/constants';
 import { ensureThumbnail } from '@/lib/thumbnails';
 
-const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
+const MANDATORY_EBOOK_FIELDS = ['title', 'category', 'language', 'price', 'binding'];
+const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', binding: 'Binding' };
 
 function missingMandatoryFields(data) {
-  return MANDATORY_BOOK_FIELDS.filter(k => {
-    if (data.comingSoon && (k === 'price' || k === 'stockCount')) return false;
+  return MANDATORY_EBOOK_FIELDS.filter(k => {
+    if (data.comingSoon && k === 'price') return false;
     if (k === 'category') {
       const cats = getBookCategories(data);
       return cats.length === 0;
@@ -22,14 +23,9 @@ export async function GET(_, { params }) {
   try {
     const ebook = await redis.get(`mn_ebook:${params.slug}`);
     if (!ebook) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
-    const liveStock = await redis.get(`mn_stock:ebook:${params.slug}`);
-    if (ebook.comingSoon) {
-      ebook.stockCount = 0;
-      ebook.inStock = false;
-    } else if (liveStock !== null && liveStock !== undefined) {
-      ebook.stockCount = liveStock;
-      ebook.inStock = liveStock > 0;
-    }
+    ebook.inStock = !ebook.comingSoon;
+    delete ebook.stockCount;
+    delete ebook.volumes;
     return NextResponse.json({ ebook });
   } catch { return NextResponse.json({ error: 'Failed.' }, { status: 500 }); }
 }
@@ -46,7 +42,6 @@ export async function PUT(req, { params }) {
     if (missing.length)
       return NextResponse.json({ error: `Required field${missing.length > 1 ? 's' : ''} missing: ${missing.join(', ')}.` }, { status: 400 });
     const comingSoon = updates.comingSoon !== undefined ? Boolean(updates.comingSoon) : Boolean(existing.comingSoon);
-    const stockCount = comingSoon ? 0 : Math.max(0, parseInt(updates.stockCount ?? existing.stockCount) || 0);
     const categories = getBookCategories(merged);
     const primaryCategory = categories[0] || 'General';
     const thumb = await ensureThumbnail(updates.coverThumb ?? existing.coverThumb, updates.coverUrl ?? existing.coverUrl);
@@ -58,14 +53,15 @@ export async function PUT(req, { params }) {
       coverUrl: fullCover,
       category: primaryCategory,
       categories,
-      stockCount, inStock: !comingSoon && stockCount > 0,
+      inStock: !comingSoon,
       coverThumb: thumb,
       mrp: comingSoon ? 0 : (parseFloat(updates.mrp ?? existing.mrp) || 0),
       price: comingSoon ? 0 : (parseFloat(updates.price ?? existing.price) || 0),
       offerType: comingSoon ? '' : (updates.offerType ?? existing.offerType ?? ''),
       updatedAt: new Date().toISOString() };
+    delete updated.stockCount;
+    delete updated.volumes;
     await redis.set(`mn_ebook:${params.slug}`, updated);
-    await redis.set(`mn_stock:ebook:${params.slug}`, stockCount);
     const meta = await redis.get('mn_ebooks_meta') || [];
     const idx  = meta.findIndex(b => b.slug === params.slug);
     if (idx >= 0) {
@@ -74,11 +70,13 @@ export async function PUT(req, { params }) {
         : (fullCover || '');
       meta[idx] = { ...meta[idx], sku: updated.sku, title: updated.title, translator: updated.translator, publisher: updated.publisher,
         author: updated.author, category: updated.category, categories: updated.categories, language: updated.language,
-        binding: updated.binding, volumes: updated.volumes, pages: updated.pages,
+        binding: updated.binding, pages: updated.pages,
         mrp: updated.mrp, price: updated.price, offerType: updated.offerType,
-        stockCount, inStock: updated.inStock, comingSoon, visible: updated.visible !== false, tags: updated.tags,
+        inStock: updated.inStock, comingSoon, visible: updated.visible !== false, tags: updated.tags,
         coverUrl: metaCoverUrl,
         gallery: updated.gallery };
+      delete meta[idx].stockCount;
+      delete meta[idx].volumes;
       await redis.set('mn_ebooks_meta', meta);
       revalidatePath('/');
       revalidatePath('/ebooks');

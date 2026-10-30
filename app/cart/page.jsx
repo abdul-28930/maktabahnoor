@@ -16,11 +16,33 @@ function buildOrderRef() {
 
 function buildWhatsAppMessage(items, orderRef, coupon, delivery) {
   const lines = items.map((item, i) =>
-    `${i + 1}. ${item.type === 'bundle' ? '📦 ' : ''}${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}`
+    `${i + 1}. ${item.type === 'bundle' ? '📦 ' : (item.type === 'ebook' || item.itemType === 'ebook') ? '📱 ' : ''}${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}`
   ).join('\n');
 
   const subtotal = items.reduce((sum, i) => sum + (Number(i.price || i.mrp || 0) * i.qty), 0);
   const total = coupon ? Math.max(0, subtotal - coupon.discount) : subtotal;
+  const hasPhysical = items.some(i => i.type !== 'ebook' && i.itemType !== 'ebook');
+
+  const customerSection = hasPhysical
+    ? `\n*Delivery Details:*\n` +
+      `Name: ${delivery.name}\n` +
+      `Phone: ${delivery.phone}\n` +
+      `Email: ${delivery.email}\n` +
+      `Address: ${delivery.address}\n` +
+      `City: ${delivery.city}\n` +
+      `State: ${delivery.state}\n` +
+      `Country: ${delivery.country}\n` +
+      `Pincode: ${delivery.pincode}\n`
+    : `\n*Customer Details (E-Book Order):*\n` +
+      `Name: ${delivery.name}\n` +
+      `Phone: ${delivery.phone}\n` +
+      `Email: ${delivery.email}\n`;
+
+  const footerNote = hasPhysical
+    ? `_Note: Shipping charges are applicable and will be calculated & confirmed via WhatsApp before payment._\n\n` +
+      `Please confirm availability, shipping charges, and total amount to pay. JazakAllahu Khairan! 📚`
+    : `_Note: Digital E-Book order. Access/download details will be provided via email & WhatsApp._\n\n` +
+      `Please confirm the order and total amount to pay. JazakAllahu Khairan! 📚`;
 
   return (
     `Assalamualaikum! 🌙\n\n` +
@@ -28,18 +50,9 @@ function buildWhatsAppMessage(items, orderRef, coupon, delivery) {
     `${lines}\n\n` +
     (subtotal > 0 ? `Subtotal: ₹${subtotal.toLocaleString('en-IN')}\n` : '') +
     (coupon ? `Coupon *${coupon.code}* applied: -₹${coupon.discount.toLocaleString('en-IN')}\nEstimated items total: ₹${total.toLocaleString('en-IN')}\n` : '') +
-    `\n*Delivery Details:*\n` +
-    `Name: ${delivery.name}\n` +
-    `Phone: ${delivery.phone}\n` +
-    `Email: ${delivery.email}\n` +
-    `Address: ${delivery.address}\n` +
-    `City: ${delivery.city}\n` +
-    `State: ${delivery.state}\n` +
-    `Country: ${delivery.country}\n` +
-    `Pincode: ${delivery.pincode}\n` +
+    customerSection +
     `\nOrder ref: *${orderRef}*\n\n` +
-    `_Note: Shipping charges are applicable and will be calculated & confirmed via WhatsApp before payment._\n\n` +
-    `Please confirm availability, shipping charges, and total amount to pay. JazakAllahu Khairan! 📚`
+    footerNote
   );
 }
 
@@ -79,6 +92,9 @@ export default function CartPage() {
   const [fieldErrors, setFieldErrors] = useState({});
 
   const [ordering, setOrdering] = useState(false);
+
+  // Check if cart contains any physical items (book, accessory, clothing, bundle)
+  const hasPhysicalItems = items.some(i => i.type !== 'ebook' && i.itemType !== 'ebook');
 
   // Auto-fill delivery details from logged-in user profile
   useEffect(() => {
@@ -120,11 +136,16 @@ export default function CartPage() {
     if (!phone.trim())   errors.phone   = 'Phone number is required.';
     if (!email.trim())   errors.email   = 'Email address is required.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errors.email = 'Please enter a valid email address.';
-    if (!address.trim()) errors.address = 'Address is required.';
-    if (!country.trim()) errors.country = 'Country is required.';
-    if (!state.trim())   errors.state   = 'State is required.';
-    if (!city.trim())    errors.city    = 'City is required.';
-    if (!pincode.trim()) errors.pincode = 'Pincode is required.';
+
+    // Address is only required if the cart contains at least one physical item
+    if (hasPhysicalItems) {
+      if (!address.trim()) errors.address = 'Address is required.';
+      if (!country.trim()) errors.country = 'Country is required.';
+      if (!state.trim())   errors.state   = 'State is required.';
+      if (!city.trim())    errors.city    = 'City is required.';
+      if (!pincode.trim()) errors.pincode = 'Pincode is required.';
+    }
+
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -137,11 +158,11 @@ export default function CartPage() {
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim(),
-      address: address.trim(),
-      country: country.trim(),
-      state: state.trim(),
-      city: city.trim(),
-      pincode: pincode.trim(),
+      address: hasPhysicalItems ? address.trim() : (address.trim() || ''),
+      country: hasPhysicalItems ? country.trim() : (country.trim() || 'India'),
+      state: hasPhysicalItems ? state.trim() : (state.trim() || ''),
+      city: hasPhysicalItems ? city.trim() : (city.trim() || ''),
+      pincode: hasPhysicalItems ? pincode.trim() : (pincode.trim() || ''),
     };
 
     const orderRef = buildOrderRef();
@@ -152,16 +173,19 @@ export default function CartPage() {
     // Save delivery details to profile for logged-in users
     if (user) {
       try {
-        await updateProfile({
-          name:    delivery.name,
-          phone:   delivery.phone,
-          email:   delivery.email,
-          address: delivery.address,
-          country: delivery.country,
-          state:   delivery.state,
-          city:    delivery.city,
-          pincode: delivery.pincode,
-        });
+        const profileUpdate = {
+          name:  delivery.name,
+          phone: delivery.phone,
+          email: delivery.email,
+        };
+        if (hasPhysicalItems) {
+          profileUpdate.address = delivery.address;
+          profileUpdate.country = delivery.country;
+          profileUpdate.state   = delivery.state;
+          profileUpdate.city    = delivery.city;
+          profileUpdate.pincode = delivery.pincode;
+        }
+        await updateProfile(profileUpdate);
       } catch {}
     }
 
@@ -258,6 +282,9 @@ export default function CartPage() {
                       {item.type === 'bundle' && (
                         <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: '#b8965a', background: 'rgba(184,150,90,0.12)', border: '1px solid rgba(184,150,90,0.3)', borderRadius: 8, padding: '2px 7px', flexShrink: 0 }}>Bundle</span>
                       )}
+                      {(item.type === 'ebook' || item.itemType === 'ebook') && (
+                        <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: '#1b4332', background: 'rgba(27,67,50,0.08)', border: '1px solid rgba(27,67,50,0.2)', borderRadius: 8, padding: '2px 7px', flexShrink: 0 }}>E-Book</span>
+                      )}
                       <div style={{ fontSize: 15, color: '#1a1712', fontWeight: 500, lineHeight: 1.3 }}>{item.title}</div>
                     </div>
                     {item.author && <div style={{ fontSize: 12, color: '#a09890', marginBottom: 8 }}>{item.author}</div>}
@@ -279,22 +306,30 @@ export default function CartPage() {
 
                     {/* Qty controls + remove */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 0, border: '1.5px solid rgba(27,67,50,0.15)', borderRadius: 10, overflow: 'hidden' }}>
-                        <button
-                          onClick={() => { if (item.qty <= 1) removeFromCart(item.slug); else updateQty(item.slug, item.qty - 1); }}
-                          style={{ width: 32, height: 32, background: 'none', border: 'none', fontSize: 18, color: '#1b4332', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          aria-label="Decrease quantity"
-                        >−</button>
-                        <span style={{ minWidth: 28, textAlign: 'center', fontSize: 14, fontWeight: 500, color: '#1a1712' }}>{item.qty}</span>
-                        <button
-                          onClick={() => updateQty(item.slug, item.qty + 1)}
-                          disabled={item.stockCount > 0 && item.qty >= item.stockCount}
-                          style={{ width: 32, height: 32, background: 'none', border: 'none', fontSize: 18, color: '#1b4332', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: item.stockCount > 0 && item.qty >= item.stockCount ? 0.3 : 1 }}
-                          aria-label="Increase quantity"
-                        >+</button>
-                      </div>
-                      {item.stockCount > 0 && item.qty >= item.stockCount && (
-                        <span style={{ fontSize: 11, color: '#b8965a' }}>Max {item.stockCount} available</span>
+                      {(item.type === 'ebook' || item.itemType === 'ebook') ? (
+                        <span style={{ fontSize: 12, color: '#6b6460', background: 'rgba(27,67,50,0.06)', padding: '4px 10px', borderRadius: 8 }}>
+                          Qty: 1 (Single Digital Copy)
+                        </span>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 0, border: '1.5px solid rgba(27,67,50,0.15)', borderRadius: 10, overflow: 'hidden' }}>
+                            <button
+                              onClick={() => { if (item.qty <= 1) removeFromCart(item.slug); else updateQty(item.slug, item.qty - 1); }}
+                              style={{ width: 32, height: 32, background: 'none', border: 'none', fontSize: 18, color: '#1b4332', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              aria-label="Decrease quantity"
+                            >−</button>
+                            <span style={{ minWidth: 28, textAlign: 'center', fontSize: 14, fontWeight: 500, color: '#1a1712' }}>{item.qty}</span>
+                            <button
+                              onClick={() => updateQty(item.slug, item.qty + 1)}
+                              disabled={item.stockCount > 0 && item.qty >= item.stockCount}
+                              style={{ width: 32, height: 32, background: 'none', border: 'none', fontSize: 18, color: '#1b4332', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: item.stockCount > 0 && item.qty >= item.stockCount ? 0.3 : 1 }}
+                              aria-label="Increase quantity"
+                            >+</button>
+                          </div>
+                          {item.stockCount > 0 && item.qty >= item.stockCount && (
+                            <span style={{ fontSize: 11, color: '#b8965a' }}>Max {item.stockCount} available</span>
+                          )}
+                        </>
                       )}
                       <button
                         onClick={() => removeFromCart(item.slug)}
@@ -366,14 +401,16 @@ export default function CartPage() {
                   <span>₹{discounted.toLocaleString('en-IN')}</span>
                 </div>
                 <div style={{ fontSize: 11, color: '#a09890', marginTop: 8 }}>
-                  🚚 Shipping calculated & confirmed via WhatsApp before payment.
+                  {hasPhysicalItems
+                    ? '🚚 Shipping calculated & confirmed via WhatsApp before payment.'
+                    : '⚡ Digital E-Books: Instant delivery to your email and WhatsApp (no shipping charges).'}
                 </div>
               </div>
 
               {/* Delivery details form */}
               <div style={card}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#1b4332', marginBottom: 16 }}>
-                  Delivery Details
+                  {hasPhysicalItems ? 'Delivery Details' : 'Contact Details (E-Book Order)'}
                   {user && <span style={{ fontSize: 11, color: '#b8965a', fontWeight: 400, marginLeft: 8 }}>Auto-filled from your profile</span>}
                 </div>
 
@@ -400,43 +437,51 @@ export default function CartPage() {
                     {fieldErrors.email && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.email}</div>}
                   </div>
 
-                  <div>
-                    <label style={label}>Address <span style={{ color: '#dc2626' }}>*</span></label>
-                    <textarea value={address} onChange={e => { setAddress(e.target.value); setFieldErrors(p => ({ ...p, address: '' })); }}
-                      placeholder="House / Flat no., Street, Area" rows={2}
-                      style={{ ...fieldStyle('address'), resize: 'vertical', lineHeight: 1.5 }} />
-                    {fieldErrors.address && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.address}</div>}
-                  </div>
+                  {hasPhysicalItems ? (
+                    <>
+                      <div>
+                        <label style={label}>Address <span style={{ color: '#dc2626' }}>*</span></label>
+                        <textarea value={address} onChange={e => { setAddress(e.target.value); setFieldErrors(p => ({ ...p, address: '' })); }}
+                          placeholder="House / Flat no., Street, Area" rows={2}
+                          style={{ ...fieldStyle('address'), resize: 'vertical', lineHeight: 1.5 }} />
+                        {fieldErrors.address && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.address}</div>}
+                      </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div>
-                      <label style={label}>City <span style={{ color: '#dc2626' }}>*</span></label>
-                      <input value={city} onChange={e => { setCity(e.target.value); setFieldErrors(p => ({ ...p, city: '' })); }}
-                        placeholder="e.g. Chennai" style={fieldStyle('city')} />
-                      {fieldErrors.city && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.city}</div>}
-                    </div>
-                    <div>
-                      <label style={label}>Pincode <span style={{ color: '#dc2626' }}>*</span></label>
-                      <input value={pincode} onChange={e => { setPincode(e.target.value.replace(/\D/g, '')); setFieldErrors(p => ({ ...p, pincode: '' })); }}
-                        placeholder="e.g. 600001" maxLength={10} style={fieldStyle('pincode')} />
-                      {fieldErrors.pincode && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.pincode}</div>}
-                    </div>
-                  </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                          <label style={label}>City <span style={{ color: '#dc2626' }}>*</span></label>
+                          <input value={city} onChange={e => { setCity(e.target.value); setFieldErrors(p => ({ ...p, city: '' })); }}
+                            placeholder="e.g. Chennai" style={fieldStyle('city')} />
+                          {fieldErrors.city && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.city}</div>}
+                        </div>
+                        <div>
+                          <label style={label}>Pincode <span style={{ color: '#dc2626' }}>*</span></label>
+                          <input value={pincode} onChange={e => { setPincode(e.target.value.replace(/\D/g, '')); setFieldErrors(p => ({ ...p, pincode: '' })); }}
+                            placeholder="e.g. 600001" maxLength={10} style={fieldStyle('pincode')} />
+                          {fieldErrors.pincode && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.pincode}</div>}
+                        </div>
+                      </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div>
-                      <label style={label}>State <span style={{ color: '#dc2626' }}>*</span></label>
-                      <input value={state} onChange={e => { setState(e.target.value); setFieldErrors(p => ({ ...p, state: '' })); }}
-                        placeholder="e.g. Tamil Nadu" style={fieldStyle('state')} />
-                      {fieldErrors.state && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.state}</div>}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                          <label style={label}>State <span style={{ color: '#dc2626' }}>*</span></label>
+                          <input value={state} onChange={e => { setState(e.target.value); setFieldErrors(p => ({ ...p, state: '' })); }}
+                            placeholder="e.g. Tamil Nadu" style={fieldStyle('state')} />
+                          {fieldErrors.state && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.state}</div>}
+                        </div>
+                        <div>
+                          <label style={label}>Country <span style={{ color: '#dc2626' }}>*</span></label>
+                          <input value={country} onChange={e => { setCountry(e.target.value); setFieldErrors(p => ({ ...p, country: '' })); }}
+                            placeholder="e.g. India" style={fieldStyle('country')} />
+                          {fieldErrors.country && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.country}</div>}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ padding: '12px 14px', background: 'rgba(27,67,50,0.05)', borderRadius: 10, border: '1px solid rgba(27,67,50,0.12)', fontSize: 12, color: '#1b4332', lineHeight: 1.5 }}>
+                      📱 <strong>Digital E-Book:</strong> No physical shipping address is required. Your e-book access details will be sent directly to your email and WhatsApp.
                     </div>
-                    <div>
-                      <label style={label}>Country <span style={{ color: '#dc2626' }}>*</span></label>
-                      <input value={country} onChange={e => { setCountry(e.target.value); setFieldErrors(p => ({ ...p, country: '' })); }}
-                        placeholder="e.g. India" style={fieldStyle('country')} />
-                      {fieldErrors.country && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{fieldErrors.country}</div>}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 

@@ -1,14 +1,15 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { slugify, nameSlug, splitAuthors, splitTranslators, metaSafeCoverUrl, MANDATORY_BOOK_FIELDS, getBookCategories } from '@/lib/constants';
+import { slugify, nameSlug, splitAuthors, splitTranslators, metaSafeCoverUrl, getBookCategories } from '@/lib/constants';
 import { ensureThumbnail } from '@/lib/thumbnails';
 
-const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', stockCount: 'Stock Count', binding: 'Binding' };
+const MANDATORY_EBOOK_FIELDS = ['title', 'category', 'language', 'price', 'binding'];
+const FIELD_LABELS = { title: 'Title', author: 'Author', category: 'Category', language: 'Language', price: 'Price', binding: 'Binding' };
 
 function missingMandatoryFields(data) {
-  return MANDATORY_BOOK_FIELDS.filter(k => {
-    if (data.comingSoon && (k === 'price' || k === 'stockCount')) return false;
+  return MANDATORY_EBOOK_FIELDS.filter(k => {
+    if (data.comingSoon && k === 'price') return false;
     if (k === 'category') {
       const cats = getBookCategories(data);
       return cats.length === 0;
@@ -31,7 +32,7 @@ export async function GET(req) {
   try {
     const meta = await redis.get('mn_ebooks_meta') || [];
     let list = isAdmin ? meta : meta.filter(b => b.visible !== false);
-    if (!all) list = list.filter(b => b.comingSoon || (b.stockCount ?? (b.inStock ? 1 : 0)) > 0);
+    if (!all) list = list.filter(b => b.comingSoon || b.inStock !== false);
     if (category) list = list.filter(b => getBookCategories(b).includes(category));
     if (language)  list = list.filter(b => b.language === language);
     if (tag)       list = list.filter(b => b.tags?.includes(tag));
@@ -39,21 +40,16 @@ export async function GET(req) {
     if (publisher) list = list.filter(b => nameSlug(b.publisher) === nameSlug(publisher));
     if (translator) list = list.filter(b => splitTranslators(b.translator).some(t => nameSlug(t) === nameSlug(translator)));
     list = list.sort((a, b) => {
-      const aOut = ((a.stockCount ?? (a.inStock ? 1 : 0)) <= 0 && !a.comingSoon) ? 1 : 0;
-      const bOut = ((b.stockCount ?? (b.inStock ? 1 : 0)) <= 0 && !b.comingSoon) ? 1 : 0;
-      if (aOut !== bOut) return aOut - bOut;
       const aOrd = a.order ?? new Date(a.createdAt).getTime();
       const bOrd = b.order ?? new Date(b.createdAt).getTime();
       return aOrd - bOrd;
     });
     list = list.map(b => {
       const isComingSoon = Boolean(b.comingSoon);
-      const sc = b.stockCount ?? (b.inStock ? 1 : 0);
       return {
         ...b,
         comingSoon: isComingSoon,
-        stockCount: isComingSoon ? 0 : Number(sc),
-        inStock: isComingSoon ? false : Number(sc) > 0,
+        inStock: !isComingSoon,
       };
     });
     return NextResponse.json(
@@ -81,7 +77,6 @@ export async function POST(req) {
     // Prefix slug with "ebook-" to avoid collisions with book slugs
     const slug = 'ebook-' + slugify(data.title, data.author || '');
     const now  = new Date().toISOString();
-    const stockCount = comingSoon ? 0 : Math.max(0, parseInt(data.stockCount) || 0);
     const categories = getBookCategories(data);
     const primaryCategory = categories[0] || 'General';
     const ebook = {
@@ -95,14 +90,12 @@ export async function POST(req) {
       category:    primaryCategory,
       categories,
       description: data.description?.trim() || '',
-      volumes:     data.volumes ? parseInt(data.volumes) : null,
       binding:     data.binding || '',
       pages:       parseInt(data.pages) || 0,
       mrp:         comingSoon ? 0 : (parseFloat(data.mrp) || 0),
       price:       comingSoon ? 0 : (parseFloat(data.price) || 0),
       offerType:   comingSoon ? '' : (data.offerType || ''),
-      stockCount,
-      inStock:     !comingSoon && stockCount > 0,
+      inStock:     !comingSoon,
       comingSoon,
       visible:     data.visible !== false,
       order:       (data.order !== undefined && data.order !== null) ? Number(data.order) : Date.now(),
@@ -114,15 +107,14 @@ export async function POST(req) {
     };
 
     await redis.set(`mn_ebook:${slug}`, ebook);
-    await redis.set(`mn_stock:ebook:${slug}`, stockCount);
     const meta = await redis.get('mn_ebooks_meta') || [];
     const metaCoverUrl = (ebook.coverUrl && ebook.coverUrl.startsWith('data:'))
       ? `/api/ebooks/${slug}/cover`
       : (ebook.coverUrl || '');
     const m = { slug, sku: ebook.sku, title: ebook.title, author: ebook.author, translator: ebook.translator, publisher: ebook.publisher,
                 category: ebook.category, categories: ebook.categories, language: ebook.language, binding: ebook.binding,
-                volumes: ebook.volumes, pages: ebook.pages, mrp: ebook.mrp, price: ebook.price,
-                offerType: ebook.offerType, stockCount, inStock: ebook.inStock, comingSoon, visible: ebook.visible, order: ebook.order,
+                pages: ebook.pages, mrp: ebook.mrp, price: ebook.price,
+                offerType: ebook.offerType, inStock: ebook.inStock, comingSoon, visible: ebook.visible, order: ebook.order,
                 tags: ebook.tags, coverUrl: metaCoverUrl, createdAt: now };
     const idx = meta.findIndex(b => b.slug === slug);
     if (idx >= 0) meta[idx] = m; else meta.unshift(m);
