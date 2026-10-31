@@ -18,7 +18,7 @@ function buildOrderRef() {
 
 function buildWhatsAppMessage(items, orderRef, coupon, pincode) {
   const lines = items.map((item, i) =>
-    `${i + 1}. ${item.type === 'bundle' ? '[Bundle] ' : ''}${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}`
+    `${i + 1}. ${item.type === 'bundle' ? '[Bundle] ' : ''}${item.title}${(item.type === 'ebook' || item.itemType === 'ebook') ? ' ( E-book )' : ''}${item.qty > 1 ? ` × ${item.qty}` : ''}`
   ).join('\n');
 
   const subtotal = items.reduce((sum, i) => sum + (Number(i.price || i.mrp || 0) * i.qty), 0);
