@@ -18,7 +18,7 @@ function buildOrderRef() {
 
 function buildWhatsAppMessage(items, orderRef, coupon, pincode) {
   const lines = items.map((item, i) =>
-    `${i + 1}. ${item.type === 'bundle' ? '📦 ' : (item.type === 'ebook' || item.itemType === 'ebook') ? '📱 ' : ''}${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}`
+    `${i + 1}. ${item.type === 'bundle' ? '[Bundle] ' : ''}${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}`
   ).join('\n');
 
   const subtotal = items.reduce((sum, i) => sum + (Number(i.price || i.mrp || 0) * i.qty), 0);
@@ -28,12 +28,12 @@ function buildWhatsAppMessage(items, orderRef, coupon, pincode) {
   const deliveryInfo = hasPhysical && pincode ? `Delivery Pincode: *${pincode}*\n` : '';
   const note = hasPhysical
     ? `_Note: Shipping charges are applicable and will be calculated & confirmed via WhatsApp before payment._\n\n` +
-      `Please confirm availability, shipping charges, and total amount to pay. JazakAllahu Khairan! 📚`
-    : `_Note: Digital E-Book order. Access/download details will be provided via email & WhatsApp._\n\n` +
-      `Please confirm the order and total amount to pay. JazakAllahu Khairan! 📚`;
+      `Please confirm availability, shipping charges, and total amount to pay. JazakAllahu Khairan!`
+    : `_Note: Digital E-Book order. Access/download details will be provided via email or WhatsApp._\n\n` +
+      `Please confirm the order and total amount to pay. JazakAllahu Khairan!`;
 
   return (
-    `Assalamualaikum! 🌙\n\n` +
+    `Assalamualaikum!\n\n` +
     `I would like to order the following from *Maktabah An Noor*:\n\n` +
     `${lines}\n\n` +
     (subtotal > 0 ? `Subtotal: ₹${subtotal.toLocaleString('en-IN')}\n` : '') +

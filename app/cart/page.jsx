@@ -16,7 +16,7 @@ function buildOrderRef() {
 
 function buildWhatsAppMessage(items, orderRef, coupon, delivery) {
   const lines = items.map((item, i) =>
-    `${i + 1}. ${item.type === 'bundle' ? '📦 ' : (item.type === 'ebook' || item.itemType === 'ebook') ? '📱 ' : ''}${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}`
+    `${i + 1}. ${item.type === 'bundle' ? '[Bundle] ' : ''}${item.title}${item.qty > 1 ? ` × ${item.qty}` : ''}`
   ).join('\n');
 
   const subtotal = items.reduce((sum, i) => sum + (Number(i.price || i.mrp || 0) * i.qty), 0);
@@ -40,12 +40,12 @@ function buildWhatsAppMessage(items, orderRef, coupon, delivery) {
 
   const footerNote = hasPhysical
     ? `_Note: Shipping charges are applicable and will be calculated & confirmed via WhatsApp before payment._\n\n` +
-      `Please confirm availability, shipping charges, and total amount to pay. JazakAllahu Khairan! 📚`
-    : `_Note: Digital E-Book order. Access/download details will be provided via email & WhatsApp._\n\n` +
-      `Please confirm the order and total amount to pay. JazakAllahu Khairan! 📚`;
+      `Please confirm availability, shipping charges, and total amount to pay. JazakAllahu Khairan!`
+    : `_Note: Digital E-Book order. Access/download details will be provided via email or WhatsApp._\n\n` +
+      `Please confirm the order and total amount to pay. JazakAllahu Khairan!`;
 
   return (
-    `Assalamualaikum! 🌙\n\n` +
+    `Assalamualaikum!\n\n` +
     `I would like to order the following from *Maktabah An Noor*:\n\n` +
     `${lines}\n\n` +
     (subtotal > 0 ? `Subtotal: ₹${subtotal.toLocaleString('en-IN')}\n` : '') +
@@ -479,7 +479,7 @@ export default function CartPage() {
                     </>
                   ) : (
                     <div style={{ padding: '12px 14px', background: 'rgba(27,67,50,0.05)', borderRadius: 10, border: '1px solid rgba(27,67,50,0.12)', fontSize: 12, color: '#1b4332', lineHeight: 1.5 }}>
-                      📱 <strong>Digital E-Book:</strong> No physical shipping address is required. Your e-book access details will be sent directly to your email and WhatsApp.
+                      📱 <strong>Digital E-Book:</strong> No physical shipping address is required. Your e-book access details will be sent directly to your email or WhatsApp.
                     </div>
                   )}
                 </div>
