@@ -338,7 +338,7 @@ export default function AdminPage() {
     try { stored = localStorage.getItem('mn_admin_session'); } catch {}
     if (!stored) return;
     setSession(stored); setView('dashboard');
-    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadUsers(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts(); loadHomeCats(); loadReviews(stored); loadEbooks(stored);
+    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadUsers(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts(); loadHomeCats(); loadReviews(stored); loadEbooks(stored); loadSaleBar();
   }, []);
 
   const [books, setBooks]         = useState([]);
@@ -370,6 +370,15 @@ export default function AdminPage() {
   const [catReorderSaving, setCatReorderSaving] = useState(false);
   const [coupons, setCoupons]     = useState([]);
   const [couponForm, setCouponForm] = useState(EMPTY_COUPON);
+  const [saleBar, setSaleBar]     = useState({
+    enabled: false,
+    text1: 'On-going limited time sale',
+    timerLabel: 'Sale countdown',
+    endTime: '',
+    text2: 'Any text admin can add here',
+    link: '',
+  });
+  const [saleBarSaving, setSaleBarSaving] = useState(false);
   const [reviews, setReviews]     = useState([]);
   const [reviewFilter, setReviewFilter] = useState('all');
   const [reviewSearch, setReviewSearch] = useState('');
@@ -853,7 +862,7 @@ export default function AdminPage() {
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
       setSession(pw); setView('dashboard'); setPw('');
       try { localStorage.setItem('mn_admin_session', pw); } catch {}
-      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadUsers(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts(); loadHomeCats(); loadReviews(pw); loadEbooks(pw);
+      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadUsers(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts(); loadHomeCats(); loadReviews(pw); loadEbooks(pw); loadSaleBar();
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -915,6 +924,33 @@ export default function AdminPage() {
     saveIgPosts([...igPosts, { url, image: igImageInput.trim() }]); setIgPostInput(''); setIgImageInput('');
   }
   function removeIgPost(url) { saveIgPosts(igPosts.filter(p=>p.url!==url)); }
+
+  async function loadSaleBar() {
+    try {
+      const r = await fetch('/api/sale-bar?t=' + Date.now());
+      const d = await r.json();
+      if (d.saleBar) setSaleBar(d.saleBar);
+    } catch {}
+  }
+  async function saveSaleBar(override = null) {
+    setSaleBarSaving(true);
+    try {
+      const dataToSave = override || saleBar;
+      const r = await fetch('/api/sale-bar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: session, saleBar: dataToSave }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to save sale bar.');
+      setSaleBar(d.saleBar);
+      showToast(override && !override.enabled ? 'Sale bar removed / disabled.' : '✓ Sale bar settings saved!', 'success');
+    } catch (e) {
+      showToast(e.message, 'error');
+    } finally {
+      setSaleBarSaving(false);
+    }
+  }
 
   async function loadHomeCats() {
     try {
@@ -2825,7 +2861,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content',flexWrap:'wrap'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'ebooks',label:`E-Books (${ebooks.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length}${orders.filter(o=>getOrderStatus(o)==='pending').length>0?` · ${orders.filter(o=>getOrderStatus(o)==='pending').length} pending`:''})`},{id:'reviews',label:`Reviews (${reviews.length}${pendingReviews.length>0?` · ${pendingReviews.length} pending`:''})`},{id:'users',label:`Customers & Interests (${users.length})`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'ebooks',label:`E-Books (${ebooks.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length}${orders.filter(o=>getOrderStatus(o)==='pending').length>0?` · ${orders.filter(o=>getOrderStatus(o)==='pending').length} pending`:''})`},{id:'reviews',label:`Reviews (${reviews.length}${pendingReviews.length>0?` · ${pendingReviews.length} pending`:''})`},{id:'users',label:`Customers & Interests (${users.length})`},{id:'sale',label:`Sale Bar & Timer${saleBar.enabled ? ' • Active' : ''}`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif"}}>
               {t.label}
             </button>
@@ -4379,8 +4415,371 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* SALE BAR & COUNTDOWN TIMER */}
+        {tab === 'sale' && (
+          <div style={{display:'flex',flexDirection:'column',gap:24}}>
+            {/* Header / Intro Card */}
+            <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',padding:'24px 28px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:16}}>
+              <div>
+                <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:4}}>
+                  <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'#1b4332',margin:0}}>Sale Bar &amp; Countdown Timer</h2>
+                  <span style={{
+                    fontSize:11,
+                    fontWeight:600,
+                    letterSpacing:.5,
+                    padding:'3px 10px',
+                    borderRadius:20,
+                    background:saleBar.enabled ? 'rgba(45,106,79,0.1)' : 'rgba(160,152,144,0.15)',
+                    color:saleBar.enabled ? '#2d6a4f' : '#6b6460',
+                    border: `1px solid ${saleBar.enabled ? 'rgba(45,106,79,0.3)' : 'rgba(160,152,144,0.3)'}`,
+                  }}>
+                    {saleBar.enabled ? '● Active on Website' : '○ Inactive / Hidden'}
+                  </span>
+                </div>
+                <p style={{fontSize:13,color:'#6b6460',margin:0,lineHeight:1.5}}>
+                  Announcement marquee located right below the navigation tabs across every storefront page. The middle timer runs live and the entire bar automatically removes itself when it expires.
+                </p>
+              </div>
+
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                {saleBar.enabled && (
+                  <button
+                    type="button"
+                    onClick={() => saveSaleBar({ ...saleBar, enabled: false })}
+                    disabled={saleBarSaving}
+                    style={{
+                      padding:'9px 18px',
+                      borderRadius:24,
+                      border:'1.5px solid rgba(180,60,60,0.25)',
+                      background:'rgba(180,60,60,0.06)',
+                      color:'#b44',
+                      fontSize:12,
+                      fontWeight:500,
+                      cursor:saleBarSaving ? 'wait' : 'pointer',
+                      transition:'all .15s'
+                    }}
+                  >
+                    Remove Sale Bar Now
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => saveSaleBar()}
+                  disabled={saleBarSaving}
+                  style={{
+                    padding:'10px 24px',
+                    borderRadius:24,
+                    border:'none',
+                    background:'#1b4332',
+                    color:'#fff',
+                    fontSize:12,
+                    fontWeight:600,
+                    letterSpacing:.4,
+                    cursor:saleBarSaving ? 'wait' : 'pointer',
+                    boxShadow:'0 2px 10px rgba(27,67,50,0.2)',
+                    transition:'all .15s'
+                  }}
+                >
+                  {saleBarSaving ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+
+            {/* Live Preview */}
+            <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
+              <div style={{padding:'16px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <span style={{fontSize:11,fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',color:'#b8965a'}}>
+                  ✦ Live Storefront Preview (Continuously Moving)
+                </span>
+                <span style={{fontSize:11,color:'#a09890'}}>
+                  {saleBar.enabled ? 'Visible on website right now' : 'Currently hidden from storefront'}
+                </span>
+              </div>
+              <div style={{background:'#1b4332',padding:'10px 0',overflow:'hidden',position:'relative'}}>
+                <SaleBarPreview saleBar={saleBar} />
+              </div>
+            </div>
+
+            {/* Configuration Form */}
+            <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr',gap:24,alignItems:'start'}}>
+              {/* Left Column: 3 Boxes Editor */}
+              <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',padding:'28px',display:'flex',flexDirection:'column',gap:24}}>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:600,color:'#1b4332',borderBottom:'1px solid rgba(27,67,50,0.07)',paddingBottom:12}}>
+                  Content Configuration (3 Boxes)
+                </div>
+
+                {/* Box 1: Text first */}
+                <div>
+                  <Label hint="Left text block in the marquee (e.g. sale headline, discount highlight)">
+                    Box 1: Primary Text *
+                  </Label>
+                  <FInput
+                    value={saleBar.text1}
+                    onChange={e => setSaleBar(prev => ({ ...prev, text1: e.target.value }))}
+                    placeholder='e.g. "On-going limited time sale"'
+                  />
+                </div>
+
+                {/* Box 2: Sale Countdown Timer */}
+                <div style={{padding:'18px 20px',background:'#faf9f5',borderRadius:14,border:'1px solid rgba(27,67,50,0.1)'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                    <span style={{fontSize:13,fontWeight:600,color:'#1b4332'}}>
+                      Box 2: Sale Countdown Timer
+                    </span>
+                    <span style={{fontSize:11,color:'#b8965a',fontWeight:500}}>
+                      ⏱ Auto-hides when time ends
+                    </span>
+                  </div>
+
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1.2fr',gap:14,marginBottom:14}}>
+                    <div>
+                      <Label hint="Timer prefix label">Label</Label>
+                      <FInput
+                        value={saleBar.timerLabel}
+                        onChange={e => setSaleBar(prev => ({ ...prev, timerLabel: e.target.value }))}
+                        placeholder="Sale countdown"
+                      />
+                    </div>
+                    <div>
+                      <Label hint="Target date &amp; time">Sale End Date &amp; Time</Label>
+                      <input
+                        type="datetime-local"
+                        value={saleBar.endTime ? saleBar.endTime.slice(0, 16) : ''}
+                        onChange={e => setSaleBar(prev => ({ ...prev, endTime: e.target.value }))}
+                        style={{
+                          width:'100%',
+                          padding:'10px 14px',
+                          background:'#fff',
+                          border:'1.5px solid rgba(27,67,50,0.12)',
+                          borderRadius:10,
+                          color:'#1a1712',
+                          fontSize:13,
+                          fontFamily:"'DM Sans',sans-serif",
+                          outline:'none',
+                          boxSizing:'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Preset quick buttons */}
+                  <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginTop:8}}>
+                    <span style={{fontSize:11,color:'#a09890'}}>Quick Presets:</span>
+                    {[
+                      { label: '+1 Day', hours: 24 },
+                      { label: '+3 Days', hours: 72 },
+                      { label: '+1 Week', hours: 168 },
+                      { label: '+2 Weeks', hours: 336 },
+                    ].map(p => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => {
+                          const target = new Date(Date.now() + p.hours * 60 * 60 * 1000);
+                          const tzOffset = target.getTimezoneOffset() * 60000;
+                          const localISOTime = new Date(target.getTime() - tzOffset).toISOString().slice(0, 16);
+                          setSaleBar(prev => ({ ...prev, endTime: localISOTime }));
+                        }}
+                        style={{
+                          padding:'4px 10px',
+                          background:'#fff',
+                          border:'1px solid rgba(27,67,50,0.15)',
+                          borderRadius:16,
+                          fontSize:11,
+                          color:'#1b4332',
+                          cursor:'pointer'
+                        }}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                    {saleBar.endTime && (
+                      <button
+                        type="button"
+                        onClick={() => setSaleBar(prev => ({ ...prev, endTime: '' }))}
+                        style={{
+                          padding:'4px 10px',
+                          background:'transparent',
+                          border:'1px solid rgba(180,60,60,0.2)',
+                          borderRadius:16,
+                          fontSize:11,
+                          color:'#b44',
+                          cursor:'pointer'
+                        }}
+                      >
+                        Clear Timer
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Box 3: Another box of text */}
+                <div>
+                  <Label hint="Right text block in the marquee (e.g. shipping offer, coupon promo, or extra info)">
+                    Box 3: Secondary Text *
+                  </Label>
+                  <FInput
+                    value={saleBar.text2}
+                    onChange={e => setSaleBar(prev => ({ ...prev, text2: e.target.value }))}
+                    placeholder='e.g. "Any text admin can add here"'
+                  />
+                </div>
+
+                {/* Banner Click Link (Optional) */}
+                <div>
+                  <Label hint="Optional link destination when visitors click on the sale bar (e.g. /books, /ebooks)">
+                    Destination Link (Optional)
+                  </Label>
+                  <FInput
+                    value={saleBar.link}
+                    onChange={e => setSaleBar(prev => ({ ...prev, link: e.target.value }))}
+                    placeholder="e.g. /books or /ebooks"
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: Visibility & Guidance */}
+              <div style={{display:'flex',flexDirection:'column',gap:20}}>
+                {/* Status & Toggle Card */}
+                <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',padding:'24px'}}>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332',marginBottom:16}}>
+                    Visibility Controls
+                  </div>
+
+                  <label style={{display:'flex',alignItems:'center',gap:12,cursor:'pointer',padding:'12px 14px',borderRadius:12,background:saleBar.enabled ? 'rgba(45,106,79,0.06)' : 'rgba(0,0,0,0.02)',border:`1.5px solid ${saleBar.enabled ? 'rgba(45,106,79,0.25)' : 'rgba(0,0,0,0.08)'}`,marginBottom:16}}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(saleBar.enabled)}
+                      onChange={e => setSaleBar(prev => ({ ...prev, enabled: e.target.checked }))}
+                      style={{width:18,height:18,accentColor:'#1b4332',cursor:'pointer'}}
+                    />
+                    <div>
+                      <div style={{fontSize:13,fontWeight:600,color:'#1b4332'}}>
+                        {saleBar.enabled ? 'Sale Bar is Enabled' : 'Sale Bar is Disabled'}
+                      </div>
+                      <div style={{fontSize:11,color:'#6b6460'}}>
+                        {saleBar.enabled ? 'Displayed below navigation tabs on all pages.' : 'Hidden from all visitors on the website.'}
+                      </div>
+                    </div>
+                  </label>
+
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    <button
+                      type="button"
+                      onClick={() => saveSaleBar()}
+                      disabled={saleBarSaving}
+                      style={{
+                        width:'100%',
+                        padding:'12px 20px',
+                        borderRadius:24,
+                        border:'none',
+                        background:'#1b4332',
+                        color:'#fff',
+                        fontSize:13,
+                        fontWeight:600,
+                        cursor:saleBarSaving ? 'wait' : 'pointer',
+                        boxShadow:'0 4px 14px rgba(27,67,50,0.2)',
+                        transition:'all .15s'
+                      }}
+                    >
+                      {saleBarSaving ? 'Saving…' : 'Save & Apply'}
+                    </button>
+                    {saleBar.enabled && (
+                      <button
+                        type="button"
+                        onClick={() => saveSaleBar({ ...saleBar, enabled: false })}
+                        disabled={saleBarSaving}
+                        style={{
+                          width:'100%',
+                          padding:'10px 20px',
+                          borderRadius:24,
+                          border:'1px solid rgba(180,60,60,0.25)',
+                          background:'transparent',
+                          color:'#b44',
+                          fontSize:12,
+                          fontWeight:500,
+                          cursor:saleBarSaving ? 'wait' : 'pointer',
+                          transition:'all .15s'
+                        }}
+                      >
+                        Remove / Disable Sale Bar
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Explanation Card */}
+                <div style={{background:'#faf9f5',borderRadius:20,border:'1px solid rgba(27,67,50,0.1)',padding:'20px 22px',lineHeight:1.6}}>
+                  <div style={{fontSize:12,fontWeight:600,color:'#1b4332',marginBottom:8,display:'flex',alignItems:'center',gap:6}}>
+                    <span>✦</span> Automatic Expiry System
+                  </div>
+                  <p style={{fontSize:12,color:'#6b6460',margin:'0 0 10px'}}>
+                    When the countdown timer ends (reaches 00:00:00), the sale bar <strong>automatically disappears</strong> from all pages so you never display expired promotions.
+                  </p>
+                  <p style={{fontSize:12,color:'#6b6460',margin:0}}>
+                    You can also remove or re-enable the sale bar at any time using the toggle or "Remove" button above.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <Toast t={toast}/>
+    </div>
+  );
+}
+
+function SaleBarPreview({ saleBar }) {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    function tick() {
+      if (!saleBar?.endTime) {
+        setTimeLeft('12h 35m 32s (Sample)');
+        return;
+      }
+      const diff = new Date(saleBar.endTime).getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeLeft('00h 00m 00s (Ended)');
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      const pad = n => String(n).padStart(2, '0');
+      setTimeLeft(days > 0 ? `${days}d ${hours}h ${pad(minutes)}m ${pad(seconds)}s` : `${hours}h ${pad(minutes)}m ${pad(seconds)}s`);
+    }
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [saleBar?.endTime]);
+
+  const t1 = saleBar?.text1 || 'On-going limited time sale';
+  const label = saleBar?.timerLabel || 'Sale countdown';
+  const t2 = saleBar?.text2 || 'Any text admin can add here';
+
+  const unit = (
+    <span style={{display:'inline-flex',alignItems:'center',gap:16,padding:'0 28px'}}>
+      <span style={{color:'#faf9f5',fontSize:12.5,fontWeight:600,letterSpacing:'.4px',textTransform:'uppercase'}}>{t1}</span>
+      <span style={{color:'#b8965a',fontSize:11}}>✦</span>
+      <span style={{display:'inline-flex',alignItems:'center',gap:8,background:'rgba(184,150,90,0.16)',border:'1px solid rgba(212,171,112,0.45)',borderRadius:20,padding:'3px 14px',color:'#faf9f5',fontSize:12,fontWeight:500}}>
+        <span style={{width:6,height:6,borderRadius:'50%',background:'#b8965a'}}/>
+        <span style={{color:'#e8dfd8'}}>{label} :</span>
+        <span style={{fontFamily:"monospace",fontWeight:700,color:'#ffd166',letterSpacing:'.5px'}}>{timeLeft}</span>
+      </span>
+      <span style={{color:'#b8965a',fontSize:11}}>✦</span>
+      <span style={{color:'#e8dfd8',fontSize:12.5,fontWeight:400}}>{t2}</span>
+      <span style={{color:'#b8965a',fontSize:11,marginLeft:4}}>✦</span>
+    </span>
+  );
+
+  return (
+    <div style={{display:'flex',width:'max-content',whiteSpace:'nowrap',animation:'saleMarqueeAnim 32s linear infinite'}}>
+      {[0, 1, 2, 3].map(i => <span key={`p1-${i}`}>{unit}</span>)}
+      {[0, 1, 2, 3].map(i => <span key={`p2-${i}`}>{unit}</span>)}
     </div>
   );
 }
