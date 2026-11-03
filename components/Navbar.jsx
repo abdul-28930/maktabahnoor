@@ -5,6 +5,7 @@ import Image from 'next/image';
 import BooksNavDropdown from './BooksNavDropdown';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
+import SaleBar from './SaleBar';
 
 export default function Navbar({ active = '' }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -464,6 +465,7 @@ export default function Navbar({ active = '' }) {
           </Link>
         </div>
       )}
+      <SaleBar />
     </>
   );
 }
