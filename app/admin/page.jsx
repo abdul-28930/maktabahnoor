@@ -23,7 +23,7 @@ const EMPTY_EBOOK = {
 // validation message. Must match MANDATORY_BOOK_FIELDS keys in lib/constants.js.
 const FIELD_LABELS = { title:'Title', author:'Author', category:'Category', language:'Language', price:'Sale Price', stockCount:'Stock Count', binding:'Binding' };
 const EMPTY_BUNDLE = {
-  name:'',description:'',sku:'',bookSlugs:[],
+  name:'',description:'',slug:'',sku:'',bookSlugs:[],
   totalMrp:'',bundlePrice:'',offerType:'',stockCount:'',active:true,
 };
 
@@ -411,6 +411,9 @@ export default function AdminPage() {
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryInput, setNewCategoryInput] = useState('');
   const [editBundleId, setEditBundleId] = useState(null);
+  const [editBundleSlug, setEditBundleSlug] = useState('');
+  const [bundleSlugInput, setBundleSlugInput] = useState('');
+  const [bundleSlugSaving, setBundleSlugSaving] = useState(false);
   const [editSlideId, setEditSlideId] = useState(null);
   const [form, setForm]           = useState(EMPTY_BOOK);
   const [bundleForm, setBundleForm] = useState(EMPTY_BUNDLE);
@@ -555,6 +558,15 @@ export default function AdminPage() {
         icon: '👕',
         title: c?.name || c?.title || slugOrId,
         url: `/clothing/${slugOrId}`,
+      };
+    }
+    if (type === 'bundle' || type === 'combo') {
+      const b = bundles.find(x => x.id === slugOrId || x.slug === slugOrId);
+      return {
+        type: 'Combo',
+        icon: '📦',
+        title: b?.name || slugOrId,
+        url: `/combo/${b?.slug || slugOrId}`,
       };
     }
     return {
@@ -1179,7 +1191,7 @@ export default function AdminPage() {
       } else if (reorderType === 'bundles') {
         const r = await fetch('/api/bundles/reorder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,ids:reorderList.map(b=>b.id)})});
         if (!r.ok) throw new Error((await r.json()).error||'Failed');
-        showToast('✓ Bundles order saved!','success'); await loadBundles(); setView('dashboard'); setTab('bundles');
+        showToast('✓ Combos order saved!','success'); await loadBundles(); setView('dashboard'); setTab('bundles');
       } else if (reorderType === 'accessories') {
         const r = await fetch('/api/accessories/reorder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,ids:reorderList.map(a=>a.id)})});
         if (!r.ok) throw new Error((await r.json()).error||'Failed');
@@ -1275,12 +1287,29 @@ export default function AdminPage() {
     finally { setRenameSaving(p=>({...p,[saveKey]:false,[field]:false})); }
   }
 
+  async function renameBundleSlug() {
+    if (!bundleSlugInput.trim() || bundleSlugInput === editBundleSlug) return;
+    setBundleSlugSaving(true);
+    try {
+      const r = await fetch(`/api/bundles/${editBundleId}/rename`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,newSlug:bundleSlugInput})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'Failed to rename.');
+      showToast(`✓ URL changed to /combo/${d.newSlug}`,'success');
+      setEditBundleSlug(d.newSlug); setBundleSlugInput(d.newSlug);
+      await loadBundles();
+    } catch(e) { showToast(e.message,'error'); }
+    finally { setBundleSlugSaving(false); }
+  }
+
   async function openEditBundle(id) {
     setLoading(true);
     try {
       const r=await fetch(`/api/bundles/${id}`); const d=await r.json();
       if (d.bundle) {
         setEditBundleId(id);
+        const currentSlug = d.bundle.slug || d.bundle.id;
+        setEditBundleSlug(currentSlug);
+        setBundleSlugInput(currentSlug);
         setBundleForm({
           name:d.bundle.name||'',description:d.bundle.description||'',sku:d.bundle.sku||'',
           bookSlugs:d.bundle.bookSlugs||[],totalMrp:d.bundle.totalMrp||'',
@@ -1333,16 +1362,17 @@ export default function AdminPage() {
   }
 
   async function saveBundle() {
-    if (!bundleForm.name.trim()) { showToast('Bundle name is required.','error'); return; }
+    if (!bundleForm.name.trim()) { showToast('Combo name is required.','error'); return; }
     if (bundleForm.bookSlugs.length < 2) { showToast('Select at least 2 books.','error'); return; }
     setLoading(true);
     try {
+      const payload = editBundleId ? { ...bundleForm, slug: editBundleSlug } : bundleForm;
       const r = editBundleId
-        ? await fetch(`/api/bundles/${editBundleId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...bundleForm})})
+        ? await fetch(`/api/bundles/${editBundleId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...payload})})
         : await fetch('/api/bundles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,...bundleForm})});
       const d = await r.json();
       if (!r.ok) throw new Error(d.error||'Failed');
-      showToast(editBundleId?'✓ Bundle updated!':'✓ Bundle created!','success');
+      showToast(editBundleId?'✓ Combo updated!':'✓ Combo created!','success');
       await loadBundles(); setView('dashboard'); setTab('bundles');
     } catch(e) { showToast(e.message,'error'); }
     finally { setLoading(false); }
@@ -1374,17 +1404,17 @@ export default function AdminPage() {
   }
 
   async function delBundle(id) {
-    if (!confirm('Delete this bundle?')) return;
+    if (!confirm('Delete this combo?')) return;
     try {
       await fetch(`/api/bundles/${id}`,{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session})});
-      showToast('Bundle deleted.'); await loadBundles();
+      showToast('Combo deleted.'); await loadBundles();
     } catch { showToast('Failed.','error'); }
   }
 
   async function toggleBundleActive(id, active) {
     try {
       await fetch(`/api/bundles/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:session,active})});
-      await loadBundles(); showToast(active?'Bundle activated.':'Bundle hidden.','success');
+      await loadBundles(); showToast(active?'Combo activated.':'Combo hidden.','success');
     } catch { showToast('Failed.','error'); }
   }
 
@@ -1744,7 +1774,7 @@ export default function AdminPage() {
         {editSlug && (
           <Card title="URL Slug">
             <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
-              This is the book's web address: yoursite.com/book/<b>{editSlug}</b>. Changing it updates every link on the site automatically (bundles, homepage picks, hero slides) — but any old link already shared (e.g. on Instagram) will stop working.
+              This is the book's web address: yoursite.com/book/<b>{editSlug}</b>. Changing it updates every link on the site automatically (combos, homepage picks, hero slides) — but any old link already shared (e.g. on Instagram) will stop working.
             </p>
             <div style={{display:'flex',gap:8}}>
               <div style={{flex:1}}><FInput value={slugInput} onChange={e=>setSlugInput(e.target.value.toLowerCase())} placeholder="book-slug"/></div>
@@ -2205,26 +2235,32 @@ export default function AdminPage() {
         <div style={{display:'flex',alignItems:'center',gap:14}}>
           <Image src="/logo.png" alt="Logo" width={36} height={36} style={{height:36,width:'auto'}}/>
           <div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332'}}>{editBundleId?'Edit Bundle':'Create Bundle'}</div>
-            <div style={{fontSize:10,color:'#b8965a',letterSpacing:'1.5px',textTransform:'uppercase'}}>Admin · Bundles</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332'}}>{editBundleId?'Edit Combo':'Create Combo'}</div>
+            <div style={{fontSize:10,color:'#b8965a',letterSpacing:'1.5px',textTransform:'uppercase'}}>Admin · Combos</div>
           </div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <Btn variant="ghost" onClick={()=>setView('dashboard')}>← Dashboard</Btn>
-          <Btn onClick={saveBundle} disabled={loading}>{loading?'Saving…':editBundleId?'Save Changes':'Create Bundle'}</Btn>
+          <Btn onClick={saveBundle} disabled={loading}>{loading?'Saving…':editBundleId?'Save Changes':'Create Combo'}</Btn>
         </div>
       </header>
 
       <div style={{position:'relative',zIndex:1,maxWidth:900,margin:'0 auto',padding:'40px clamp(20px,5vw,48px) 80px',display:'flex',flexDirection:'column',gap:20}}>
 
-        {/* Bundle Info */}
-        <Card title="Bundle Information">
+        {/* Combo Info */}
+        <Card title="Combo Information">
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-            <div><Label>Bundle Name *</Label><FInput value={bundleForm.name} onChange={e=>bf('name',e.target.value)} placeholder="e.g. Beginner Islamic Library"/></div>
-            <div><Label hint="Unique code">Bundle SKU</Label><FInput value={bundleForm.sku} onChange={e=>bf('sku',e.target.value)} placeholder="e.g. BUN-001"/></div>
+            <div><Label>Combo Name *</Label><FInput value={bundleForm.name} onChange={e=>bf('name',e.target.value)} placeholder="e.g. Beginner Islamic Library"/></div>
+            <div><Label hint="Unique code">Combo SKU</Label><FInput value={bundleForm.sku} onChange={e=>bf('sku',e.target.value)} placeholder="e.g. COM-001"/></div>
           </div>
+          {!editBundleId && (
+            <div style={{marginBottom:16}}>
+              <Label hint="Optional custom URL slug, e.g. beginner-islamic-library">URL Slug</Label>
+              <FInput value={bundleForm.slug || ''} onChange={e=>bf('slug',e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,''))} placeholder="e.g. beginner-islamic-library"/>
+            </div>
+          )}
           <Label>Description</Label>
-          <textarea value={bundleForm.description} onChange={e=>bf('description',e.target.value)} placeholder="What makes this bundle special?" rows={2}
+          <textarea value={bundleForm.description} onChange={e=>bf('description',e.target.value)} placeholder="What makes this combo special?" rows={2}
             style={{width:'100%',padding:'12px 14px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:10,color:'#1a1712',fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:'none',resize:'vertical',lineHeight:1.65,transition:'border-color .2s'}}
             onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
           {bundleForm.description && bundleForm.description.trim() ? (
@@ -2239,7 +2275,7 @@ export default function AdminPage() {
 
         {/* Select Books */}
         <Card title={`Select Books (${bundleForm.bookSlugs.length} selected)`}>
-          <p style={{fontSize:12,color:'#6b6460',marginBottom:16,fontWeight:300}}>Select 2 or more books to include in this bundle. Total MRP will be auto-calculated.</p>
+          <p style={{fontSize:12,color:'#6b6460',marginBottom:16,fontWeight:300}}>Select 2 or more books to include in this combo. Total MRP will be auto-calculated.</p>
           {books.length === 0 ? (
             <div style={{textAlign:'center',padding:'24px 0',color:'#a09890',fontSize:13}}>No books found. Add books first.</div>
           ) : (() => {
@@ -2297,15 +2333,15 @@ export default function AdminPage() {
           })()}
         </Card>
 
-        {/* Bundle Pricing */}
-        <Card title="Bundle Pricing">
+        {/* Combo Pricing */}
+        <Card title="Combo Pricing">
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:16}}>
             <div>
               <Label hint="Sum of individual book prices">Total MRP (₹)</Label>
               <FInput type="number" value={bundleForm.totalMrp} onChange={e=>bf('totalMrp',e.target.value)} placeholder="300" prefix="₹"/>
             </div>
             <div>
-              <Label hint="Special bundle deal price">Bundle Price (₹) *</Label>
+              <Label hint="Special combo deal price">Combo Price (₹) *</Label>
               <FInput type="number" value={bundleForm.bundlePrice} onChange={e=>bf('bundlePrice',e.target.value)} placeholder="250" prefix="₹"/>
             </div>
             <div><Label hint="Optional">Offer Type</Label>
@@ -2315,9 +2351,9 @@ export default function AdminPage() {
           </div>
           {(bundleForm.totalMrp || bundleForm.bundlePrice) && (
             <div style={{padding:'14px 16px',background:'rgba(27,67,50,0.04)',borderRadius:10,display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
-              <span style={{fontSize:12,color:'#6b6460'}}>Bundle Preview:</span>
+              <span style={{fontSize:12,color:'#6b6460'}}>Combo Preview:</span>
               {bundleForm.totalMrp && <span style={{fontSize:14,color:'#a09890',textDecoration:'line-through'}}>₹{Number(bundleForm.totalMrp).toLocaleString('en-IN')} individually</span>}
-              {bundleForm.bundlePrice && <span style={{fontSize:18,fontWeight:600,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif"}}>₹{Number(bundleForm.bundlePrice).toLocaleString('en-IN')} bundle</span>}
+              {bundleForm.bundlePrice && <span style={{fontSize:18,fontWeight:600,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif"}}>₹{Number(bundleForm.bundlePrice).toLocaleString('en-IN')} combo</span>}
               {bundleForm.totalMrp && bundleForm.bundlePrice && <span style={{fontSize:12,color:'#2d6a4f',background:'rgba(45,106,79,0.1)',padding:'3px 10px',borderRadius:10}}>Save ₹{(bundleForm.totalMrp - bundleForm.bundlePrice).toLocaleString('en-IN')}</span>}
               <OfferBadge type={bundleForm.offerType}/>
             </div>
@@ -2332,9 +2368,21 @@ export default function AdminPage() {
           </div>
         </Card>
 
+        {editBundleId && (
+          <Card title="URL Slug">
+            <p style={{fontSize:11,color:'#a09890',margin:'-10px 0 14px',lineHeight:1.6}}>
+              This is the combo's web address: yoursite.com/combo/<b>{editBundleSlug}</b>. Changing it updates the link — any old link already shared will stop working.
+            </p>
+            <div style={{display:'flex',gap:8}}>
+              <div style={{flex:1}}><FInput value={bundleSlugInput} onChange={e=>setBundleSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,''))} placeholder="combo-url-slug"/></div>
+              <Btn onClick={renameBundleSlug} disabled={bundleSlugSaving || !bundleSlugInput.trim() || bundleSlugInput===editBundleSlug}>{bundleSlugSaving?'Saving…':'Change URL'}</Btn>
+            </div>
+          </Card>
+        )}
+
         <div style={{display:'flex',gap:10}}>
           <Btn variant="ghost" onClick={()=>setView('dashboard')}>Cancel</Btn>
-          <Btn onClick={saveBundle} disabled={loading}>{loading?'Saving…':editBundleId?'Save Changes':'Create Bundle'}</Btn>
+          <Btn onClick={saveBundle} disabled={loading}>{loading?'Saving…':editBundleId?'Save Changes':'Create Combo'}</Btn>
         </div>
       </div>
       <Toast t={toast}/>
@@ -2722,14 +2770,14 @@ export default function AdminPage() {
   /* ── REORDER VIEW (BOOKS, BUNDLES, ACCESSORIES, CLOTHING) ── */
   if (view==='reorderView') {
     const title = reorderType === 'books' ? 'Reorder Books'
-      : reorderType === 'bundles' ? 'Reorder Bundles'
+      : reorderType === 'bundles' ? 'Reorder Combos'
       : reorderType === 'accessories' ? 'Reorder Accessories'
       : 'Reorder Clothing';
 
     const hint = reorderType === 'books'
       ? 'Drag rows to set this as "Our Order" — the default sort on the Books page. Coming soon and in-stock books display exactly where you place them. Out-of-stock books sink to the bottom on the site.'
       : reorderType === 'bundles'
-      ? 'Drag rows to set the display order for bundle deals on the /bundles page.'
+      ? 'Drag rows to set the display order for combo deals on the /combos page.'
       : reorderType === 'accessories'
       ? 'Drag rows to set the display order for accessories on the /accessories page.'
       : 'Drag rows to set the display order for clothing on the /clothing page.';
@@ -2791,7 +2839,7 @@ export default function AdminPage() {
       <div style={{position:'relative',zIndex:1,background:'#fff',border:'1px solid rgba(27,67,50,0.1)',borderRadius:20,padding:'48px 44px',maxWidth:420,width:'100%',textAlign:'center',boxShadow:'0 20px 60px rgba(27,67,50,0.1)'}}>
         <Image src="/logo.png" alt="Logo" width={72} height={72} style={{height:72,width:'auto',margin:'0 auto 20px'}}/>
         <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:500,color:'#1b4332',margin:'0 0 6px'}}>Admin Panel</h1>
-        <p style={{fontSize:13,color:'#6b6460',margin:'0 0 32px',lineHeight:1.6}}>Sign in to manage your collection &amp; bundles.</p>
+        <p style={{fontSize:13,color:'#6b6460',margin:'0 0 32px',lineHeight:1.6}}>Sign in to manage your collection &amp; combos.</p>
         <input type="password" placeholder="Password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} autoFocus
           style={{width:'100%',padding:'14px 18px',background:'#faf9f5',border:'1.5px solid rgba(27,67,50,0.12)',borderRadius:12,fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#1a1712',outline:'none',textAlign:'center',letterSpacing:2,marginBottom:12,transition:'border-color .2s'}}
           onFocus={e=>e.target.style.borderColor='#1b4332'} onBlur={e=>e.target.style.borderColor='rgba(27,67,50,0.12)'}/>
@@ -2830,7 +2878,7 @@ export default function AdminPage() {
             : tab==='ebooks'
               ? <Btn onClick={()=>{setEditEbookSlug(null);setEbookForm(EMPTY_EBOOK);setEbookImgMode('url');setEbookGalleryImgMode('upload');setEbookGalleryInput('');setView('ebookEditor');}}>+ Add E-Book</Btn>
               : tab==='bundles'
-              ? <Btn onClick={()=>{setEditBundleId(null);setBundleForm(EMPTY_BUNDLE);setBundleBookSearch('');setBundleBookPage(1);setView('bundleEditor');}}>+ Create Bundle</Btn>
+              ? <Btn onClick={()=>{setEditBundleId(null);setEditBundleSlug('');setBundleSlugInput('');setBundleForm(EMPTY_BUNDLE);setBundleBookSearch('');setBundleBookPage(1);setView('bundleEditor');}}>+ Create Combo</Btn>
               : tab==='slides'
                 ? <Btn onClick={()=>{setEditSlideId(null);setSlideForm(EMPTY_SLIDE);setSlideImgMode('url');setView('slideEditor');}}>+ Add Slide</Btn>
                 : tab==='accessories'
@@ -2848,7 +2896,7 @@ export default function AdminPage() {
       <div style={{position:'relative',zIndex:1,maxWidth:1100,margin:'0 auto',padding:'40px clamp(20px,5vw,48px) 80px'}}>
         {/* Stats */}
         <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:12,marginBottom:36}}>
-          {[{num:stats.total,label:'Total Books',ar:'كتاب'},{num:stats.inStock,label:'In Stock',ar:'متاح'},{num:stats.out,label:'Out of Stock',ar:'غير متاح'},{num:stats.cats,label:'Categories',ar:'تصنيف'},{num:stats.bundles,label:'Bundles',ar:'حزم'},{num:stats.pendingOrders,label:'Pending Orders',ar:'طلبات'}].map((s,i)=>(
+          {[{num:stats.total,label:'Total Books',ar:'كتاب'},{num:stats.inStock,label:'In Stock',ar:'متاح'},{num:stats.out,label:'Out of Stock',ar:'غير متاح'},{num:stats.cats,label:'Categories',ar:'تصنيف'},{num:stats.bundles,label:'Combos',ar:'حزم'},{num:stats.pendingOrders,label:'Pending Orders',ar:'طلبات'}].map((s,i)=>(
             <div key={i} style={{background:'#fff',border:'1px solid rgba(27,67,50,0.07)',borderRadius:16,padding:'20px 16px',boxShadow:'0 2px 12px rgba(27,67,50,0.04)',display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:8}}>
               <div>
                 <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,fontWeight:400,color:'#1b4332',lineHeight:1,marginBottom:4}}>{s.num}</div>
@@ -2861,7 +2909,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content',flexWrap:'wrap'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'ebooks',label:`E-Books (${ebooks.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Bundles (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length}${orders.filter(o=>getOrderStatus(o)==='pending').length>0?` · ${orders.filter(o=>getOrderStatus(o)==='pending').length} pending`:''})`},{id:'reviews',label:`Reviews (${reviews.length}${pendingReviews.length>0?` · ${pendingReviews.length} pending`:''})`},{id:'users',label:`Customers & Interests (${users.length})`},{id:'sale',label:`Sale Bar & Timer${saleBar.enabled ? ' • Active' : ''}`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'ebooks',label:`E-Books (${ebooks.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Combos (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length}${orders.filter(o=>getOrderStatus(o)==='pending').length>0?` · ${orders.filter(o=>getOrderStatus(o)==='pending').length} pending`:''})`},{id:'reviews',label:`Reviews (${reviews.length}${pendingReviews.length>0?` · ${pendingReviews.length} pending`:''})`},{id:'users',label:`Customers & Interests (${users.length})`},{id:'sale',label:`Sale Bar & Timer${saleBar.enabled ? ' • Active' : ''}`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif"}}>
               {t.label}
             </button>
@@ -3081,13 +3129,13 @@ export default function AdminPage() {
         {tab==='bundles' && (
           <div style={{background:'#fff',borderRadius:20,border:'1px solid rgba(27,67,50,0.07)',boxShadow:'0 4px 20px rgba(27,67,50,0.06)',overflow:'hidden'}}>
             <div style={{padding:'20px 24px',borderBottom:'1px solid rgba(27,67,50,0.07)'}}>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:'#1b4332'}}>Bundle Deals</div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:'#1b4332'}}>Combo Deals</div>
             </div>
             {bundles.length===0 ? (
               <div style={{textAlign:'center',padding:'60px 24px'}}>
                 <div style={{fontSize:48,marginBottom:12,opacity:.2}}>📦</div>
-                <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:'0 0 20px'}}>No bundles yet. Create your first bundle deal.</p>
-                <Btn onClick={()=>{setEditBundleId(null);setBundleForm(EMPTY_BUNDLE);setBundleBookSearch('');setBundleBookPage(1);setView('bundleEditor');}}>+ Create First Bundle</Btn>
+                <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'#6b6460',margin:'0 0 20px'}}>No combos yet. Create your first combo deal.</p>
+                <Btn onClick={()=>{setEditBundleId(null);setEditBundleSlug('');setBundleSlugInput('');setBundleForm(EMPTY_BUNDLE);setBundleBookSearch('');setBundleBookPage(1);setView('bundleEditor');}}>+ Create First Combo</Btn>
               </div>
             ) : (
               <div>
@@ -3106,11 +3154,19 @@ export default function AdminPage() {
                         <OfferBadge type={b.offerType}/>
                         {!b.active && <span style={{fontSize:9,color:'#a09890',background:'rgba(0,0,0,0.06)',padding:'2px 8px',borderRadius:8,letterSpacing:.8,textTransform:'uppercase'}}>Hidden</span>}
                       </div>
-                      <div style={{fontSize:12,color:'#a09890'}}>{b.bookSlugs?.length || 0} books · {b.stockCount} units in stock</div>
+                      <div style={{fontSize:12,color:'#a09890',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                        <span>{b.bookSlugs?.length || 0} books · {b.stockCount} units in stock</span>
+                        <a href={`/combo/${b.slug || b.id}`} target="_blank" rel="noopener noreferrer"
+                          style={{fontSize:11,color:'#b8965a',textDecoration:'none',display:'inline-flex',alignItems:'center',gap:2}}
+                          onMouseEnter={e=>e.currentTarget.style.textDecoration='underline'}
+                          onMouseLeave={e=>e.currentTarget.style.textDecoration='none'}>
+                          /combo/{b.slug || b.id} ↗
+                        </a>
+                      </div>
                     </div>
                     <div style={{textAlign:'right',flexShrink:0,minWidth:120}}>
                       {b.totalMrp && <div style={{fontSize:11,color:'#a09890',textDecoration:'line-through'}}>₹{Number(b.totalMrp).toLocaleString('en-IN')} individually</div>}
-                      <div style={{fontSize:15,color:'#1b4332',fontWeight:500}}>₹{Number(b.bundlePrice).toLocaleString('en-IN')} bundle</div>
+                      <div style={{fontSize:15,color:'#1b4332',fontWeight:500}}>₹{Number(b.bundlePrice).toLocaleString('en-IN')} combo</div>
                       {b.totalMrp && b.bundlePrice && <div style={{fontSize:10,color:'#2d6a4f'}}>Save ₹{(b.totalMrp-b.bundlePrice).toLocaleString('en-IN')}</div>}
                     </div>
                     <div style={{display:'flex',gap:6,flexShrink:0,alignItems:'center'}}>

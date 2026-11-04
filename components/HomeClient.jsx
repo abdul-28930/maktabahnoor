@@ -536,11 +536,11 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
             <div style={{fontSize:10,letterSpacing:'2.5px',textTransform:'uppercase',color:'#d4ab70',marginBottom:14,display:'flex',alignItems:'center',gap:8}}>
               <span style={{width:16,height:1,background:'#d4ab70',display:'inline-block'}}/>Save More, Together
             </div>
-            <h2 style={{margin:'0 0 12px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(26px,3.4vw,38px)',color:'#fff',lineHeight:1.2}}>Explore our curated book bundles</h2>
+            <h2 style={{margin:'0 0 12px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(26px,3.4vw,38px)',color:'#fff',lineHeight:1.2}}>Explore our curated book combos</h2>
             <p style={{margin:0,fontSize:14,color:'rgba(255,255,255,0.75)',lineHeight:1.7,fontWeight:300}}>Hand-picked collections at a special combined price — a simple way to start or grow your Islamic library.</p>
           </div>
-          <Link href="/bundles" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'#fff',color:'#1b4332',padding:'15px 30px',borderRadius:40,fontSize:13,letterSpacing:.6,textTransform:'uppercase',fontWeight:500,flexShrink:0,boxShadow:'0 8px 24px rgba(0,0,0,0.2)'}}>
-            View Bundles →
+          <Link href="/combos" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:10,background:'#fff',color:'#1b4332',padding:'15px 30px',borderRadius:40,fontSize:13,letterSpacing:.6,textTransform:'uppercase',fontWeight:500,flexShrink:0,boxShadow:'0 8px 24px rgba(0,0,0,0.2)'}}>
+            View Combos →
           </Link>
         </div>
       </section>

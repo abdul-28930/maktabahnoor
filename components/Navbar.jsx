@@ -132,20 +132,20 @@ export default function Navbar({ active = '' }) {
             E-Books
           </Link>
 
-          {/* 5. Bundles */}
+          {/* 5. Combos */}
           <Link
-            href="/bundles"
+            href="/combos"
             className="hp-nlink"
             style={{
               textDecoration: 'none',
-              color: active === 'bundles' ? '#1b4332' : '#6b6460',
+              color: (active === 'combos' || active === 'bundles') ? '#1b4332' : '#6b6460',
               fontSize: 14,
               letterSpacing: '.3px',
-              fontWeight: active === 'bundles' ? 500 : 400,
+              fontWeight: (active === 'combos' || active === 'bundles') ? 500 : 400,
               transition: 'color .2s ease',
             }}
           >
-            Bundles
+            Combos
           </Link>
 
           {/* 5. Accessories */}
@@ -360,7 +360,7 @@ export default function Navbar({ active = '' }) {
             E-Books
           </Link>
           <Link
-            href="/bundles"
+            href="/combos"
             onClick={() => setMobileMenuOpen(false)}
             style={{
               textDecoration: 'none',
@@ -370,7 +370,7 @@ export default function Navbar({ active = '' }) {
               borderBottom: '1px solid rgba(27,67,50,0.06)',
             }}
           >
-            Bundles
+            Combos
           </Link>
           <Link
             href="/accessories"

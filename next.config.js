@@ -8,6 +8,19 @@ const nextConfig = {
       { protocol: 'https', hostname: '**' },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/bundles',
+        destination: '/combos',
+        permanent: true,
+      },
+      {
+        source: '/bundle/:id',
+        destination: '/combo/:id',
+        permanent: true,
+      },
+    ];
+  },
 };
 module.exports = nextConfig;
-

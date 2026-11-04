@@ -1,5 +1,6 @@
 import redis from '@/lib/redis';
 import { NextResponse } from 'next/server';
+import { sanitizeSlug } from '@/lib/constants';
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
@@ -39,12 +40,16 @@ export async function POST(req) {
     if (password !== process.env.ADMIN_PASSWORD)
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     if (!data.name?.trim())
-      return NextResponse.json({ error: 'Bundle name required.' }, { status: 400 });
+      return NextResponse.json({ error: 'Combo name required.' }, { status: 400 });
 
     const id  = uid();
     const now = new Date().toISOString();
+    const rawSlug = data.slug ? sanitizeSlug(data.slug) : '';
+    const slug = rawSlug || id;
+
     const bundle = {
       id,
+      slug,
       sku:         data.sku?.trim() || '',
       name:        data.name.trim(),
       description: data.description?.trim() || '',
@@ -60,12 +65,12 @@ export async function POST(req) {
     await redis.set(`mn_bundle:${id}`, bundle);
     await redis.set(`mn_stock:bundle:${id}`, bundle.stockCount);
     const meta = await redis.get('mn_bundles_meta') || [];
-    meta.unshift({ id, sku: bundle.sku, name: bundle.name, bookSlugs: bundle.bookSlugs,
+    meta.unshift({ id, slug, sku: bundle.sku, name: bundle.name, bookSlugs: bundle.bookSlugs,
                    totalMrp: bundle.totalMrp, bundlePrice: bundle.bundlePrice,
                    offerType: bundle.offerType, stockCount: bundle.stockCount,
                    active: bundle.active, createdAt: now });
     await redis.set('mn_bundles_meta', meta);
-    return NextResponse.json({ success: true, id });
+    return NextResponse.json({ success: true, id, slug });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Failed.' }, { status: 500 });
