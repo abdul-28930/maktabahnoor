@@ -18,7 +18,7 @@ function buildOrderRef() {
 
 function buildWhatsAppMessage(items, orderRef, coupon, pincode) {
   const lines = items.map((item, i) =>
-    `${i + 1}. ${item.type === 'bundle' ? '[Bundle] ' : ''}${item.title}${(item.type === 'ebook' || item.itemType === 'ebook') ? ' ( E-book )' : ''}${item.qty > 1 ? ` × ${item.qty}` : ''}`
+    `${i + 1}. ${item.type === 'bundle' ? '[Combo] ' : ''}${item.title}${(item.type === 'ebook' || item.itemType === 'ebook') ? ' ( E-book )' : ''}${item.qty > 1 ? ` × ${item.qty}` : ''}`
   ).join('\n');
 
   const subtotal = items.reduce((sum, i) => sum + (Number(i.price || i.mrp || 0) * i.qty), 0);
@@ -192,7 +192,7 @@ export default function CartDrawer() {
                       <div className="cart-item-title">
                         {item.type === 'bundle' && (
                           <span style={{fontSize:9,fontWeight:600,letterSpacing:1,textTransform:'uppercase',color:'#b8965a',background:'rgba(184,150,90,0.12)',border:'1px solid rgba(184,150,90,0.3)',borderRadius:8,padding:'2px 7px',marginRight:8,verticalAlign:'middle'}}>
-                            Bundle
+                            Combo
                           </span>
                         )}
                         {(item.type === 'ebook' || item.itemType === 'ebook') && (

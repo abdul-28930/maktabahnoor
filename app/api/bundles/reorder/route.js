@@ -23,6 +23,7 @@ export async function PUT(req) {
 
     await redis.set(KEY, sorted);
     revalidatePath('/');
+    revalidatePath('/combos');
     revalidatePath('/bundles');
     return NextResponse.json({ success: true, bundles: sorted });
   } catch (e) {

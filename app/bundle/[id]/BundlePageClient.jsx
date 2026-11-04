@@ -42,7 +42,7 @@ export default function BundlePageClient() {
   if (loading) return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
       <PageBackground subtle/>
-      <Navbar active="bundles" />
+      <Navbar active="combos" />
       <div style={{position:'relative',zIndex:1,display:'flex',alignItems:'center',justifyContent:'center',minHeight:'70vh',flexDirection:'column',gap:16}}>
         <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:64,color:'rgba(27,67,50,0.1)',animation:'pulseRays 2s ease-in-out infinite'}}>حزمة</div>
         <div style={{fontSize:13,color:'#a09890',letterSpacing:1}}>Loading…</div>
@@ -53,12 +53,12 @@ export default function BundlePageClient() {
   if (notFound || !bundle) return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif"}}>
       <PageBackground subtle/>
-      <Navbar active="bundles" />
+      <Navbar active="combos" />
       <div style={{position:'relative',zIndex:1,textAlign:'center',padding:'100px 24px'}}>
         <div style={{fontFamily:"'Noto Naskh Arabic',serif",fontSize:80,color:'rgba(27,67,50,0.08)',marginBottom:20}}>حزمة</div>
-        <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,color:'#1b4332',marginBottom:12}}>Bundle Not Found</h1>
-        <p style={{color:'#6b6460',marginBottom:28}}>This bundle does not exist or may have been removed.</p>
-        <Link href="/bundles" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:8,background:'#1b4332',color:'#fff',padding:'14px 28px',borderRadius:40,fontSize:13}}>← Back to Bundles</Link>
+        <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,color:'#1b4332',marginBottom:12}}>Combo Not Found</h1>
+        <p style={{color:'#6b6460',marginBottom:28}}>This combo does not exist or may have been removed.</p>
+        <Link href="/combos" style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:8,background:'#1b4332',color:'#fff',padding:'14px 28px',borderRadius:40,fontSize:13}}>← Back to Combos</Link>
       </div>
     </div>
   );
@@ -71,14 +71,14 @@ export default function BundlePageClient() {
   return (
     <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>
       <PageBackground subtle/>
-      <Navbar active="bundles" />
+      <Navbar active="combos" />
 
       {/* BREADCRUMB */}
       <div style={{position:'relative',zIndex:1,padding:'20px clamp(20px,5vw,72px)',borderBottom:'1px solid rgba(27,67,50,0.06)'}}>
         <div style={{maxWidth:1200,margin:'0 auto',display:'flex',alignItems:'center',gap:10,fontSize:12,color:'#a09890',letterSpacing:.5}}>
           <Link href="/"        style={{textDecoration:'none',color:'#a09890'}}>Home</Link>
           <span style={{color:'rgba(27,67,50,0.2)'}}>›</span>
-          <Link href="/bundles" style={{textDecoration:'none',color:'#a09890'}}>Bundles</Link>
+          <Link href="/combos" style={{textDecoration:'none',color:'#a09890'}}>Combos</Link>
           <Link href="/accessories" style={{textDecoration:'none',color:'#a09890'}}>Accessories</Link>
           <span style={{color:'rgba(27,67,50,0.2)'}}>›</span>
           <span style={{color:'#1b4332'}}>{bundle.name}</span>
@@ -105,7 +105,7 @@ export default function BundlePageClient() {
         {/* Details */}
         <div>
           <div style={{fontSize:10,letterSpacing:'2.5px',textTransform:'uppercase',color:'#b8965a',marginBottom:14,display:'flex',alignItems:'center',gap:8}}>
-            <span style={{width:16,height:1,background:'#b8965a',display:'inline-block'}}/>Bundle Deal · {books.length} Books
+            <span style={{width:16,height:1,background:'#b8965a',display:'inline-block'}}/>Combo Deal · {books.length} Books
           </div>
           <h1 style={{margin:'0 0 14px',fontFamily:"'Cormorant Garamond',serif",fontWeight:500,fontSize:'clamp(30px,4.5vw,46px)',color:'#1b4332',lineHeight:1.15}}>
             {bundle.name}
@@ -126,7 +126,7 @@ export default function BundlePageClient() {
               <span style={{fontSize:36,fontWeight:500,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif",lineHeight:1}}>₹{Number(bundle.bundlePrice).toLocaleString('en-IN')}</span>
             </div>
             {save > 0 && (
-              <div style={{fontSize:13,color:'#2d6a4f',marginTop:8,fontWeight:400}}>You save ₹{save.toLocaleString('en-IN')} buying as a bundle</div>
+              <div style={{fontSize:13,color:'#2d6a4f',marginTop:8,fontWeight:400}}>You save ₹{save.toLocaleString('en-IN')} buying as a combo</div>
             )}
           </div>
 
@@ -169,13 +169,13 @@ export default function BundlePageClient() {
                 {inCart ? (
                   <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Added to Cart</>
                 ) : (
-                  <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add Bundle to Cart</>
+                  <>  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>Add Combo to Cart</>
                 )}
               </button>
             )}
-            <Link href="/bundles"
+            <Link href="/combos"
               style={{textDecoration:'none',display:'inline-flex',alignItems:'center',gap:8,border:'1.5px solid rgba(27,67,50,0.2)',color:'#1b4332',padding:'16px 28px',borderRadius:40,fontSize:14,letterSpacing:.4}}>
-              ← Back to Bundles
+              ← Back to Combos
             </Link>
           </div>
         </div>
