@@ -4,11 +4,13 @@ import Navbar from '@/components/Navbar';
 import PageBackground from '@/components/PageBackground';
 import { useWishlist } from '@/context/WishlistContext';
 import { useCart } from '@/context/CartContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { WA_NUMBER } from '@/lib/constants';
 
 export default function WishlistPage() {
   const { items, removeFromWishlist } = useWishlist();
   const { addToCart, isInCart } = useCart();
+  const { formatPrice } = useCurrency();
 
   function notifyMe(book) {
     const msg = `Assalamualaikum!\n\nCould you let me know when this is back in stock?\n\n${book.title}\n\nJazakAllahu Khairan!`;
@@ -51,7 +53,7 @@ export default function WishlistPage() {
                     <div style={{fontSize:13,color:'#b8965a',fontWeight:600,fontStyle:'italic',marginTop:2}}>Coming Soon</div>
                   ) : (
                     <>
-                      {(book.price || book.mrp) && <div style={{fontSize:14,color:'#1b4332',fontWeight:500}}>₹{Number(book.price || book.mrp).toLocaleString('en-IN')}</div>}
+                      {(book.price || book.mrp) && <div style={{fontSize:14,color:'#1b4332',fontWeight:500}}>{formatPrice(book.price || book.mrp)}</div>}
                       {!book.inStock && <div style={{fontSize:11,color:'#b44',fontWeight:500,marginTop:2}}>Out of Stock</div>}
                     </>
                   )}

@@ -4,9 +4,11 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import PageBackground from '@/components/PageBackground';
 import { useCart } from '@/context/CartContext';
+import { useCurrency } from '@/context/CurrencyContext';
 
 function AccessoryCard({ item }) {
   const { addAccessoryToCart, isInCart } = useCart();
+  const { formatPrice } = useCurrency();
   const hasVariants = item.variants?.length > 0;
   const [selected, setSelected] = useState(hasVariants ? item.variants[0] : null);
   const effectiveStock = hasVariants ? (selected?.stockCount ?? 0) : item.stockCount;
@@ -65,8 +67,8 @@ function AccessoryCard({ item }) {
         <h3 style={{margin:'0 0 4px',fontFamily:"'Cormorant Garamond',serif",fontWeight:600,fontSize:18,color:'#1a1712'}}>{item.name}</h3>
         {item.description && <p style={{margin:'0 0 10px',fontSize:12,color:'#6b6460',lineHeight:1.5,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{item.description}</p>}
         <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:hasVariants?10:12,flexWrap:'wrap'}}>
-          <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>₹{item.price}</span>
-          {item.mrp > item.price && <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{item.mrp}</span>}
+          <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>{formatPrice(item.price)}</span>
+          {item.mrp > item.price && <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>{formatPrice(item.mrp)}</span>}
           {item.mrp > item.price && (
             <span style={{fontSize:11,fontWeight:700,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 7px',borderRadius:8}}>
               {Math.round((1 - item.price/item.mrp)*100)}% off

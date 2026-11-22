@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { EMAIL, WA_NUMBER, nameSlug, splitAuthors, splitTranslators, getBookCategories } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import PageBackground from '@/components/PageBackground';
 import Navbar from '@/components/Navbar';
 import { renderDescription } from '@/components/FormattedDescription';
@@ -20,6 +21,7 @@ const COVER_BG = 'linear-gradient(155deg,#2d6a4f 0%,#1b4332 100%)';
 
 export default function EbookPageClient() {
   const { slug } = useParams();
+  const { formatPrice } = useCurrency();
   const [ebook, setEbook]       = useState(null);
   const [activeImg, setActiveImg] = useState('');
   const [qty, setQty]           = useState(1);
@@ -233,11 +235,11 @@ export default function EbookPageClient() {
               <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                 {ebook.mrp && ebook.price && ebook.mrp > ebook.price && (
                   <span style={{fontSize:20,color:'#a09890',textDecoration:'line-through',fontFamily:"'Cormorant Garamond',serif"}}>
-                    ₹{Number(ebook.mrp).toLocaleString('en-IN')}
+                    {formatPrice(ebook.mrp)}
                   </span>
                 )}
                 <span style={{fontSize:36,fontWeight:500,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif",lineHeight:1}}>
-                  ₹{Number(ebook.price || ebook.mrp).toLocaleString('en-IN')}
+                  {formatPrice(ebook.price || ebook.mrp)}
                 </span>
                 {ebook.mrp && ebook.price && ebook.mrp > ebook.price && (
                   <span style={{padding:'5px 14px',borderRadius:20,background:'rgba(27,67,50,0.12)',color:'#1b4332',fontSize:13,fontWeight:500}}>
@@ -255,7 +257,7 @@ export default function EbookPageClient() {
               </div>
               {ebook.mrp && ebook.price && ebook.mrp > ebook.price && (
                 <div style={{fontSize:13,color:'#6b6460',marginTop:8,fontWeight:300}}>
-                  You save ₹{(ebook.mrp - ebook.price).toLocaleString('en-IN')}
+                  You save {formatPrice(ebook.mrp - ebook.price)}
                 </div>
               )}
             </div>
@@ -376,7 +378,7 @@ export default function EbookPageClient() {
                 <div style={{padding:'12px 14px'}}>
                   <div style={{fontSize:13,color:'#1a1712',fontWeight:400,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',marginBottom:3}}>{rb.title}</div>
                   <div style={{fontSize:11,color:'#a09890',marginBottom:6}}>{rb.author}</div>
-                  {(rb.price || rb.mrp) && <div style={{fontSize:13,color:'#1b4332',fontWeight:500}}>₹{Number(rb.price || rb.mrp).toLocaleString('en-IN')}</div>}
+                  {(rb.price || rb.mrp) && <div style={{fontSize:13,color:'#1b4332',fontWeight:500}}>{formatPrice(rb.price || rb.mrp)}</div>}
                 </div>
               </Link>
             ))}

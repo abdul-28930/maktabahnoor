@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import PageBackground from '@/components/PageBackground';
 import { useCart } from '@/context/CartContext';
+import { useCurrency } from '@/context/CurrencyContext';
 
 const OFFER_COLORS = {
   'Sale':                {bg:'rgba(220,38,38,0.1)',  border:'rgba(220,38,38,0.3)',  text:'#dc2626'},
@@ -24,6 +25,7 @@ function OfferBadge({ type }) {
 
 function BundleCard({ bundle }) {
   const { addBundleToCart, isInCart } = useCart();
+  const { formatPrice } = useCurrency();
   const slug = `bundle:${bundle.id}`;
   const inCart = isInCart(slug);
   const covers = (bundle.books || []).slice(0, 3);
@@ -68,11 +70,11 @@ function BundleCard({ bundle }) {
 
         <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap',marginBottom:14}}>
           {bundle.totalMrp > 0 && (
-            <span style={{fontSize:14,color:'#a09890',textDecoration:'line-through'}}>₹{Number(bundle.totalMrp).toLocaleString('en-IN')}</span>
+            <span style={{fontSize:14,color:'#a09890',textDecoration:'line-through'}}>{formatPrice(bundle.totalMrp)}</span>
           )}
-          <span style={{fontSize:22,fontWeight:600,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif"}}>₹{Number(bundle.bundlePrice).toLocaleString('en-IN')}</span>
+          <span style={{fontSize:22,fontWeight:600,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif"}}>{formatPrice(bundle.bundlePrice)}</span>
           {save > 0 && (
-            <span style={{fontSize:11,color:'#2d6a4f',background:'rgba(45,106,79,0.1)',padding:'3px 10px',borderRadius:10}}>Save ₹{save.toLocaleString('en-IN')}</span>
+            <span style={{fontSize:11,color:'#2d6a4f',background:'rgba(45,106,79,0.1)',padding:'3px 10px',borderRadius:10}}>Save {formatPrice(save)}</span>
           )}
         </div>
 

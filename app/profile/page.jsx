@@ -5,11 +5,13 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import PageBackground from '@/components/PageBackground';
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { DEFAULT_CATEGORIES } from '@/lib/constants';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, loading: authLoading, updateProfile, logout } = useAuth();
+  const { formatPrice } = useCurrency();
 
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
@@ -545,7 +547,7 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: '#1b4332' }}>₹{Number(order.total || 0).toLocaleString('en-IN')}</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#1b4332' }}>{formatPrice(order.total || 0)}</div>
                         <div style={{ fontSize: 11, color: order.fulfilled ? '#2d6a4f' : '#b8965a', marginTop: 2 }}>
                           {order.fulfilled ? 'Fulfilled' : 'Pending'}
                         </div>

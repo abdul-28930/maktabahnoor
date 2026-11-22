@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import PageBackground from '@/components/PageBackground';
 import Navbar from '@/components/Navbar';
 import { renderDescription } from '@/components/FormattedDescription';
@@ -12,6 +13,7 @@ import ProductRatingSummary from '@/components/ProductRatingSummary';
 
 export default function AccessoryPageClient() {
   const { slug } = useParams();
+  const { formatPrice } = useCurrency();
   const [item, setItem] = useState(null);
   const [activeImg, setActiveImg] = useState('');
   const [loading, setLoading] = useState(true);
@@ -239,11 +241,11 @@ export default function AccessoryPageClient() {
             <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
               {item.mrp && item.price && item.mrp > item.price && (
                 <span style={{fontSize:20,color:'#a09890',textDecoration:'line-through',fontFamily:"'Cormorant Garamond',serif"}}>
-                  ₹{Number(item.mrp).toLocaleString('en-IN')}
+                  {formatPrice(item.mrp)}
                 </span>
               )}
               <span style={{fontSize:36,fontWeight:500,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif",lineHeight:1}}>
-                ₹{Number(item.price || item.mrp || 0).toLocaleString('en-IN')}
+                {formatPrice(item.price || item.mrp || 0)}
               </span>
               {discount > 0 && (
                 <span style={{padding:'5px 14px',borderRadius:20,background:'rgba(45,106,79,0.12)',color:'#2d6a4f',fontSize:13,fontWeight:600}}>
@@ -253,7 +255,7 @@ export default function AccessoryPageClient() {
             </div>
             {discount > 0 && (
               <div style={{fontSize:13,color:'#6b6460',marginTop:8,fontWeight:300}}>
-                You save ₹{(item.mrp - item.price).toLocaleString('en-IN')}
+                You save {formatPrice(item.mrp - item.price)}
               </div>
             )}
           </div>
@@ -397,7 +399,7 @@ export default function AccessoryPageClient() {
                 </div>
                 <div style={{padding:'14px 16px'}}>
                   <h3 style={{margin:'0 0 4px',fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontWeight:600,color:'#1a1712'}}>{r.name}</h3>
-                  <div style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{r.price}</div>
+                  <div style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>{formatPrice(r.price)}</div>
                 </div>
               </Link>
             ))}

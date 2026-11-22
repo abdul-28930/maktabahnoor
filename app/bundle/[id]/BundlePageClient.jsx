@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import PageBackground from '@/components/PageBackground';
 import Navbar from '@/components/Navbar';
 import { getBookCategories } from '@/lib/constants';
@@ -23,6 +24,7 @@ function OfferBadge({ type }) {
 
 export default function BundlePageClient() {
   const { id } = useParams();
+  const { formatPrice } = useCurrency();
   const [bundle, setBundle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -121,12 +123,12 @@ export default function BundlePageClient() {
           <div style={{marginBottom:20,padding:'20px 24px',background:'linear-gradient(135deg,rgba(27,67,50,0.04),rgba(184,150,90,0.04))',borderRadius:16,border:'1px solid rgba(27,67,50,0.08)'}}>
             <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
               {bundle.totalMrp > 0 && (
-                <span style={{fontSize:20,color:'#a09890',textDecoration:'line-through',fontFamily:"'Cormorant Garamond',serif"}}>₹{Number(bundle.totalMrp).toLocaleString('en-IN')}</span>
+                <span style={{fontSize:20,color:'#a09890',textDecoration:'line-through',fontFamily:"'Cormorant Garamond',serif"}}>{formatPrice(bundle.totalMrp)}</span>
               )}
-              <span style={{fontSize:36,fontWeight:500,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif",lineHeight:1}}>₹{Number(bundle.bundlePrice).toLocaleString('en-IN')}</span>
+              <span style={{fontSize:36,fontWeight:500,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif",lineHeight:1}}>{formatPrice(bundle.bundlePrice)}</span>
             </div>
             {save > 0 && (
-              <div style={{fontSize:13,color:'#2d6a4f',marginTop:8,fontWeight:400}}>You save ₹{save.toLocaleString('en-IN')} buying as a combo</div>
+              <div style={{fontSize:13,color:'#2d6a4f',marginTop:8,fontWeight:400}}>You save {formatPrice(save)} buying as a combo</div>
             )}
           </div>
 
@@ -154,7 +156,7 @@ export default function BundlePageClient() {
                     <div style={{fontSize:12,color:'#a09890'}}>{b.author}{b.author ? ' · ' : ''}{getBookCategories(b).join(', ') || b.category}</div>
                   </div>
                   {(b.price || b.mrp) && (
-                    <div style={{fontSize:13,color:'#a09890',flexShrink:0}}>₹{Number(b.price || b.mrp).toLocaleString('en-IN')}</div>
+                    <div style={{fontSize:13,color:'#a09890',flexShrink:0}}>{formatPrice(b.price || b.mrp)}</div>
                   )}
                 </Link>
               ))}
