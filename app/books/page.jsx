@@ -10,6 +10,7 @@ import OfferBadge from '@/components/OfferBadge';
 import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, getBookCategories } from '@/lib/constants';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 
 /* ── constants ── */
 const COVER_BKGS = [
@@ -39,6 +40,7 @@ const SORT_OPTIONS = [
 
 /* ── Book card — grid mode ── */
 function GridCard({ book, idx }) {
+  const { formatPrice } = useCurrency();
   const bg   = COVER_BKGS[idx % COVER_BKGS.length];
   const cats = getBookCategories(book);
   const primaryCat = cats[0] || book.category || 'General';
@@ -89,10 +91,10 @@ function GridCard({ book, idx }) {
             <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#b8965a',fontStyle:'italic'}}>Coming Soon</span>
           ) : (
             <>
-              {book.price != null && <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
+              {book.price != null && <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'#1b4332'}}>{formatPrice(book.price)}</span>}
               {book.mrp > book.price && (
                 <>
-                  <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
+                  <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>{formatPrice(book.mrp)}</span>
                   <span style={{fontSize:11,fontWeight:700,color:'#2d6a4f',background:'rgba(45,106,79,0.08)',padding:'2px 7px',borderRadius:8}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
                 </>
               )}
@@ -134,6 +136,7 @@ function GridCard({ book, idx }) {
 
 /* ── Book card — list mode ── */
 function ListCard({ book }) {
+  const { formatPrice } = useCurrency();
   const bg = COVER_BKGS[0];
   const cats = getBookCategories(book);
   const primaryCat = cats[0] || book.category || 'General';
@@ -167,10 +170,10 @@ function ListCard({ book }) {
             <span style={{fontSize:15,fontWeight:600,color:'#b8965a',fontStyle:'italic'}}>Coming Soon</span>
           ) : (
             <>
-              {book.price != null && <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
+              {book.price != null && <span style={{fontSize:16,fontWeight:600,color:'#1b4332'}}>{formatPrice(book.price)}</span>}
               {book.mrp > book.price && (
                 <>
-                  <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
+                  <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>{formatPrice(book.mrp)}</span>
                   <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
                 </>
               )}

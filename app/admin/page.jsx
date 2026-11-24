@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { DEFAULT_CATEGORIES, DEFAULT_LANGUAGES, BINDINGS, TAGS, DEFAULT_OFFER_TYPES, MANDATORY_BOOK_FIELDS, getBookCategories, getCategoryArabic, CAT_AR } from '@/lib/constants';
+import { formatCurrencyPrice } from '@/lib/currencies';
 import PageBackground from '@/components/PageBackground';
 import { renderDescription } from '@/components/FormattedDescription';
 
@@ -338,7 +339,7 @@ export default function AdminPage() {
     try { stored = localStorage.getItem('mn_admin_session'); } catch {}
     if (!stored) return;
     setSession(stored); setView('dashboard');
-    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadUsers(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts(); loadHomeCats(); loadReviews(stored); loadEbooks(stored); loadSaleBar();
+    loadBooks(stored); loadBundles(stored); loadOrders(stored); loadUsers(stored); loadViews(stored); loadTaxonomy(); loadSlides(stored); loadPicks(); loadAccessories(stored); loadClothing(stored); loadCoupons(stored); loadIgPosts(); loadHomeCats(); loadReviews(stored); loadEbooks(stored); loadSaleBar(); loadCurrencies(stored);
   }, []);
 
   const [books, setBooks]         = useState([]);
@@ -379,6 +380,13 @@ export default function AdminPage() {
     link: '',
   });
   const [saleBarSaving, setSaleBarSaving] = useState(false);
+  const [currencies, setCurrencies] = useState([]);
+  const [currencyLastUpdated, setCurrencyLastUpdated] = useState(null);
+  const [currencyRateDate, setCurrencyRateDate] = useState('');
+  const [currencySyncing, setCurrencySyncing] = useState(false);
+  const [currencyToggling, setCurrencyToggling] = useState({});
+  const [currencySearch, setCurrencySearch] = useState('');
+  const [currencyFilter, setCurrencyFilter] = useState('all'); // 'all' | 'visible' | 'hidden'
   const [reviews, setReviews]     = useState([]);
   const [reviewFilter, setReviewFilter] = useState('all');
   const [reviewSearch, setReviewSearch] = useState('');
@@ -874,7 +882,7 @@ export default function AdminPage() {
       if (!r.ok) throw new Error(d.error||'Incorrect password.');
       setSession(pw); setView('dashboard'); setPw('');
       try { localStorage.setItem('mn_admin_session', pw); } catch {}
-      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadUsers(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts(); loadHomeCats(); loadReviews(pw); loadEbooks(pw); loadSaleBar();
+      loadBooks(pw); loadBundles(pw); loadOrders(pw); loadUsers(pw); loadViews(pw); loadTaxonomy(); loadSlides(pw); loadPicks(); loadAccessories(pw); loadClothing(pw); loadCoupons(pw); loadIgPosts(); loadHomeCats(); loadReviews(pw); loadEbooks(pw); loadSaleBar(); loadCurrencies(pw);
     } catch(e) { setPwErr(e.message); }
     finally { setLoading(false); }
   }
@@ -961,6 +969,61 @@ export default function AdminPage() {
       showToast(e.message, 'error');
     } finally {
       setSaleBarSaving(false);
+    }
+  }
+
+  async function loadCurrencies(s = session) {
+    try {
+      const r = await fetch('/api/currencies?all=1', {
+        headers: { 'x-admin-password': s },
+      });
+      const d = await r.json();
+      if (d && Array.isArray(d.currencies)) {
+        setCurrencies(d.currencies);
+        setCurrencyLastUpdated(d.lastUpdated || null);
+      }
+    } catch (e) {
+      console.error('loadCurrencies error:', e);
+    }
+  }
+
+  async function updateCurrenciesFromFrankfurter() {
+    setCurrencySyncing(true);
+    try {
+      const r = await fetch('/api/admin/currencies/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: session }),
+      });
+      const d = await r.json();
+      if (!r.ok || d.error) throw new Error(d.error || 'Failed to update exchange rates.');
+      setCurrencies(d.currencies || []);
+      setCurrencyLastUpdated(d.lastUpdated || null);
+      setCurrencyRateDate(d.rateDate || '');
+      showToast('✓ Exchange rates updated to match current exchange!', 'success');
+    } catch (e) {
+      showToast(e.message || 'Failed to update currencies', 'error');
+    } finally {
+      setCurrencySyncing(false);
+    }
+  }
+
+  async function toggleCurrencyVisible(code, makeVisible) {
+    setCurrencyToggling(prev => ({ ...prev, [code]: true }));
+    try {
+      const r = await fetch('/api/admin/currencies/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: session, code, visible: makeVisible }),
+      });
+      const d = await r.json();
+      if (!r.ok || d.error) throw new Error(d.error || 'Failed to toggle visibility.');
+      setCurrencies(d.currencies || []);
+      showToast(makeVisible ? `✓ ${code} is now visible to customers.` : `✓ ${code} is now hidden.`, 'success');
+    } catch (e) {
+      showToast(e.message || 'Failed to change visibility', 'error');
+    } finally {
+      setCurrencyToggling(prev => ({ ...prev, [code]: false }));
     }
   }
 
@@ -2887,7 +2950,9 @@ export default function AdminPage() {
                     ? <Btn onClick={()=>{setEditClothId(null);setClothForm(EMPTY_CLOTHING);setClothImgMode('url');setClothGalleryImgMode('upload');setClothGalleryInput('');setView('clothEditor');}}>+ Add Clothing</Btn>
                     : tab==='categories'
                       ? <Btn onClick={()=>{setAddingCategory(true);setNewCategoryInput('');}}>+ Add Category</Btn>
-                      : null
+                      : tab==='currencies'
+                        ? <Btn onClick={updateCurrenciesFromFrankfurter} disabled={currencySyncing}>{currencySyncing ? 'Updating Rates…' : '↻ Update prices to match current exchange'}</Btn>
+                        : null
           }
           <Btn variant="ghost" onClick={()=>{setSession('');setView('login');try{localStorage.removeItem('mn_admin_session');}catch{}}}>Log Out</Btn>
         </div>
@@ -2909,7 +2974,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div style={{display:'flex',gap:4,marginBottom:24,background:'rgba(27,67,50,0.05)',borderRadius:30,padding:4,width:'fit-content',flexWrap:'wrap'}}>
-          {[{id:'books',label:`Books (${books.length})`},{id:'ebooks',label:`E-Books (${ebooks.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Combos (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length}${orders.filter(o=>getOrderStatus(o)==='pending').length>0?` · ${orders.filter(o=>getOrderStatus(o)==='pending').length} pending`:''})`},{id:'reviews',label:`Reviews (${reviews.length}${pendingReviews.length>0?` · ${pendingReviews.length} pending`:''})`},{id:'users',label:`Customers & Interests (${users.length})`},{id:'sale',label:`Sale Bar & Timer${saleBar.enabled ? ' • Active' : ''}`}].map(t=>(
+          {[{id:'books',label:`Books (${books.length})`},{id:'ebooks',label:`E-Books (${ebooks.length})`},{id:'categories',label:`Categories (${taxonomy.categories?.length || 0})`},{id:'bundles',label:`Combos (${bundles.length})`},{id:'slides',label:'Homepage'},{id:'accessories',label:`Accessories (${accessories.length})`},{id:'clothing',label:`Clothing (${clothing.length})`},{id:'coupons',label:`Coupons (${coupons.length})`},{id:'orders',label:`Orders (${orders.length}${orders.filter(o=>getOrderStatus(o)==='pending').length>0?` · ${orders.filter(o=>getOrderStatus(o)==='pending').length} pending`:''})`},{id:'reviews',label:`Reviews (${reviews.length}${pendingReviews.length>0?` · ${pendingReviews.length} pending`:''})`},{id:'users',label:`Customers & Interests (${users.length})`},{id:'sale',label:`Sale Bar & Timer${saleBar.enabled ? ' • Active' : ''}`},{id:'currencies',label:`Currencies (${currencies.filter(c=>c.visible).length} visible)`}].map(t=>(
             <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'9px 22px',borderRadius:26,border:'none',background:tab===t.id?'#1b4332':'transparent',color:tab===t.id?'#fff':'#6b6460',fontSize:12,fontWeight:tab===t.id?500:300,letterSpacing:.5,cursor:'pointer',transition:'all .2s',fontFamily:"'DM Sans',sans-serif"}}>
               {t.label}
             </button>
@@ -4781,6 +4846,277 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* CURRENCIES MANAGEMENT TAB */}
+        {tab === 'currencies' && (() => {
+          const visibleCount = currencies.filter(c => c.visible).length;
+          const hiddenCount = currencies.filter(c => !c.visible).length;
+
+          const filteredCurrencies = currencies.filter(c => {
+            if (currencyFilter === 'visible' && !c.visible) return false;
+            if (currencyFilter === 'hidden' && c.visible) return false;
+            if (currencySearch.trim()) {
+              const q = currencySearch.trim().toLowerCase();
+              return (
+                (c.code || '').toLowerCase().includes(q) ||
+                (c.name || '').toLowerCase().includes(q) ||
+                (c.symbol || '').toLowerCase().includes(q)
+              );
+            }
+            return true;
+          });
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Header & Controls Card */}
+              <div style={{ background: '#fff', borderRadius: 20, border: '1px solid rgba(27,67,50,0.07)', boxShadow: '0 4px 20px rgba(27,67,50,0.06)', padding: '24px 28px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
+                  <div>
+                    <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 26, fontWeight: 600, color: '#1b4332', margin: 0 }}>
+                      Currency Exchange System
+                    </h2>
+                    <p style={{ fontSize: 13, color: '#8c827a', margin: '6px 0 0', maxWidth: 640, lineHeight: 1.5 }}>
+                      Live exchange rates for all world currencies are fetched from ExchangeRate-API and stored in your database. All foreign currencies are set to <strong>"Hide" by default</strong> — select which currencies you wish to make available to customers on the store.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={updateCurrenciesFromFrankfurter}
+                      disabled={currencySyncing}
+                      style={{
+                        padding: '11px 22px',
+                        borderRadius: 24,
+                        border: 'none',
+                        background: '#1b4332',
+                        color: '#fff',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: currencySyncing ? 'wait' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        boxShadow: '0 4px 14px rgba(27,67,50,0.18)',
+                        transition: 'all .15s',
+                        opacity: currencySyncing ? 0.7 : 1,
+                      }}
+                    >
+                      <span>↻</span>
+                      <span>{currencySyncing ? 'Updating Exchange Rates…' : 'Update prices to match current exchange'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Status overview cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
+                  <div style={{ background: '#faf9f5', borderRadius: 14, border: '1px solid rgba(27,67,50,0.08)', padding: '14px 18px' }}>
+                    <div style={{ fontSize: 11, color: '#8c827a', textTransform: 'uppercase', letterSpacing: '.5px' }}>Base Store Currency</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 24, fontWeight: 600, color: '#1b4332', marginTop: 3 }}>
+                      INR (₹)
+                    </div>
+                  </div>
+                  <div style={{ background: visibleCount > 0 ? 'rgba(45,106,79,0.08)' : '#faf9f5', borderRadius: 14, border: visibleCount > 0 ? '1px solid rgba(45,106,79,0.25)' : '1px solid rgba(27,67,50,0.08)', padding: '14px 18px' }}>
+                    <div style={{ fontSize: 11, color: visibleCount > 0 ? '#1b4332' : '#8c827a', textTransform: 'uppercase', letterSpacing: '.5px' }}>Visible to Customers</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 24, fontWeight: 600, color: '#2d6a4f', marginTop: 3 }}>
+                      {visibleCount}
+                    </div>
+                  </div>
+                  <div style={{ background: '#faf9f5', borderRadius: 14, border: '1px solid rgba(27,67,50,0.08)', padding: '14px 18px' }}>
+                    <div style={{ fontSize: 11, color: '#8c827a', textTransform: 'uppercase', letterSpacing: '.5px' }}>Hidden Currencies</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 24, fontWeight: 600, color: '#8c827a', marginTop: 3 }}>
+                      {hiddenCount}
+                    </div>
+                  </div>
+                  <div style={{ background: '#faf9f5', borderRadius: 14, border: '1px solid rgba(27,67,50,0.08)', padding: '14px 18px' }}>
+                    <div style={{ fontSize: 11, color: '#8c827a', textTransform: 'uppercase', letterSpacing: '.5px' }}>Last API Sync</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 500, color: currencyLastUpdated ? '#1b4332' : '#b8965a', marginTop: 6 }}>
+                      {currencyLastUpdated ? fmt(currencyLastUpdated) : 'Never synced'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filters and search */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, borderTop: '1px solid rgba(27,67,50,0.07)', paddingTop: 18 }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {[
+                      { id: 'all', label: `All (${currencies.length})` },
+                      { id: 'visible', label: `Visible (${visibleCount})` },
+                      { id: 'hidden', label: `Hidden (${hiddenCount})` },
+                    ].map(flt => (
+                      <button
+                        key={flt.id}
+                        type="button"
+                        onClick={() => setCurrencyFilter(flt.id)}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: 20,
+                          border: currencyFilter === flt.id ? '1px solid #1b4332' : '1px solid rgba(27,67,50,0.12)',
+                          background: currencyFilter === flt.id ? '#1b4332' : 'transparent',
+                          color: currencyFilter === flt.id ? '#fff' : '#4a453f',
+                          fontSize: 12,
+                          fontWeight: currencyFilter === flt.id ? 600 : 400,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {flt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ position: 'relative', minWidth: 240, flex: 1, maxWidth: 360 }}>
+                    <input
+                      type="text"
+                      value={currencySearch}
+                      onChange={e => setCurrencySearch(e.target.value)}
+                      placeholder="Search code or name (e.g. USD, EUR, Dollar)…"
+                      style={{
+                        width: '100%',
+                        padding: '8px 14px 8px 34px',
+                        background: '#faf9f5',
+                        border: '1.5px solid rgba(27,67,50,0.1)',
+                        borderRadius: 24,
+                        fontSize: 13,
+                        fontFamily: "'DM Sans',sans-serif",
+                        outline: 'none',
+                      }}
+                    />
+                    <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#a09890' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Currencies Table / Card */}
+              <div style={{ background: '#fff', borderRadius: 20, border: '1px solid rgba(27,67,50,0.07)', boxShadow: '0 4px 20px rgba(27,67,50,0.06)', overflow: 'hidden' }}>
+                <div style={{ padding: '14px 24px', background: 'rgba(27,67,50,0.03)', borderBottom: '1px solid rgba(27,67,50,0.07)', display: 'grid', gridTemplateColumns: '140px 1.2fr 1.2fr 1fr 140px 140px', gap: 12, fontSize: 11, fontWeight: 600, color: '#8c827a', textTransform: 'uppercase', letterSpacing: '.6px' }}>
+                  <span>Currency</span>
+                  <span>Name</span>
+                  <span>Exchange Rate (1 INR =)</span>
+                  <span>Sample (₹100 =)</span>
+                  <span>Store Status</span>
+                  <span style={{ textAlign: 'right' }}>Action</span>
+                </div>
+
+                {filteredCurrencies.length === 0 ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#a09890', fontSize: 13 }}>
+                    No currencies match your filter.
+                  </div>
+                ) : (
+                  filteredCurrencies.map((c, idx) => {
+                    const isToggling = Boolean(currencyToggling[c.code]);
+                    const invRate = c.rate > 0 ? (1 / c.rate).toFixed(2) : '—';
+                    return (
+                      <div
+                        key={c.code}
+                        style={{
+                          padding: '16px 24px',
+                          borderBottom: idx < filteredCurrencies.length - 1 ? '1px solid rgba(27,67,50,0.05)' : 'none',
+                          display: 'grid',
+                          gridTemplateColumns: '140px 1.2fr 1.2fr 1fr 140px 140px',
+                          alignItems: 'center',
+                          gap: 12,
+                          background: c.visible ? 'rgba(45,106,79,0.015)' : '#fff',
+                        }}
+                      >
+                        {/* Currency Code & Symbol */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{
+                            padding: '4px 10px',
+                            borderRadius: 14,
+                            background: c.visible ? 'rgba(45,106,79,0.1)' : 'rgba(27,67,50,0.05)',
+                            border: `1px solid ${c.visible ? 'rgba(45,106,79,0.25)' : 'rgba(27,67,50,0.1)'}`,
+                            fontWeight: 700,
+                            fontSize: 13,
+                            color: '#1b4332',
+                            letterSpacing: '.5px'
+                          }}>
+                            {c.code} {c.symbol}
+                          </span>
+                        </div>
+
+                        {/* Name */}
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 500, color: '#1a1712' }}>{c.name}</div>
+                          {c.isBase && <div style={{ fontSize: 11, color: '#b8965a', fontWeight: 600 }}>Default Base Currency</div>}
+                        </div>
+
+                        {/* Exchange rate */}
+                        <div>
+                          <div
+                            title={c.rate ? `Exact exchange rate: ${c.rate} ${c.code}` : ''}
+                            style={{ fontSize: 13, fontWeight: 600, color: '#1b4332' }}
+                          >
+                            {c.rate != null && c.rate !== '' && !isNaN(Number(c.rate))
+                              ? (c.code === 'INR'
+                                  ? '1.00 INR'
+                                  : Number(c.rate) > 0 && Number(c.rate) < 0.005
+                                  ? `< 0.01 ${c.code}`
+                                  : `${Number(c.rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${c.code}`)
+                              : '—'}
+                          </div>
+                          {c.code !== 'INR' && c.rate > 0 && (
+                            <div style={{ fontSize: 11, color: '#a09890' }}>
+                              1 {c.code} ≈ ₹{Number(1 / c.rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Sample conversion */}
+                        <div>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#2d6a4f', background: 'rgba(45,106,79,0.08)', padding: '3px 8px', borderRadius: 8 }}>
+                            {formatCurrencyPrice(100, c)}
+                          </span>
+                        </div>
+
+                        {/* Store Status */}
+                        <div>
+                          {c.visible ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(45,106,79,0.1)', color: '#2d6a4f', border: '1px solid rgba(45,106,79,0.3)', fontSize: 11, fontWeight: 600 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2d6a4f' }}/>
+                              Visible
+                            </span>
+                          ) : (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(0,0,0,0.04)', color: '#8c827a', border: '1px solid rgba(0,0,0,0.08)', fontSize: 11, fontWeight: 500 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a09890' }}/>
+                              Hidden
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Action */}
+                        <div style={{ textAlign: 'right' }}>
+                          {c.isBase ? (
+                            <span style={{ fontSize: 11.5, color: '#b8965a', fontWeight: 600, paddingRight: 4 }}>
+                              Always Active
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => toggleCurrencyVisible(c.code, !c.visible)}
+                              disabled={isToggling}
+                              style={{
+                                padding: '6px 14px',
+                                borderRadius: 20,
+                                border: c.visible ? '1.5px solid rgba(180,60,60,0.3)' : '1.5px solid rgba(45,106,79,0.35)',
+                                background: c.visible ? 'rgba(180,60,60,0.04)' : 'rgba(45,106,79,0.08)',
+                                color: c.visible ? '#b44' : '#2d6a4f',
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                cursor: isToggling ? 'wait' : 'pointer',
+                                transition: 'all .15s',
+                              }}
+                            >
+                              {isToggling ? 'Saving…' : c.visible ? 'Hide' : 'Show to Customers'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
       <Toast t={toast}/>
     </div>

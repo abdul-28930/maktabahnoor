@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import OfferBadge from '@/components/OfferBadge';
 import { getBookCategories } from '@/lib/constants';
 
@@ -15,6 +16,7 @@ const TAG_STYLES = {
 export default function BookCard({ book }) {
   const { addToCart, isInCart } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
+  const { formatPrice } = useCurrency();
   const topTag  = book.tags?.find(t => TAG_STYLES[t]);
   const inCart  = isInCart(book.slug);
   const wished  = isWishlisted(book.slug);
@@ -78,10 +80,10 @@ export default function BookCard({ book }) {
             <span style={{fontSize:13,fontWeight:600,color:'#b8965a',fontStyle:'italic'}}>Coming Soon</span>
           ) : (
             <>
-              {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>₹{book.price}</span>}
+              {book.price != null && <span style={{fontSize:15,fontWeight:600,color:'#1b4332'}}>{formatPrice(book.price)}</span>}
               {book.mrp > book.price && (
                 <>
-                  <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>₹{book.mrp}</span>
+                  <span style={{fontSize:12,color:'#a09890',textDecoration:'line-through'}}>{formatPrice(book.mrp)}</span>
                   <span style={{fontSize:12,fontWeight:700,color:'#2d6a4f'}}>{Math.round((1-book.price/book.mrp)*100)}% off</span>
                 </>
               )}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import PageBackground from '@/components/PageBackground';
 import { useCart } from '@/context/CartContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { renderDescription } from '@/components/FormattedDescription';
 
 const OFFER_COLORS = {
@@ -22,6 +23,7 @@ function OfferBadge({ type }) {
 
 export default function ComboPageClient() {
   const { id } = useParams();
+  const { formatPrice } = useCurrency();
   const [bundle, setBundle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -103,7 +105,7 @@ export default function ComboPageClient() {
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:600,color:'#1b4332',lineHeight:1.3,marginBottom:4}}>{b.title}</div>
                   <div style={{fontSize:12,color:'#a09890',marginBottom:8}}>{b.author}</div>
-                  {b.price && <div style={{fontSize:14,fontWeight:500,color:'#1b4332'}}>₹{Number(b.price).toLocaleString('en-IN')}</div>}
+                  {b.price && <div style={{fontSize:14,fontWeight:500,color:'#1b4332'}}>{formatPrice(b.price)}</div>}
                 </div>
               </Link>
             ))}
@@ -132,12 +134,12 @@ export default function ComboPageClient() {
           <div style={{padding:'20px 24px',background:'rgba(27,67,50,0.03)',borderRadius:16,border:'1px solid rgba(27,67,50,0.07)',marginBottom:28}}>
             <div style={{display:'flex',alignItems:'baseline',gap:12,flexWrap:'wrap'}}>
               {bundle.totalMrp > 0 && (
-                <span style={{fontSize:20,color:'#a09890',textDecoration:'line-through',fontFamily:"'Cormorant Garamond',serif"}}>₹{Number(bundle.totalMrp).toLocaleString('en-IN')}</span>
+                <span style={{fontSize:20,color:'#a09890',textDecoration:'line-through',fontFamily:"'Cormorant Garamond',serif"}}>{formatPrice(bundle.totalMrp)}</span>
               )}
-              <span style={{fontSize:36,fontWeight:500,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif",lineHeight:1}}>₹{Number(bundle.bundlePrice).toLocaleString('en-IN')}</span>
+              <span style={{fontSize:36,fontWeight:500,color:'#1b4332',fontFamily:"'Cormorant Garamond',serif",lineHeight:1}}>{formatPrice(bundle.bundlePrice)}</span>
             </div>
             {save > 0 && (
-              <div style={{fontSize:13,color:'#2d6a4f',marginTop:8,fontWeight:400}}>You save ₹{save.toLocaleString('en-IN')} buying as a combo</div>
+              <div style={{fontSize:13,color:'#2d6a4f',marginTop:8,fontWeight:400}}>You save {formatPrice(save)} buying as a combo</div>
             )}
           </div>
 

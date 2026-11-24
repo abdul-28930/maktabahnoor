@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import BooksNavDropdown from './BooksNavDropdown';
+import CurrencySelector from './CurrencySelector';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import SaleBar from './SaleBar';
@@ -248,6 +249,9 @@ export default function Navbar({ active = '' }) {
               </Link>
             )
           )}
+
+          {/* Currency Selector */}
+          <CurrencySelector />
         </div>
 
 
@@ -463,6 +467,9 @@ export default function Navbar({ active = '' }) {
           >
             🛒 Cart{cartCount > 0 ? ` (${cartCount})` : ''}
           </Link>
+
+          {/* Currency in mobile menu */}
+          <CurrencySelector isMobile />
         </div>
       )}
       <SaleBar />

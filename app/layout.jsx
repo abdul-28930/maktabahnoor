@@ -2,6 +2,7 @@ import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { WishlistProvider } from '@/context/WishlistContext';
+import { CurrencyProvider } from '@/context/CurrencyContext';
 import CartDrawer from '@/components/CartDrawer';
 import Script from 'next/script';
 
@@ -68,12 +69,14 @@ export default function RootLayout({ children }) {
         </noscript>
 
         <AuthProvider>
-          <CartProvider>
-            <WishlistProvider>
-              {children}
-              <CartDrawer />
-            </WishlistProvider>
-          </CartProvider>
+          <CurrencyProvider>
+            <CartProvider>
+              <WishlistProvider>
+                {children}
+                <CartDrawer />
+              </WishlistProvider>
+            </CartProvider>
+          </CurrencyProvider>
         </AuthProvider>
       </body>
     </html>

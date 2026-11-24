@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import Navbar from '@/components/Navbar';
 import PageBackground from '@/components/PageBackground';
 import { WA_NUMBER } from '@/lib/constants';
@@ -14,7 +15,7 @@ function buildOrderRef() {
   return `MAN-${Date.now().toString(36).slice(-5).toUpperCase()}`;
 }
 
-function buildWhatsAppMessage(items, orderRef, coupon, delivery) {
+function buildWhatsAppMessage(items, orderRef, coupon, delivery, currency, formatPrice) {
   const lines = items.map((item, i) =>
     `${i + 1}. ${item.type === 'bundle' ? '[Combo] ' : ''}${item.title}${(item.type === 'ebook' || item.itemType === 'ebook') ? ' ( E-book )' : ''}${item.qty > 1 ? ` × ${item.qty}` : ''}`
   ).join('\n');
@@ -22,6 +23,11 @@ function buildWhatsAppMessage(items, orderRef, coupon, delivery) {
   const subtotal = items.reduce((sum, i) => sum + (Number(i.price || i.mrp || 0) * i.qty), 0);
   const total = coupon ? Math.max(0, subtotal - coupon.discount) : subtotal;
   const hasPhysical = items.some(i => i.type !== 'ebook' && i.itemType !== 'ebook');
+
+  const currExtra = currency && currency.code !== 'INR' && formatPrice;
+  const subtotalStr = subtotal > 0 ? `Subtotal: ₹${subtotal.toLocaleString('en-IN')}${currExtra ? ` (${formatPrice(subtotal)})` : ''}\n` : '';
+  const discountStr = coupon ? `Coupon *${coupon.code}* applied: -₹${coupon.discount.toLocaleString('en-IN')}${currExtra ? ` (-${formatPrice(coupon.discount)})` : ''}\n` : '';
+  const totalStr = subtotal > 0 ? `Estimated items total: ₹${total.toLocaleString('en-IN')}${currExtra ? ` (${formatPrice(total)})` : ''}\n` : '';
 
   const customerSection = hasPhysical
     ? `\n*Delivery Details:*\n` +
@@ -48,8 +54,9 @@ function buildWhatsAppMessage(items, orderRef, coupon, delivery) {
     `Assalamualaikum!\n\n` +
     `I would like to order the following from *Maktabah An Noor*:\n\n` +
     `${lines}\n\n` +
-    (subtotal > 0 ? `Subtotal: ₹${subtotal.toLocaleString('en-IN')}\n` : '') +
-    (coupon ? `Coupon *${coupon.code}* applied: -₹${coupon.discount.toLocaleString('en-IN')}\nEstimated items total: ₹${total.toLocaleString('en-IN')}\n` : '') +
+    subtotalStr +
+    discountStr +
+    (coupon ? totalStr : '') +
     customerSection +
     `\nOrder ref: *${orderRef}*\n\n` +
     footerNote
@@ -72,6 +79,7 @@ const FIELD = {
 export default function CartPage() {
   const { items, removeFromCart, updateQty, clearCart, cartCount } = useCart();
   const { user, updateProfile } = useAuth();
+  const { formatPrice, currency } = useCurrency();
   const router = useRouter();
 
   // Coupon
@@ -166,7 +174,7 @@ export default function CartPage() {
     };
 
     const orderRef = buildOrderRef();
-    const msg = buildWhatsAppMessage(items, orderRef, coupon, delivery);
+    const msg = buildWhatsAppMessage(items, orderRef, coupon, delivery, currency, formatPrice);
     const url = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank', 'noreferrer');
 
@@ -293,13 +301,13 @@ export default function CartPage() {
                     {(item.price || item.mrp) && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                         <span style={{ fontSize: 15, fontWeight: 600, color: '#1b4332' }}>
-                          ₹{Number(item.price || item.mrp).toLocaleString('en-IN')}
+                          {formatPrice(item.price || item.mrp)}
                         </span>
                         {item.mrp && item.price && item.mrp > item.price && (
-                          <span style={{ fontSize: 12, color: '#a09890', textDecoration: 'line-through' }}>₹{Number(item.mrp).toLocaleString('en-IN')}</span>
+                          <span style={{ fontSize: 12, color: '#a09890', textDecoration: 'line-through' }}>{formatPrice(item.mrp)}</span>
                         )}
                         {item.qty > 1 && (
-                          <span style={{ fontSize: 12, color: '#6b6460' }}>× {item.qty} = ₹{(Number(item.price || item.mrp) * item.qty).toLocaleString('en-IN')}</span>
+                          <span style={{ fontSize: 12, color: '#6b6460' }}>× {item.qty} = {formatPrice(Number(item.price || item.mrp) * item.qty)}</span>
                         )}
                       </div>
                     )}
@@ -360,7 +368,7 @@ export default function CartPage() {
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#1b4332', marginBottom: 12 }}>Coupon Code</div>
                 {coupon ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(45,106,79,0.07)', border: '1px solid rgba(45,106,79,0.2)', borderRadius: 10, fontSize: 13 }}>
-                    <span style={{ color: '#2d6a4f' }}>✓ <b>{coupon.code}</b> — save ₹{coupon.discount.toLocaleString('en-IN')}</span>
+                    <span style={{ color: '#2d6a4f' }}>✓ <b>{coupon.code}</b> — save {formatPrice(coupon.discount)}</span>
                     <button onClick={removeCoupon} style={{ background: 'none', border: 'none', color: '#a09890', fontSize: 12, cursor: 'pointer', padding: 0 }}>Remove</button>
                   </div>
                 ) : (
@@ -388,17 +396,17 @@ export default function CartPage() {
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#1b4332', marginBottom: 14 }}>Order Summary</div>
                 {coupon && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#6b6460', marginBottom: 6 }}>
-                    <span>Subtotal</span><span>₹{subtotal.toLocaleString('en-IN')}</span>
+                    <span>Subtotal</span><span>{formatPrice(subtotal)}</span>
                   </div>
                 )}
                 {coupon && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#2d6a4f', marginBottom: 6 }}>
-                    <span>Discount</span><span>−₹{coupon.discount.toLocaleString('en-IN')}</span>
+                    <span>Discount</span><span>−{formatPrice(coupon.discount)}</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 600, color: '#1a1712', paddingTop: coupon ? 8 : 0, borderTop: coupon ? '1px solid rgba(27,67,50,0.08)' : 'none' }}>
                   <span>{coupon ? 'Estimated Total' : 'Subtotal'}</span>
-                  <span>₹{discounted.toLocaleString('en-IN')}</span>
+                  <span>{formatPrice(discounted)}</span>
                 </div>
                 <div style={{ fontSize: 11, color: '#a09890', marginTop: 8 }}>
                   {hasPhysicalItems
