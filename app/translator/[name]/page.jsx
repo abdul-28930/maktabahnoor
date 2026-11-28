@@ -85,12 +85,7 @@ export default function TranslatorPage() {
     fetch(`/api/books?translator=${encodeURIComponent(slugParam)}&all=1`)
       .then(r => r.json())
       .then(d => {
-        const list = [...(d.books || [])].sort((a, b) => {
-          const aOut = !a.comingSoon && a.inStock === false;
-          const bOut = !b.comingSoon && b.inStock === false;
-          if (aOut !== bOut) return aOut ? 1 : -1;
-          return 0;
-        });
+        const list = d.books || [];
         let matched = '';
         for (const b of list) {
           const found = splitTranslators(b.translator).find(t => nameSlug(t) === nameSlug(slugParam));
@@ -104,7 +99,7 @@ export default function TranslatorPage() {
   }, [slugParam]);
 
   return (
-    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>
+    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'clip'}}>
       <PageBackground subtle/>
 
       <Navbar active="books" />

@@ -14,21 +14,23 @@ export default function Navbar({ active = '' }) {
   const { cartCount } = useCart();
 
   return (
-    <>
+    <header
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        width: '100%',
+      }}
+    >
       <nav
         style={{
-          position: 'sticky',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 40,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '16px clamp(20px, 5vw, 72px)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
-          background: 'rgba(250, 249, 245, 0.85)',
+          background: 'rgba(250, 249, 245, 0.92)',
           borderBottom: '1px solid rgba(27, 67, 50, 0.07)',
           fontFamily: "'DM Sans', sans-serif",
         }}
@@ -473,6 +475,6 @@ export default function Navbar({ active = '' }) {
         </div>
       )}
       <SaleBar />
-    </>
+    </header>
   );
 }

@@ -82,12 +82,7 @@ export default function PublisherPage() {
     fetch(`/api/books?publisher=${encodeURIComponent(slugParam)}&all=1`)
       .then(r => r.json())
       .then(d => {
-        const list = [...(d.books || [])].sort((a, b) => {
-          const aOut = !a.comingSoon && a.inStock === false;
-          const bOut = !b.comingSoon && b.inStock === false;
-          if (aOut !== bOut) return aOut ? 1 : -1;
-          return 0;
-        });
+        const list = d.books || [];
         if (list[0]?.publisher) setPublisherName(list[0].publisher);
         setBooks(list); setLoading(false);
       })
@@ -95,7 +90,7 @@ export default function PublisherPage() {
   }, [slugParam]);
 
   return (
-    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>
+    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'clip'}}>
       <PageBackground subtle/>
 
       <Navbar active="books" />

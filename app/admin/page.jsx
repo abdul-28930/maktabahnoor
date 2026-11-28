@@ -1730,9 +1730,7 @@ export default function AdminPage() {
   }
 
   const filteredBooks = useMemo(()=>{
-    const list = books.filter(b=>!search||b.title?.toLowerCase().includes(search.toLowerCase())||b.author?.toLowerCase().includes(search.toLowerCase()));
-    // Out-of-stock books sink to the bottom of the admin table by default too.
-    return [...list].sort((a,b)=>(a.inStock?0:1)-(b.inStock?0:1));
+    return books.filter(b=>!search||b.title?.toLowerCase().includes(search.toLowerCase())||b.author?.toLowerCase().includes(search.toLowerCase()));
   },[books,search]);
   const totalBookPages = Math.max(1, Math.ceil(filteredBooks.length / BOOK_PAGE_SIZE));
   const pagedBooks = useMemo(()=>filteredBooks.slice((bookPage-1)*BOOK_PAGE_SIZE, bookPage*BOOK_PAGE_SIZE),[filteredBooks,bookPage]);
