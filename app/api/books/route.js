@@ -42,12 +42,8 @@ export async function GET(req) {
     if (author)    list = list.filter(b => splitAuthors(b.author).some(a => nameSlug(a) === nameSlug(author)));
     if (publisher) list = list.filter(b => nameSlug(b.publisher) === nameSlug(publisher));
     if (translator) list = list.filter(b => splitTranslators(b.translator).some(t => nameSlug(t) === nameSlug(translator)));
-    // Out-of-stock books sink to the bottom by default; coming soon & in-stock
-    // follow custom order (b.order) or newest-first.
+    // Books follow custom order (b.order) or newest-first.
     list = list.sort((a, b) => {
-      const aOut = ((a.stockCount ?? (a.inStock ? 1 : 0)) <= 0 && !a.comingSoon) ? 1 : 0;
-      const bOut = ((b.stockCount ?? (b.inStock ? 1 : 0)) <= 0 && !b.comingSoon) ? 1 : 0;
-      if (aOut !== bOut) return aOut - bOut;
       const aOrd = a.order ?? new Date(a.createdAt).getTime();
       const bOrd = b.order ?? new Date(b.createdAt).getTime();
       return aOrd - bOrd;

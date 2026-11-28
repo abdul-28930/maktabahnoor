@@ -342,13 +342,9 @@ function BooksContent() {
               || (selStock === 'out' && !b.inStock && !b.comingSoon));
     });
 
-    // Sort — out-of-stock books always sink to the very bottom.
+    // Sort — out-of-stock books appear normally alongside regular books.
     // In "Our Order" (custom), honor the admin reorder position directly.
     list = [...list].sort((a, b) => {
-      const aOut = (a.inStock === false && !a.comingSoon) ? 1 : 0;
-      const bOut = (b.inStock === false && !b.comingSoon) ? 1 : 0;
-      if (aOut !== bOut) return aOut - bOut;
-
       if (sortBy === 'custom') {
         const aOrd = a.order ?? new Date(a.createdAt).getTime();
         const bOrd = b.order ?? new Date(b.createdAt).getTime();
@@ -433,7 +429,7 @@ function BooksContent() {
   );
 
   return (
-    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>
+    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'clip'}}>
       <PageBackground subtle/>
 
       {/* NAV */}

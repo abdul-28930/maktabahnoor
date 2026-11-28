@@ -122,7 +122,7 @@ export default function AccessoryPageClient() {
   }
 
   return (
-    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden'}}>
+    <div style={{position:'relative',minHeight:'100vh',background:'#faf9f5',fontFamily:"'DM Sans',sans-serif",overflowX:'clip'}}>
       <PageBackground subtle/>
       <Navbar active="accessories" />
 

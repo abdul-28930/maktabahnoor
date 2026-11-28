@@ -267,7 +267,7 @@ export default function HomeClient({ featuredBooks = [], newArrivals = [], heroS
   const displayNew      = newArrivals.length  > 0 ? newArrivals  : PLACEHOLDER_BOOKS.map(b=>({...b,tags:['New Arrival']}));
 
   return (
-    <div ref={rootRef} style={{position:'relative',minHeight:'100vh',background:'#faf9f5',color:'#1a1712',fontFamily:"'DM Sans',sans-serif",overflowX:'hidden',animation:'pageFade .5s ease both'}}>
+    <div ref={rootRef} style={{position:'relative',minHeight:'100vh',background:'#faf9f5',color:'#1a1712',fontFamily:"'DM Sans',sans-serif",overflowX:'clip',animation:'pageFade .5s ease both'}}>
 
       {/* BG PATTERN */}
       <svg width="100%" style={{position:'fixed',left:0,top:-60,width:'100%',height:'calc(100% + 120px)',zIndex:0,pointerEvents:'none',animation:'patDrift 40s linear infinite'}} aria-hidden="true">
